@@ -5,10 +5,11 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(), // Register the ConfigModule here
+    ConfigModule.forRoot({ isGlobal: true }), // Register the ConfigModule here
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -19,7 +20,8 @@ import { User } from './users/entities/user.entity';
       entities: [User],
       synchronize: true,
     }),
-    UsersModule],
+    UsersModule,
+    UploadsModule],
   controllers: [AppController],
   providers: [AppService],
 })
