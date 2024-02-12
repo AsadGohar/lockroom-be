@@ -15,6 +15,10 @@ export class CreateUserDto {
   email: string;
 
   @IsNotEmpty()
+  @IsEmail()
+  sub: string;
+
+  @IsNotEmpty()
   @IsString()
   @IsIn(['admin', 'guest'])
   role: string;

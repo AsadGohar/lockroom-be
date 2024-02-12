@@ -7,6 +7,9 @@ export class User {
   id: string;
 
   @Column({ nullable: true })
+  sub: string;
+
+  @Column({ nullable: true })
   family_name: string;
 
   @Column({ nullable: true })
