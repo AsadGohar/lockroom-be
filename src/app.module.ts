@@ -19,6 +19,9 @@ import { UploadsModule } from './uploads/uploads.module';
       database: process.env.DB_DATABASE,
       entities: [User],
       synchronize: true,
+      ssl:{
+        rejectUnauthorized:false
+      }
     }),
     UsersModule,
     UploadsModule],
