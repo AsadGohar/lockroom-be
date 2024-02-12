@@ -13,7 +13,7 @@ export class UploadService {
   async upload(fileName: string, file: Buffer) {
     await this.s3Client.send(
       new PutObjectCommand({
-        Bucket: 'nestjs-uploader',
+        Bucket: 'lockroom',
         Key: fileName,
         Body: file,
       }),
