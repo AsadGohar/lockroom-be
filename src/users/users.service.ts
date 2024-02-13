@@ -18,7 +18,6 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     try {
-      
       const existingUser = await this.userRepository.findOne({
         where: { email: createUserDto.email },
       });
@@ -28,8 +27,10 @@ export class UsersService {
       }
       return await this.userRepository.save(createUserDto);
     } catch (error) {
-      console.log(error,'err')
-      throw new InternalServerErrorException(error.message || 'failed to create user');
+      console.log(error, 'err');
+      throw new InternalServerErrorException(
+        error.message || 'failed to create user',
+      );
     }
   }
 
@@ -41,8 +42,10 @@ export class UsersService {
     }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(where: any) {
+    return await this.userRepository.findOne({
+      where: where,
+    });
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
