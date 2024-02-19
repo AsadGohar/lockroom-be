@@ -21,13 +21,13 @@ import { Repository } from './repositories/entities/repository.entity';
       database: process.env.DB_DATABASE,
       entities: [User, Repository],
       synchronize: true,
-      ssl:{
-        rejectUnauthorized:false
-      }
+      // ssl:{
+      //   rejectUnauthorized:false
+      // },
+      ssl:false
     }),
     UsersModule,
     UploadsModule,
-    RepositoriesModule,
     RepositoriesModule],
   controllers: [AppController],
   providers: [AppService],

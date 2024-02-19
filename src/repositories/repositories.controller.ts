@@ -17,10 +17,10 @@ export class RepositoriesController {
   @Post('/create')
   create(
     @Body('name') name: string,
-    @Body('userId') userId: string,
+    @Body('sub') sub: string,
   ) {
     try {
-      return this.repositoriesService.create(name, userId, null);
+      return this.repositoriesService.create(name, sub, null);
     } catch (error) {
       console.log(error)
     }

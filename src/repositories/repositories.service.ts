@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UpdateRepositoryDto } from './dto/update-repository.dto';
 import { Repository as Repo } from './entities/repository.entity';
 import { UsersService } from '../users/users.service';
 
@@ -17,25 +16,41 @@ export class RepositoriesService {
     private readonly userService: UsersService,
   ) {}
 
-  async create(name: string, userId: string, parentRepositoryId?: string) {
-    const findRepo = await this.repoRepository.find({
+  async create(name: string, sub: string, parentRepositoryId?: string) {
+
+    //check if parent repo exists
+    const parentRepository = await this.repoRepository.findOne({
       where: {
-        name,
+        id: parentRepositoryId,
       },
     });
+    if (!parentRepository) throw new NotFoundException('parent repository found');
 
-    if (findRepo.length > 0)
-      throw new ConflictException('repository already exists with same name');
-    const user = await this.userService.findOne({
-      id: userId,
+    //check if child repos have duplicate name
+    const childRepos = await this.repoRepository.find({
+      where: {
+        parentRepositoryId,
+        name: name,
+      },
     });
+    if (childRepos.length > 0) throw new ConflictException('repository already exists with same name');
+
+    const user = await this.userService.findOne({
+      sub,
+    });
+
+    const treeIndex = parentRepository
+      ? `${parentRepository.tree_index}.${parentRepository.subrepositories.length + 1}`
+      : '1';
 
     if (!user) throw new NotFoundException('user not found');
-    return await this.repoRepository.save({
+    await this.repoRepository.save({
       name,
       parentRepositoryId,
+      tree_index: Number(treeIndex),
       users: [user],
     });
+    return await this.findAll();
   }
 
   async createSubRepo(
@@ -84,7 +99,7 @@ export class RepositoriesService {
         },
       },
     });
-    console.log(repos)
+    console.log(repos);
   }
 
   findOne(id: number) {
@@ -135,7 +150,7 @@ export class RepositoriesService {
         id: id,
       },
       {
-        is_deletd: true,
+        is_deleted: true,
       },
     );
   }

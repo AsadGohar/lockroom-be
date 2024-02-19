@@ -8,9 +8,10 @@ import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Repository, User ]), UsersModule
+    TypeOrmModule.forFeature([Repository, User]), UsersModule
   ],
   controllers: [RepositoriesController],
   providers: [RepositoriesService],
+  exports: [RepositoriesService]
 })
 export class RepositoriesModule {}

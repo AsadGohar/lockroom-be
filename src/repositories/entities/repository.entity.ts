@@ -26,13 +26,16 @@ export class Repository {
   parentRepositoryId: string;
 
   @Column({ nullable: true, default: false })
-  is_deletd: boolean;
+  is_deleted: boolean;
 
   @OneToMany(() => Repository, (repository) => repository.parentRepository)
   subrepositories: Repository[];
 
   @ManyToMany(() => User, (user) => user.repositories)
   users: User[];
+
+  @Column({ nullable: false })
+  tree_index: number;
 
   @BeforeInsert()
   addId() {
