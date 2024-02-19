@@ -29,12 +29,14 @@ export class UsersService {
       if (existingUser) {
         const payload = { user_id: existingUser.id, email: existingUser.email };
         const access_token = this.jwtService.sign(payload);
-        const folders =  await this.folderRepository.find({
-         where: {
-          users: existingUser
-         }
-        });
-        return { access_token, folders };
+
+        const query = await this.folderRepository
+        .createQueryBuilder('folder')
+        .leftJoinAndSelect('folder.users', 'user')
+        .where('user.id = :userId', { userId: existingUser.id })
+        .getMany();
+
+        return { access_token, folders: query, files_count: query.length };
       }
       const user = await this.userRepository.save(createUserDto);
       const payload = { user_id: user.id, email: user.email };
@@ -47,7 +49,7 @@ export class UsersService {
         users: [user],
       });
 
-      return { access_token, folders: [folder] };
+      return { access_token, folders: [folder], files_count: 1 };
     } catch (error) {
       console.log(error, 'err');
       throw new InternalServerErrorException(

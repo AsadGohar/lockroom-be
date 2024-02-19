@@ -69,8 +69,8 @@ export class FoldersService {
     } else {
       query.andWhere('folder.parentFolderId IS NULL');
     }
-
-    return query.getMany();
+    const data = await query.getMany();
+    return { folders: data, files_count: data.length };
   }
 
   async findAll() {
