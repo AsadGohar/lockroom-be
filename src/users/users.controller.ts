@@ -17,16 +17,16 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('/register')
-  create(
+  async create(
     @Body() createUserDto: CreateUserDto,
     @Res({ passthrough: true }) res,
   ) {
-    const token = this.usersService.create(createUserDto);
-    res.cookie('user_token', token, {
+    const data = await this.usersService.create(createUserDto);
+    res.cookie('sWTNNOCEN', data.access_token, {
       httpOnly:true,
       expires: new Date(Date.now() + 3600000),
     });
-    return {}
+    return { folders: data.folders}
   }
 
   @Get()

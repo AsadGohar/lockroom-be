@@ -6,8 +6,8 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { UploadsModule } from './uploads/uploads.module';
-import { RepositoriesModule } from './repositories/repositories.module';
-import { Repository } from './repositories/entities/repository.entity';
+import { FoldersModule } from './folders/folders.module';
+import { Folder } from './folders/entities/folder.entity';
 
 @Module({
   imports: [
@@ -19,7 +19,7 @@ import { Repository } from './repositories/entities/repository.entity';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      entities: [User, Repository],
+      entities: [User, Folder],
       synchronize: true,
       // ssl:{
       //   rejectUnauthorized:false
@@ -28,7 +28,7 @@ import { Repository } from './repositories/entities/repository.entity';
     }),
     UsersModule,
     UploadsModule,
-    RepositoriesModule],
+    FoldersModule],
   controllers: [AppController],
   providers: [AppService],
 })

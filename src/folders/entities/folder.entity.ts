@@ -2,40 +2,47 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  Unique,
   OneToMany,
   ManyToOne,
   ManyToMany,
   BeforeInsert,
+  CreateDateColumn,
+  UpdateDateColumn
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 
 @Entity()
-export class Repository {
+export class Folder {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ nullable: false })
   name: string;
 
-  @ManyToOne(() => Repository, { nullable: true, onDelete: 'CASCADE' })
-  parentRepository: Repository;
+  @ManyToOne(() => Folder, { nullable: true, onDelete: 'CASCADE' })
+  parentFolder: Folder;
 
   @Column({ nullable: true })
-  parentRepositoryId: string;
+  parentFolderId: string;
 
   @Column({ nullable: true, default: false })
   is_deleted: boolean;
 
-  @OneToMany(() => Repository, (repository) => repository.parentRepository)
-  subrepositories: Repository[];
+  @OneToMany(() => Folder, (Folder) => Folder.parentFolder)
+  subFolders: Folder[];
 
-  @ManyToMany(() => User, (user) => user.repositories)
+  @ManyToMany(() => User, (user) => user.folders)
   users: User[];
 
   @Column({ nullable: false })
   tree_index: number;
+
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
 
   @BeforeInsert()
   addId() {

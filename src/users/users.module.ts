@@ -5,10 +5,7 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { RepositoriesModule } from 'src/repositories/repositories.module';
-import { Repository } from 'src/repositories/entities/repository.entity';
-import { RepositoriesService } from 'src/repositories/repositories.service';
-
+import { Folder } from 'src/folders/entities/folder.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -16,11 +13,11 @@ import { RepositoriesService } from 'src/repositories/repositories.service';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
-    TypeOrmModule.forFeature([User, Repository]),
-    // RepositoriesModule
+    TypeOrmModule.forFeature([User, Folder]),
   ],
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService]
 })
+
 export class UsersModule {}

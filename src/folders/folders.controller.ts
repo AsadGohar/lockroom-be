@@ -7,12 +7,12 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
-import { RepositoriesService } from './repositories.service';
+import { FoldersService } from './folders.service';
 import { UpdateRepositoryDto } from './dto/update-repository.dto';
 
-@Controller('repositories')
-export class RepositoriesController {
-  constructor(private readonly repositoriesService: RepositoriesService) {}
+@Controller('folders')
+export class FoldersController {
+  constructor(private readonly foldersService: FoldersService) {}
 
   @Post('/create')
   create(
@@ -20,7 +20,7 @@ export class RepositoriesController {
     @Body('sub') sub: string,
   ) {
     try {
-      return this.repositoriesService.create(name, sub, null);
+      return this.foldersService.create(name, sub, null);
     } catch (error) {
       console.log(error)
     }
@@ -28,17 +28,17 @@ export class RepositoriesController {
 
   @Get()
   findAll() {
-    return this.repositoriesService.findAll();
+    return this.foldersService.findAll();
   }
 
   @Get(':id')
   findAllByUserId(@Param('id') id: string) {
-    return this.repositoriesService.findAllByUserId(id);
+    return this.foldersService.findAllByUserId(id);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.repositoriesService.findOne(+id);
+    return this.foldersService.findOne(+id);
   }
 
   @Patch(':id')
@@ -46,11 +46,11 @@ export class RepositoriesController {
     @Param('id') id: string,
     @Body() updateRepositoryDto: UpdateRepositoryDto,
   ) {
-    // return this.repositoriesService.update(id, updateRepositoryDto);
+    // return this.foldersService.update(id, updateRepositoryDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.repositoriesService.remove(id);
+    return this.foldersService.remove(id);
   }
 }

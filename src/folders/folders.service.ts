@@ -5,48 +5,48 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Repository as Repo } from './entities/repository.entity';
+import { Folder } from './entities/folder.entity';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
-export class RepositoriesService {
+export class FoldersService {
   constructor(
-    @InjectRepository(Repo)
-    private readonly repoRepository: Repository<Repo>,
+    @InjectRepository(Folder)
+    private readonly repoRepository: Repository<Folder>,
     private readonly userService: UsersService,
   ) {}
 
-  async create(name: string, sub: string, parentRepositoryId?: string) {
+  async create(name: string, sub: string, parentFolderId?: string) {
 
     //check if parent repo exists
     const parentRepository = await this.repoRepository.findOne({
       where: {
-        id: parentRepositoryId,
+        id: parentFolderId,
       },
     });
-    if (!parentRepository) throw new NotFoundException('parent repository found');
+    if (!parentRepository) throw new NotFoundException('parent folder found');
 
     //check if child repos have duplicate name
     const childRepos = await this.repoRepository.find({
       where: {
-        parentRepositoryId,
+        parentFolderId,
         name: name,
       },
     });
-    if (childRepos.length > 0) throw new ConflictException('repository already exists with same name');
+    if (childRepos.length > 0) throw new ConflictException('folder already exists with same name');
 
     const user = await this.userService.findOne({
       sub,
     });
 
     const treeIndex = parentRepository
-      ? `${parentRepository.tree_index}.${parentRepository.subrepositories.length + 1}`
+      ? `${parentRepository.tree_index}.${parentRepository.subFolders.length + 1}`
       : '1';
 
     if (!user) throw new NotFoundException('user not found');
     await this.repoRepository.save({
       name,
-      parentRepositoryId,
+      parentFolderId,
       tree_index: Number(treeIndex),
       users: [user],
     });
@@ -56,20 +56,20 @@ export class RepositoriesService {
   async createSubRepo(
     name: string,
     userId: string,
-    parentRepositoryId?: string,
+    parentFolderId?: string,
   ) {
     const findRepos = await this.repoRepository.find({
       where: {
-        parentRepositoryId,
+        parentFolderId,
       },
     });
     if (findRepos.length == 0)
-      throw new NotFoundException('parent repository found');
+      throw new NotFoundException('parent folder found');
     if (findRepos.length > 0) {
       const isDuplicate = findRepos.find((repo) => repo.name == name);
 
       if (isDuplicate)
-        throw new ConflictException('repository already exists with same name');
+        throw new ConflictException('folder already exists with same name');
 
       const user = await this.userService.findOne({
         id: userId,
@@ -79,11 +79,11 @@ export class RepositoriesService {
 
       return await this.repoRepository.save({
         name,
-        parentRepositoryId,
+        parentFolderId,
         users: [user],
       });
     } else {
-      throw new NotFoundException('parent repository not found');
+      throw new NotFoundException('parent folder not found');
     }
   }
 
@@ -103,39 +103,39 @@ export class RepositoriesService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} repository`;
+    return `This action returns a #${id} folder`;
   }
 
   async update(
     prev_name: string,
     new_name: string,
-    parentRepositoryId?: string,
+    parentFolderId?: string,
   ) {
     const findRepo = await this.repoRepository.find({
       where: {
-        parentRepositoryId,
+        parentFolderId,
         name: prev_name,
       },
     });
 
     if (findRepo.length == 0)
-      throw new NotFoundException('repository not found');
+      throw new NotFoundException('folder not found');
     if (findRepo.length > 1)
-      throw new ConflictException('duplicate repository found with old name');
+      throw new ConflictException('duplicate folder found with old name');
 
     const findRepoWithNewName = await this.repoRepository.find({
       where: {
-        parentRepositoryId,
+        parentFolderId,
         name: new_name,
       },
     });
 
     if (findRepoWithNewName.length > 0)
-      throw new ConflictException('duplicate repository found with new name');
+      throw new ConflictException('duplicate folder found with new name');
 
     await this.repoRepository.update(
       {
-        parentRepositoryId,
+        parentFolderId,
         name: prev_name,
       },
       {
