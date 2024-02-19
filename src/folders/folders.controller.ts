@@ -21,7 +21,7 @@ export class FoldersController {
     @Body('parentFolderId') parentFolderId: string,
   ) {
     try {
-      return this.foldersService.create(name, sub, parentFolderId);
+      return this.foldersService.create(name, sub, parentFolderId)
     } catch (error) {
       console.log(error)
     }
