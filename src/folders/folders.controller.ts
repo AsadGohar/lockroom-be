@@ -18,9 +18,10 @@ export class FoldersController {
   create(
     @Body('name') name: string,
     @Body('sub') sub: string,
+    @Body('parentFolderId') parentFolderId: string,
   ) {
     try {
-      return this.foldersService.create(name, sub, null);
+      return this.foldersService.create(name, sub, parentFolderId);
     } catch (error) {
       console.log(error)
     }

@@ -43,7 +43,7 @@ export class UsersService {
       const folder = await this.folderRepository.save({
         name: 'Home',
         parentFolderId: null,
-        tree_index: Number(1),
+        tree_index: '1',
         users: [user],
       });
 

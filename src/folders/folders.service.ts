@@ -12,87 +12,73 @@ import { UsersService } from '../users/users.service';
 export class FoldersService {
   constructor(
     @InjectRepository(Folder)
-    private readonly repoRepository: Repository<Folder>,
+    private readonly foldersRepository: Repository<Folder>,
     private readonly userService: UsersService,
   ) {}
 
   async create(name: string, sub: string, parentFolderId?: string) {
-
     //check if parent repo exists
-    const parentRepository = await this.repoRepository.findOne({
+    const parentFolder = await this.foldersRepository.findOne({
       where: {
         id: parentFolderId,
       },
     });
-    if (!parentRepository) throw new NotFoundException('parent folder found');
+    if (!parentFolder) throw new NotFoundException('parent folder found');
 
     //check if child repos have duplicate name
-    const childRepos = await this.repoRepository.find({
+    const childFoldersWithSameName = await this.foldersRepository.find({
       where: {
         parentFolderId,
         name: name,
       },
     });
-    if (childRepos.length > 0) throw new ConflictException('folder already exists with same name');
+    if (childFoldersWithSameName.length > 0)
+      throw new ConflictException('folder already exists with same name');
 
     const user = await this.userService.findOne({
       sub,
     });
 
-    const treeIndex = parentRepository
-      ? `${parentRepository.tree_index}.${parentRepository.subFolders.length + 1}`
-      : '1';
-
-    if (!user) throw new NotFoundException('user not found');
-    await this.repoRepository.save({
-      name,
-      parentFolderId,
-      tree_index: Number(treeIndex),
-      users: [user],
-    });
-    return await this.findAll();
-  }
-
-  async createSubRepo(
-    name: string,
-    userId: string,
-    parentFolderId?: string,
-  ) {
-    const findRepos = await this.repoRepository.find({
+    const allChildFolders = await this.foldersRepository.find({
       where: {
         parentFolderId,
       },
     });
-    if (findRepos.length == 0)
-      throw new NotFoundException('parent folder found');
-    if (findRepos.length > 0) {
-      const isDuplicate = findRepos.find((repo) => repo.name == name);
 
-      if (isDuplicate)
-        throw new ConflictException('folder already exists with same name');
+    const treeIndex = `${parentFolder.tree_index}.`;
+    const next =
+      allChildFolders.length > 0 ? `${allChildFolders.length + 1}` : 1;
 
-      const user = await this.userService.findOne({
-        id: userId,
-      });
+    if (!user) throw new NotFoundException('user not found');
+    await this.foldersRepository.save({
+      name,
+      parentFolderId,
+      tree_index: treeIndex + next,
+      users: [user],
+    });
 
-      if (!user) throw new NotFoundException('user not found');
+    const query = this.foldersRepository
+      .createQueryBuilder('folder')
+      .leftJoinAndSelect('folder.users', 'user')
+      .where('user.id = :userId', { userId: user.id });
 
-      return await this.repoRepository.save({
-        name,
+    if (parentFolderId) {
+      query.andWhere('folder.parentFolderId = :parentFolderId', {
         parentFolderId,
-        users: [user],
       });
     } else {
-      throw new NotFoundException('parent folder not found');
+      query.andWhere('folder.parentFolderId IS NULL');
     }
+
+    return query.getMany();
   }
 
   async findAll() {
-    const repos = await this.repoRepository.find();
+    const repos = await this.foldersRepository.find();
   }
 
   async findAllByUserId(userId: string) {
-    const repos = await this.repoRepository.find({
+    const repos = await this.foldersRepository.find({
       where: {
         users: {
           id: userId,
@@ -106,24 +92,19 @@ export class FoldersService {
     return `This action returns a #${id} folder`;
   }
 
-  async update(
-    prev_name: string,
-    new_name: string,
-    parentFolderId?: string,
-  ) {
-    const findRepo = await this.repoRepository.find({
+  async update(prev_name: string, new_name: string, parentFolderId?: string) {
+    const findRepo = await this.foldersRepository.find({
       where: {
         parentFolderId,
         name: prev_name,
       },
     });
 
-    if (findRepo.length == 0)
-      throw new NotFoundException('folder not found');
+    if (findRepo.length == 0) throw new NotFoundException('folder not found');
     if (findRepo.length > 1)
       throw new ConflictException('duplicate folder found with old name');
 
-    const findRepoWithNewName = await this.repoRepository.find({
+    const findRepoWithNewName = await this.foldersRepository.find({
       where: {
         parentFolderId,
         name: new_name,
@@ -133,7 +114,7 @@ export class FoldersService {
     if (findRepoWithNewName.length > 0)
       throw new ConflictException('duplicate folder found with new name');
 
-    await this.repoRepository.update(
+    await this.foldersRepository.update(
       {
         parentFolderId,
         name: prev_name,
@@ -145,7 +126,7 @@ export class FoldersService {
   }
 
   async remove(id: string) {
-    return await this.repoRepository.update(
+    return await this.foldersRepository.update(
       {
         id: id,
       },

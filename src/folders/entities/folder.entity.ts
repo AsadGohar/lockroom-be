@@ -30,13 +30,13 @@ export class Folder {
   is_deleted: boolean;
 
   @OneToMany(() => Folder, (Folder) => Folder.parentFolder)
-  subFolders: Folder[];
+  sub_folders: Folder[];
 
   @ManyToMany(() => User, (user) => user.folders)
   users: User[];
 
   @Column({ nullable: false })
-  tree_index: number;
+  tree_index: string;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
