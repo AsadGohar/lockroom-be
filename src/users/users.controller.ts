@@ -26,7 +26,7 @@ export class UsersController {
       httpOnly:true,
       expires: new Date(Date.now() + 3600000),
     });
-    return { folders: data.folders, access_token: data.access_token}
+    return { folders: data.folders, access_token: data.access_token, files_count:data.files_count}
   }
 
   @Get()

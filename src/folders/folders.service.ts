@@ -50,7 +50,7 @@ export class FoldersService {
       allChildFolders.length > 0 ? `${allChildFolders.length + 1}` : 1;
 
     if (!user) throw new NotFoundException('user not found');
-    await this.foldersRepository.save({
+    const new_folder = await this.foldersRepository.save({
       name,
       parentFolderId,
       tree_index: treeIndex + next,
@@ -70,7 +70,7 @@ export class FoldersService {
       query.andWhere('folder.parentFolderId IS NULL');
     }
     const data = await query.getMany();
-    return { folders: data, files_count: data.length };
+    return { new_folder, files_count: data.length };
   }
 
   async findAll() {
