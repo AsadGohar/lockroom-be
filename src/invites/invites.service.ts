@@ -24,7 +24,7 @@ export class InvitesService {
   async findBySenderId(sender_id: string) {
     return this.inviteRepository
       .createQueryBuilder('invite')
-      .leftJoin('invite.sender', 'sender')
+      .leftJoinAndSelect('invite.sender', 'sender')
       .where('sender.id = :userId', { userId: sender_id })
       .getMany();
   }
