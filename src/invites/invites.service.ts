@@ -35,14 +35,15 @@ export class InvitesService {
         id: sender_id,
       },
     });
-    console.log(findUser,'user')
+    console.log(findUser, 'user');
     const invites = emails.map((email) => {
       return {
         sender: findUser,
         sent_to: email,
       };
     });
-    return await this.inviteRepository.insert(invites);
+    const invitesDB = await this.inviteRepository.insert(invites);
+    return { user: findUser, invites: invitesDB };
   }
 
   findOne(id: number) {
