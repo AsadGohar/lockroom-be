@@ -5,7 +5,6 @@ import {
   UnauthorizedException,
   ForbiddenException,
 } from '@nestjs/common';
-
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -15,11 +14,11 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const request = context.switchToHttp().getRequest();
-      const { sWTNNOCEN }: any = request.cookie;
-      if (!sWTNNOCEN || sWTNNOCEN.trim() === '') {
-        throw new UnauthorizedException('Please provide token');
+      const { authorization }: any = request.headers;
+      if (!authorization || authorization.trim() === '') {
+        throw new UnauthorizedException('token not found');
       }
-      const authToken = sWTNNOCEN.replace(/bearer/gim, '').trim();
+      const authToken = authorization.replace(/bearer/gim, '').trim();
       const resp = await this.jwtService.verify(authToken, {
         secret: process.env.JWT_SECRET,
       });

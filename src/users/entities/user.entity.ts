@@ -1,7 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, ManyToMany, JoinTable, CreateDateColumn,  OneToMany, UpdateDateColumn } from 'typeorm';
 import { Folder } from '../../folders/entities/folder.entity';
 import { v4 as uuidv4 } from 'uuid';
-
+import { Invite } from '../../invites/entities/invite.entity';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -52,6 +52,10 @@ export class User {
   @ManyToMany(() => Folder, folder => folder.users)
   @JoinTable()
   folders: Folder[];
+
+  @OneToMany(() => Invite, (invite) => invite.sender)
+  @JoinTable()
+  sent_invites: Invite[];
 
   @BeforeInsert()
   addId() {

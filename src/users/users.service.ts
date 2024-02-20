@@ -45,7 +45,7 @@ export class UsersService {
         .where('user.id = :userId', { userId: existingUser.id })
         .groupBy('folder.id, user.id')  // Include 'user.id' in the GROUP BY clause
         .getRawMany();
-        return { access_token, folders: query, files_count: query.length, sub_folder_count: query1 };
+        return { access_token, folders: query, files_count: query.length, sub_folder_count: query1, id:existingUser.id };
       }
       const user = await this.userRepository.save(createUserDto);
       const payload = { user_id: user.id, email: user.email };
@@ -58,7 +58,7 @@ export class UsersService {
         users: [user],
       });
 
-      return { access_token, folders: [folder], files_count: 1 };
+      return { access_token, folders: [folder], files_count: 1, id: user.id };
     } catch (error) {
       console.log(error, 'err');
       throw new InternalServerErrorException(
