@@ -25,7 +25,12 @@ export class UsersController {
     res.cookie('sWTNNOCEN', data.access_token, {
       expires: new Date(Date.now() + 3600000),
     });
-    return { folders: data.folders, access_token: data.access_token, sub_folder_count:data.sub_folder_count}
+    return {
+      folders: data.folders,
+      access_token: data.access_token,
+      sub_folder_count: data.sub_folder_count,
+      id: data.id,
+    };
   }
 
   @Get()

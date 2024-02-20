@@ -8,6 +8,11 @@ import { User } from './users/entities/user.entity';
 import { UploadsModule } from './uploads/uploads.module';
 import { FoldersModule } from './folders/folders.module';
 import { Folder } from './folders/entities/folder.entity';
+import { MailController } from './mail/mail.controller';
+import { EmailService } from './email/email.service';
+import { InvitesModule } from './invites/invites.module';
+import { Invite } from './invites/entities/invite.entity';
+import { AuthGuard } from './guards/auth.guard';
 
 @Module({
   imports: [
@@ -19,7 +24,7 @@ import { Folder } from './folders/entities/folder.entity';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      entities: [User, Folder],
+      entities: [User, Folder, Invite],
       synchronize: true,
       ssl:{
         rejectUnauthorized:false
@@ -28,8 +33,9 @@ import { Folder } from './folders/entities/folder.entity';
     }),
     UsersModule,
     UploadsModule,
-    FoldersModule],
-  controllers: [AppController],
-  providers: [AppService],
+    FoldersModule,
+    InvitesModule],
+  controllers: [AppController, MailController],
+  providers: [AppService, EmailService],
 })
 export class AppModule {}
