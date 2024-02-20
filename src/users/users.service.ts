@@ -27,16 +27,25 @@ export class UsersService {
       });
 
       if (existingUser) {
+        console.log('in exixtsing')
         const payload = { user_id: existingUser.id, email: existingUser.email };
         const access_token = this.jwtService.sign(payload);
 
         const query = await this.folderRepository
+          .createQueryBuilder('folder')
+          .leftJoinAndSelect('folder.users', 'user')
+          .where('user.id = :userId', { userId: existingUser.id })
+          .getMany();
+
+        const query1 = await this.folderRepository
         .createQueryBuilder('folder')
         .leftJoinAndSelect('folder.users', 'user')
+        .leftJoin('folder.sub_folders', 'sub_folder')
+        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
         .where('user.id = :userId', { userId: existingUser.id })
-        .getMany();
-
-        return { access_token, folders: query, files_count: query.length };
+        .groupBy('folder.id, user.id')  // Include 'user.id' in the GROUP BY clause
+        .getRawMany();
+        return { access_token, folders: query, files_count: query.length, sub_folder_count: query1 };
       }
       const user = await this.userRepository.save(createUserDto);
       const payload = { user_id: user.id, email: user.email };
