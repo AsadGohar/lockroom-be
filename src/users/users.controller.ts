@@ -23,7 +23,6 @@ export class UsersController {
   ) {
     const data = await this.usersService.create(createUserDto);
     res.cookie('sWTNNOCEN', data.access_token, {
-      httpOnly:true,
       expires: new Date(Date.now() + 3600000),
     });
     return { folders: data.folders, access_token: data.access_token, sub_folder_count:data.sub_folder_count}
