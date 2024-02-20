@@ -20,7 +20,9 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException('Please provide token');
       }
       const authToken = sWTNNOCEN.replace(/bearer/gim, '').trim();
-      const resp = await this.jwtService.verify(authToken)
+      const resp = await this.jwtService.verify(authToken, {
+        secret: process.env.JWT_SECRET,
+      });
       request.decodedData = resp;
       return true;
     } catch (error) {
