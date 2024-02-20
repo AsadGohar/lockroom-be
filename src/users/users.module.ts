@@ -4,13 +4,20 @@ import { User } from './entities/user.entity'
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { ConfigModule } from '@nestjs/config';
-
+import { JwtModule } from '@nestjs/jwt';
+import { Folder } from 'src/folders/entities/folder.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    TypeOrmModule.forFeature([User]),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '1h' },
+    }),
+    TypeOrmModule.forFeature([User, Folder]),
   ],
   controllers: [UsersController],
   providers: [UsersService],
+  exports: [UsersService]
 })
+
 export class UsersModule {}
