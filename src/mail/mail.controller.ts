@@ -29,7 +29,7 @@ export class MailController {
           from:
             String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
           text: 'Hello',
-          html: inviteTemplate('Fayiz'),
+          html: inviteTemplate(findUser.full_name),
         };
         return this.emailService.send(mail);
       });

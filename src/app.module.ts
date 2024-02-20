@@ -26,10 +26,10 @@ import { AuthGuard } from './guards/auth.guard';
       database: process.env.DB_DATABASE,
       entities: [User, Folder, Invite],
       synchronize: true,
-      ssl:{
-        rejectUnauthorized:false
-      },
-      // ssl:false
+      // ssl:{
+      //   rejectUnauthorized:false
+      // },
+      ssl:false
     }),
     UsersModule,
     UploadsModule,

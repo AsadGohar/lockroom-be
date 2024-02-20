@@ -57,10 +57,19 @@ export class FoldersService {
       users: [user],
     });
 
+    const new_folder_1 = {
+      ...new_folder,
+      folder_name: new_folder.name,
+      folder_parentFolderId: new_folder.parentFolderId,
+      folder_tree_index: new_folder.tree_index,
+      folder_createdAt : new_folder.createdAt,
+      folder_id: new_folder.id
+    }
+
     const query = this.foldersRepository
       .createQueryBuilder('folder')
       .leftJoinAndSelect('folder.users', 'user')
-      .where('user.id = :userId', { userId: user.id });
+      .where('user.id = :userId', { userId: user.id});
 
     if (parentFolderId) {
       query.andWhere('folder.parentFolderId = :parentFolderId', {
@@ -70,7 +79,7 @@ export class FoldersService {
       query.andWhere('folder.parentFolderId IS NULL');
     }
     const data = await query.getMany();
-    return { new_folder, files_count: data.length };
+    return { new_folder: new_folder_1, files_count: data.length };
   }
 
   async findAll() {
