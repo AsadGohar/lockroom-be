@@ -21,10 +21,10 @@ import { Folder } from './folders/entities/folder.entity';
       database: process.env.DB_DATABASE,
       entities: [User, Folder],
       synchronize: true,
-      // ssl:{
-      //   rejectUnauthorized:false
-      // },
-      ssl:false
+      ssl:{
+        rejectUnauthorized:false
+      },
+      // ssl:false
     }),
     UsersModule,
     UploadsModule,

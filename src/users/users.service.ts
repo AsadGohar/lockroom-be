@@ -43,7 +43,8 @@ export class UsersService {
         .leftJoin('folder.sub_folders', 'sub_folder')
         .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
         .where('user.id = :userId', { userId: existingUser.id })
-        .groupBy('folder.id, user.id')  // Include 'user.id' in the GROUP BY clause
+        .groupBy('folder.id, user.id')
+        .orderBy('folder.createdAt', 'ASC')  // Include 'user.id' in the GROUP BY clause
         .getRawMany();
         return { access_token, folders: query, files_count: query.length, sub_folder_count: query1 };
       }
