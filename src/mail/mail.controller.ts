@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import { EmailService } from 'src/email/email.service';
 // import { AuthGuard } from 'src/guards/auth.guard';
 import { InvitesService } from 'src/invites/invites.service';
@@ -21,6 +21,7 @@ export class MailController {
   ) {
     try {
       console.log(emails, sender_id);
+      if(!sender_id) throw new UnauthorizedException('Sender Id is Missing')
       const findUser = await this.userService.findOne({ id: sender_id });
       const sendEmails = emails.map((email: string) => {
         const mail = {
