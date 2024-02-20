@@ -42,6 +42,7 @@ export class InvitesService {
         sent_to: email,
       };
     });
+    // console.log(invites, 'invites')
     const invitesDB = await this.inviteRepository.insert(invites);
     return { user: findUser, invites: invitesDB };
   }

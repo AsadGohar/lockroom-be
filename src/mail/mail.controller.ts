@@ -20,7 +20,7 @@ export class MailController {
     @Body('sender_id') sender_id: string,
   ) {
     try {
-      console.log(emails);
+      console.log(emails, sender_id);
       const findUser = await this.userService.findOne({ id: sender_id });
       const sendEmails = emails.map((email: string) => {
         const mail = {
