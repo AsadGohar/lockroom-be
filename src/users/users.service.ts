@@ -44,7 +44,7 @@ export class UsersService {
         .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
         .where('user.id = :userId', { userId: existingUser.id })
         .groupBy('folder.id, user.id')
-        .orderBy('folder.createdAt', 'ASC')  // Include 'user.id' in the GROUP BY clause
+        .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
         return { access_token, folders: query, files_count: query.length, sub_folder_count: query1, id:existingUser.id };
       }
@@ -59,7 +59,17 @@ export class UsersService {
         users: [user],
       });
 
-      return { access_token, folders: [folder], files_count: 1, id: user.id };
+      const query1 = await this.folderRepository
+        .createQueryBuilder('folder')
+        .leftJoinAndSelect('folder.users', 'user')
+        .leftJoin('folder.sub_folders', 'sub_folder')
+        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
+        .where('user.id = :userId', { userId: user.id })
+        .groupBy('folder.id, user.id')
+        .orderBy('folder.createdAt', 'ASC')
+        .getRawMany();
+
+      return { access_token, folders: [folder], files_count: 1, id: user.id , sub_folder_count: query1 };
     } catch (error) {
       console.log(error, 'err');
       throw new InternalServerErrorException(
