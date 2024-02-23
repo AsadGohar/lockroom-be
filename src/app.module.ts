@@ -13,6 +13,10 @@ import { EmailService } from './email/email.service';
 import { InvitesModule } from './invites/invites.module';
 import { Invite } from './invites/entities/invite.entity';
 import { AuthGuard } from './guards/auth.guard';
+import { PermissionModule } from './permission/permission.module';
+import { GroupsModule } from './groups/groups.module';
+import { Permission } from './permission/entities/permission.entity';
+import { Group } from './groups/entities/group.entity';
 
 @Module({
   imports: [
@@ -24,17 +28,19 @@ import { AuthGuard } from './guards/auth.guard';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      entities: [User, Folder, Invite],
+      entities: [User, Folder, Invite, Permission, Group],
       synchronize: true,
-      ssl:{
-        rejectUnauthorized:false
-      },
-      // ssl:false
+      // ssl:{
+      //   rejectUnauthorized:false
+      // },
+      ssl:false
     }),
     UsersModule,
     UploadsModule,
     FoldersModule,
-    InvitesModule],
+    InvitesModule,
+    PermissionModule,
+    GroupsModule],
   controllers: [AppController, MailController],
   providers: [AppService, EmailService],
 })
