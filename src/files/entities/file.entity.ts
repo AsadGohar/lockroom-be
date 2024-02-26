@@ -4,28 +4,25 @@ import {
   Column,
   OneToMany,
   ManyToOne,
-  ManyToMany,
   BeforeInsert,
   CreateDateColumn,
-  UpdateDateColumn,
-  JoinTable
+  UpdateDateColumn
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
-import { File } from 'src/files/entities/file.entity';
+import { Folder } from 'src/folders/entities/folder.entity';
+import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
+
 @Entity()
-export class Folder {
+export class File {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ nullable: false })
   name: string;
 
-  @ManyToOne(() => Folder, { nullable: true, onDelete: 'CASCADE' })
-  parentFolder: Folder;
-
-  @Column({ nullable: true })
-  parentFolderId: string;
+  @ManyToOne(() => Folder, folder => folder.files , { nullable: true, onDelete: 'CASCADE' })
+  folder: Folder;
 
   @Column({ nullable: true, default: false })
   is_deleted: boolean;
@@ -33,14 +30,11 @@ export class Folder {
   @Column({ nullable: false })
   tree_index: string;
 
-  @OneToMany(() => Folder, (Folder) => Folder.parentFolder)
-  sub_folders: Folder[];
+  @ManyToOne(() => User, user => user.files)
+  user: User;
 
-  @OneToMany(() => File, file => file.folder)
-  files: File[];
-
-  @ManyToMany(() => User, (user) => user.folders)
-  users: User[]
+  @OneToMany(() => FilesPermissions, fp => fp.permission)
+  FilesPermissions: FilesPermissions[];
   
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

@@ -27,7 +27,6 @@ export class UsersService {
       });
 
       if (existingUser) {
-        console.log('in exixtsing')
         const payload = { user_id: existingUser.id, email: existingUser.email };
         const access_token = this.jwtService.sign(payload);
 
@@ -38,15 +37,22 @@ export class UsersService {
           .getMany();
 
         const query1 = await this.folderRepository
-        .createQueryBuilder('folder')
-        .leftJoinAndSelect('folder.users', 'user')
-        .leftJoin('folder.sub_folders', 'sub_folder')
-        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-        .where('user.id = :userId', { userId: existingUser.id })
-        .groupBy('folder.id, user.id')
-        .orderBy('folder.createdAt', 'ASC')
-        .getRawMany();
-        return { access_token, folders: query, files_count: query.length, sub_folder_count: query1, id:existingUser.id };
+          .createQueryBuilder('folder')
+          .leftJoinAndSelect('folder.users', 'user')
+          .leftJoin('folder.sub_folders', 'sub_folder')
+          .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
+          .where('user.id = :userId', { userId: existingUser.id })
+          .groupBy('folder.id, user.id')
+          .orderBy('folder.createdAt', 'ASC')
+          .getRawMany();
+          
+        return {
+          access_token,
+          folders: query,
+          files_count: query.length,
+          sub_folder_count: query1,
+          id: existingUser.id,
+        };
       }
       const user = await this.userRepository.save(createUserDto);
       const payload = { user_id: user.id, email: user.email };
@@ -69,7 +75,13 @@ export class UsersService {
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
-      return { access_token, folders: [folder], files_count: 1, id: user.id , sub_folder_count: query1 };
+      return {
+        access_token,
+        folders: [folder],
+        files_count: 1,
+        id: user.id,
+        sub_folder_count: query1,
+      };
     } catch (error) {
       console.log(error, 'err');
       throw new InternalServerErrorException(

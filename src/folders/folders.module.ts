@@ -3,8 +3,8 @@ import { FoldersService } from './folders.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Folder } from './entities/folder.entity';
 import { FoldersController } from './folders.controller';
-import { User } from 'src/users/entities/user.entity';
-import { UsersModule } from 'src/users/users.module';
+import { User } from '../users/entities/user.entity';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [

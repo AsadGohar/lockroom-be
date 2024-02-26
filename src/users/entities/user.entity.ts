@@ -1,7 +1,20 @@
-import { Entity, Column, PrimaryGeneratedColumn, BeforeInsert, ManyToMany, JoinTable, CreateDateColumn,  OneToMany, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  BeforeInsert,
+  ManyToMany,
+  JoinTable,
+  CreateDateColumn,
+  ManyToOne,
+  OneToMany,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Folder } from '../../folders/entities/folder.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { Invite } from '../../invites/entities/invite.entity';
+import { Group } from '../..//groups/entities/group.entity';
+import { File } from 'src/files/entities/file.entity';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -43,19 +56,25 @@ export class User {
   @Column({ default: '' })
   display_picture_url: string;
 
+  @ManyToMany(() => Folder, (folder) => folder.users)
+  @JoinTable()
+  folders: Folder[];
+
+  @ManyToOne(() => Group, (group) => group.users)
+  group: Group;
+
+  @OneToMany(() => Invite, (invite) => invite.sender)
+  @JoinTable()
+  sent_invites: Invite[];
+
+  @OneToMany(() => File, file => file.user)
+  files: File[];
+  
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedAt: Date;
-
-  @ManyToMany(() => Folder, folder => folder.users)
-  @JoinTable()
-  folders: Folder[];
-
-  @OneToMany(() => Invite, (invite) => invite.sender)
-  @JoinTable()
-  sent_invites: Invite[];
 
   @BeforeInsert()
   addId() {
