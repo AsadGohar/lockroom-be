@@ -5,17 +5,10 @@ import {
   BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne, 
-  ManyToMany,
-  JoinTable,
   OneToMany
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { Folder } from '../../folders/entities/folder.entity';
-import { User } from '../..//users/entities/user.entity';
-import { Permission } from '../../permission/entities/permission.entity';
-Permission
-
+import { User } from '../../users/entities/user.entity';
 @Entity()
 export class Group {
   @PrimaryGeneratedColumn('uuid')
@@ -24,15 +17,8 @@ export class Group {
   @Column({ nullable: false })
   name: string;
 
-  @OneToMany(() => Folder, folder => folder.group)
-  folders: Folder[];
-
   @OneToMany(() => User, user => user.group)
   users: User[];
-
-  @ManyToMany(() => Permission, permission => permission.groups)
-  @JoinTable()
-  permissions: Permission[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

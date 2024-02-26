@@ -144,4 +144,84 @@ export class FoldersService {
       },
     );
   }
+
+  async createFolderWithDefaultPermissions(name: string, sub: string, parentFolderId?: string) {
+
+    //check if parent repo exists
+    const parentFolder = await this.foldersRepository.findOne({
+      where: {
+        id: parentFolderId,
+      },
+    });
+    if (!parentFolder) throw new NotFoundException('parent folder found');
+
+    //check if child repos have duplicate name
+    const childFoldersWithSameName = await this.foldersRepository.find({
+      where: {
+        parentFolderId,
+        name: name,
+      },
+    });
+    if (childFoldersWithSameName.length > 0)
+      throw new ConflictException('folder already exists with same name');
+
+    const user = await this.userService.findOne({
+      sub,
+    });
+
+    const allChildFolders = await this.foldersRepository.find({
+      where: {
+        parentFolderId,
+      },
+    });
+
+    const treeIndex = `${parentFolder.tree_index}.`;
+    const next =
+      allChildFolders.length > 0 ? `${allChildFolders.length + 1}` : 1;
+
+    if (!user) throw new NotFoundException('user not found');
+    const new_folder = await this.foldersRepository.save({
+      name,
+      parentFolderId,
+      tree_index: treeIndex + next,
+      users: [user],
+    });
+
+    const new_folder_1 = {
+      ...new_folder,
+      folder_name: new_folder.name,
+      folder_parentFolderId: new_folder.parentFolderId,
+      folder_tree_index: new_folder.tree_index,
+      folder_createdAt : new_folder.createdAt,
+      folder_id: new_folder.id
+    }
+
+    const query = this.foldersRepository
+      .createQueryBuilder('folder')
+      .leftJoinAndSelect('folder.users', 'user')
+      .where('user.id = :userId', { userId: user.id});
+
+    if (parentFolderId) {
+      query.andWhere('folder.parentFolderId = :parentFolderId', {
+        parentFolderId,
+      });
+    } else {
+      query.andWhere('folder.parentFolderId IS NULL');
+    }
+    const data = await query.getMany();
+    // return { new_folder: new_folder_1, files_count: data.length };
+  
+
+    // Associate default permissions
+    // const defaultPermissions = ['view', 'delete', 'download']; // Adjust as needed
+    // const folderPermissionAssociations = defaultPermissions.map(async permission => {
+    //   const gpf = await this.gfpRepository.create({
+
+    //   })
+    // });
+
+    // await this.gpfRepository.save(folderPermissionAssociations);
+
+    // return folder;
+  }
 }
