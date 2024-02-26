@@ -1,22 +1,116 @@
-import { Injectable } from '@nestjs/common';
-import { CreateGroupDto } from './dto/create-group.dto';
-import { UpdateGroupDto } from './dto/update-group.dto';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Group } from './entities/group.entity';
+import { Repository } from 'typeorm';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class GroupsService {
-  create(createGroupDto: CreateGroupDto) {
-    return 'This action adds a new group';
+  constructor(
+    @InjectRepository(Group)
+    private readonly groupsRepository: Repository<Group>,
+
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
+
+  async create(name: string, userId: string) {
+    try {
+      const group = await this.groupsRepository.findOne({
+        where: {
+          name: name,
+        },
+      });
+      if (group)
+        return new ConflictException('group already exists with same name');
+      const findUser = await this.userRepository.findOne({
+        where: {
+          id: userId,
+        },
+      });
+      if (!findUser) return new NotFoundException('user not found');
+      const new_group = this.groupsRepository.create({
+        name,
+        createdBy: findUser,
+      });
+      return await this.groupsRepository.save(new_group);
+    } catch (error) {
+      console.log(error, 'err');
+    }
   }
 
-  findAll() {
-    return `This action returns all groups`;
+  async addUserToAGroup(groupId: string, userId: string) {
+    try {
+      const findGroup = await this.groupsRepository.findOne({
+        relations: ['users'],
+        where: {
+          id: groupId,
+        },
+      });
+      console.log(findGroup, 'fggggg');
+      if (!findGroup) return new NotFoundException('group not found');
+      const findUser = await this.userRepository.findOne({
+        where: {
+          id: userId,
+        },
+      });
+      if (!findUser) return new NotFoundException('user not found');
+      const userExistsInGroup = findGroup.users.some(
+        (existingUser) => existingUser.id === findUser.id,
+      );
+      if (userExistsInGroup)
+        return new ConflictException('user already exists group');
+      findGroup.users.push(findUser);
+      return await this.groupsRepository.save(findGroup);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} group`;
+  async removeUserFromGroup(groupId: string, userId: string) {
+    const group = await this.groupsRepository.findOne({
+      relations:['users'],
+      where:{
+        id:groupId
+      }
+    });
+    const user = await this.userRepository.findOne({
+      where: {
+        id:userId
+      }
+    });
+    const userIndex = group.users.findIndex(existingUser => existingUser.id === user.id);
+    if (userIndex == -1) return new ConflictException('user not in the group')
+    group.users.splice(userIndex, 1);
+    return await this.groupsRepository.save(group);
   }
 
-  update(id: number, updateGroupDto: UpdateGroupDto) {
+  async getGroupsCreatedByUser(createdByUserId: string) {
+   
+  }
+
+  async findAll() {
+    return await this.groupsRepository.find()
+  }
+
+  async findOne(id: string) {
+    try {
+      return await this.groupsRepository.findOne({
+        where: {
+          id
+        },
+        relations:['users']
+      })
+    } catch (error) {
+      
+    }
+  }
+
+  update(id: number) {
     return `This action updates a #${id} group`;
   }
 

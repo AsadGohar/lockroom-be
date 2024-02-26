@@ -56,6 +56,9 @@ export class User {
   @Column({ default: '' })
   display_picture_url: string;
 
+  @OneToMany(() => Group, group => group.createdBy)
+  createdGroups: Group[];
+
   @ManyToMany(() => Folder, (folder) => folder.users)
   @JoinTable()
   folders: Folder[];

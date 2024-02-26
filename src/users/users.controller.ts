@@ -33,6 +33,11 @@ export class UsersController {
     };
   }
 
+  @Post('find-groups')
+  findAllGroupsByUserId(@Body('userId') userId: string,) {
+    return this.usersService.getAllGroups(userId);
+  } 
+
   @Get()
   findAll() {
     return this.usersService.findAll();

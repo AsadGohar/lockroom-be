@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +11,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Folder } from 'src/folders/entities/folder.entity';
+import { Group } from 'src/groups/entities/group.entity';
 @Injectable()
 export class UsersService {
   constructor(
@@ -18,6 +20,8 @@ export class UsersService {
     private readonly jwtService: JwtService,
     @InjectRepository(Folder)
     private readonly folderRepository: Repository<Folder>,
+    @InjectRepository(Group)
+    private readonly groupsRepository: Repository<Group>,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -45,7 +49,7 @@ export class UsersService {
           .groupBy('folder.id, user.id')
           .orderBy('folder.createdAt', 'ASC')
           .getRawMany();
-          
+
         return {
           access_token,
           folders: query,
@@ -75,6 +79,13 @@ export class UsersService {
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
+      const new_group = this.groupsRepository.create({
+        name: 'Admins',
+        createdBy: user,
+      });
+
+      await this.groupsRepository.save(new_group)
+
       return {
         access_token,
         folders: [folder],
@@ -102,6 +113,27 @@ export class UsersService {
     return await this.userRepository.findOne({
       where: where,
     });
+  }
+
+  async getAllGroups(userId: string) {
+    try {
+      const findUser = await this.userRepository.findOne({
+        relations: ['group'],
+        where: {
+          id: userId,
+        },
+      });
+      // console.log(findUser, 'user');
+      if (!findUser) return new NotFoundException('user not found');
+      if (findUser.role == 'admin') {
+        return await this.groupsRepository.find({
+          where: { createdBy: { id: userId } },
+        });
+      }
+      return findUser.group;
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {

@@ -1,5 +1,13 @@
-import { Controller, Post, Body, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { EmailService } from 'src/email/email.service';
+import { GroupsService } from 'src/groups/groups.service';
 // import { AuthGuard } from 'src/guards/auth.guard';
 import { InvitesService } from 'src/invites/invites.service';
 import { UsersService } from 'src/users/users.service';
@@ -11,6 +19,7 @@ export class MailController {
     private readonly emailService: EmailService,
     private readonly inviteService: InvitesService,
     private readonly userService: UsersService,
+    private readonly groupService: GroupsService,
   ) {}
 
   // @UseGuards(AuthGuard)
@@ -18,25 +27,39 @@ export class MailController {
   async sendEmail(
     @Body('emails') emails: string[],
     @Body('sender_id') sender_id: string,
+    @Body('group_id') group_id: string,
   ) {
     try {
-      console.log(emails, sender_id);
-      if(!sender_id) throw new UnauthorizedException('Sender Id is Missing')
-      const findUser = await this.userService.findOne({ id: sender_id });
-      const sendEmails = emails.map((email: string) => {
+      // console.log(emails, sender_id);
+      if (!sender_id) throw new UnauthorizedException('Sender Id is Missing');
+      const senderUser = await this.userService.findOne({ id: sender_id });
+      const sendEmails = emails.map(async (email: string) => {
+        const invitedUserAlreadyExists = await this.userService.findOne({
+          email,
+        });
+        if (invitedUserAlreadyExists) {
+          return await this.groupService.addUserToAGroup(
+            group_id,
+            invitedUserAlreadyExists.id,
+          );
+        }
         const mail = {
           to: email,
           subject: 'Invited to LockRoom',
           from:
             String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
           text: 'Hello',
-          html: inviteTemplate(findUser.full_name),
+          html: inviteTemplate(senderUser.full_name),
         };
         return this.emailService.send(mail);
       });
       const result = await Promise.all(sendEmails);
       if (result.length > 0) {
-        const invites = await this.inviteService.addInvitesBySenderId(sender_id, emails);
+        const invites = await this.inviteService.addInvitesBySenderId(
+          sender_id,
+          emails,
+          group_id
+        );
         return { data: result, message: 'Emails Sent Successfully', invites };
       }
     } catch (error) {
