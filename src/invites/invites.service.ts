@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Invite } from '../invites/entities/invite.entity';
+import { Group } from 'src/groups/entities/group.entity';
 
 @Injectable()
 export class InvitesService {
@@ -11,6 +12,8 @@ export class InvitesService {
     private readonly inviteRepository: Repository<Invite>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Group)
+    private readonly groupRepository: Repository<Group>
   ) {}
 
   create(createInviteDto) {
@@ -29,8 +32,13 @@ export class InvitesService {
       .getMany();
   }
 
-  async addInvitesBySenderId(sender_id: string, emails: string[]) {
+  async addInvitesBySenderId(sender_id: string, emails: string[], group_id:string) {
     const findUser = await this.userRepository.findOne({
+      where: {
+        id: sender_id,
+      },
+    });
+    const findGroup = await this.groupRepository.findOne({
       where: {
         id: sender_id,
       },
@@ -40,6 +48,7 @@ export class InvitesService {
       return {
         sender: findUser,
         sent_to: email,
+        group: findGroup
       };
     });
     // console.log(invites, 'invites')
