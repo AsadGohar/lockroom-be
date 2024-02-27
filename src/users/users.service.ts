@@ -3,6 +3,7 @@ import {
   ConflictException,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +13,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { Group } from 'src/groups/entities/group.entity';
+import * as bcrypt from 'bcrypt';
+import { sendEmailUtil } from 'src/utils/email.utils';
+import { verificationTemplate } from 'src/utils/email.templates';
 @Injectable()
 export class UsersService {
   constructor(
@@ -58,7 +62,14 @@ export class UsersService {
           id: existingUser.id,
         };
       }
+
+      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+      createUserDto.password = hashedPassword;
+      createUserDto.full_name = `${createUserDto.first_name} ${createUserDto.last_name}`;
+      createUserDto.role = 'admin';
+
       const user = await this.userRepository.save(createUserDto);
+
       const payload = { user_id: user.id, email: user.email };
       const access_token = this.jwtService.sign(payload);
 
@@ -84,7 +95,21 @@ export class UsersService {
         createdBy: user,
       });
 
-      await this.groupsRepository.save(new_group)
+      await this.groupsRepository.save(new_group);
+
+      const mail = {
+        to: user.email,
+        subject: 'Verify Email',
+        from:
+          String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
+        text: 'Verify',
+        html: verificationTemplate(
+          String(user.first_name).toUpperCase(),
+          `${process.env.FE_HOST}/thank-you/verify-email?customer=${access_token}`,
+        ),
+      };
+
+      await sendEmailUtil(mail);
 
       return {
         access_token,
@@ -99,6 +124,54 @@ export class UsersService {
         error.message || 'failed to create user',
       );
     }
+  }
+
+  async loginUser(email: string, password: string) {
+    try {
+      // if(!user)
+      console.log('in user login')
+      const user = await this.userRepository.findOne({ where: { email } });
+      if (!user) {
+        console.log(user)
+        return new UnauthorizedException('Invalid Credentials');
+      }
+      if(!user.is_email_verified) return new ConflictException({
+        status:false,
+        message:'verify your email'
+      })
+      const passwordMatched = await bcrypt.compare(password, user.password);
+        console.log(passwordMatched,'match')
+      if (!passwordMatched) {
+        return new UnauthorizedException('Invalid Credentials');
+      }
+      const payload = { userId: user.id, email: user.email, role: user.role };
+      const accessToken = this.jwtService.sign(payload);
+      return { accessToken };
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  async loginWithGoogle(jwt: string) {}
+
+  async verifyOTP() {}
+
+  async verifyEmail(jwt_token: string) {
+    try {
+      const resp = await this.jwtService.verify(jwt_token, {
+        secret: process.env.JWT_VERIFY_SECRET,
+      });
+      if (resp) {
+        const findUser = await this.userRepository.findOne({
+          where: {
+            id: resp.userId,
+          },
+        });
+        if(!findUser) return new NotFoundException('user not found')
+        findUser.is_email_verified=true
+        return await this.userRepository.save(findUser)
+      }
+    } catch (error) {}
   }
 
   findAll() {

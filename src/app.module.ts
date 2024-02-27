@@ -20,6 +20,7 @@ import { FilesModule } from './files/files.module';
 import { FilesPermissions } from './files-permissions/entities/files-permissions.entity';
 import { FilesPermissionsModule } from './files-permissions/files-permissions.module';
 import { File } from './files/entities/file.entity';
+import { JwtService } from '@nestjs/jwt';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -47,6 +48,6 @@ import { File } from './files/entities/file.entity';
     FilesPermissionsModule
   ],
   controllers: [AppController, MailController],
-  providers: [AppService, EmailService],
+  providers: [AppService, EmailService, JwtService],
 })
 export class AppModule {}

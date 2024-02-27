@@ -34,13 +34,18 @@ export class UsersController {
   }
 
   @Post('find-groups')
-  findAllGroupsByUserId(@Body('userId') userId: string,) {
+  findAllGroupsByUserId(@Body('userId') userId: string) {
     return this.usersService.getAllGroups(userId);
   } 
 
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
+  @Post('login')
+  login(@Body('email') email: string, @Body('password') password: string) {
+    return this.usersService.loginUser(email,password);
+  }
+
+  @Post('verify-email')
+  verifyEmail(@Body('jwt_token') jwt_token: string) {
+    return this.usersService.verifyEmail(jwt_token);
   }
 
   @Get(':id')
