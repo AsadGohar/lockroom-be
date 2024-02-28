@@ -42,35 +42,7 @@ export class UsersService {
         where: { email: createUserDto.email },
       });
 
-      if (existingUser) {
-        const payload = { user_id: existingUser.id, email: existingUser.email };
-        const access_token = this.jwtService.sign(payload);
-
-        const query = await this.folderRepository
-          .createQueryBuilder('folder')
-          .leftJoinAndSelect('folder.users', 'user')
-          .where('user.id = :userId', { userId: existingUser.id })
-          .getMany();
-
-        const query1 = await this.folderRepository
-          .createQueryBuilder('folder')
-          .leftJoinAndSelect('folder.users', 'user')
-          .leftJoin('folder.sub_folders', 'sub_folder')
-          .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-          .where('user.id = :userId', { userId: existingUser.id })
-          .groupBy('folder.id, user.id')
-          .orderBy('folder.createdAt', 'ASC')
-          .getRawMany();
-
-        return {
-          user: existingUser,
-          access_token,
-          folders: query,
-          files_count: query.length,
-          sub_folder_count: query1,
-          id: existingUser.id,
-        };
-      }
+      if (existingUser) throw new ConflictException('user already exists')
 
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
       createUserDto.password = hashedPassword;
@@ -100,7 +72,7 @@ export class UsersService {
         .getRawMany();
 
       const new_group = this.groupsRepository.create({
-        name: 'Admins',
+        name: 'Admin',
         createdBy: user,
       });
 
@@ -263,7 +235,7 @@ export class UsersService {
         .getRawMany();
 
       const new_group = this.groupsRepository.create({
-        name: 'Admins',
+        name: 'Admin',
         createdBy: new_user,
       });
       await this.groupsRepository.save(new_group);
