@@ -54,7 +54,7 @@ export class User {
   sso_login: boolean;
 
   @Column({ default: false })
-  sso_type: boolean;
+  sso_type: string;
 
   @Column({ default: '' })
   display_picture_url: string;

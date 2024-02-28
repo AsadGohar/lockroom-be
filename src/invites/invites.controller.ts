@@ -12,9 +12,14 @@ export class InvitesController {
     return this.invitesService.create(createInviteDto);
   }
 
-  @Post('/sender')
+  @Post('sender')
   findInvitesBySenderId(@Body('sender_id') sender_id:string) {
     return this.invitesService.findBySenderId(sender_id);
+  }
+
+  @Post('email-invite')
+  getEmailByToken(@Body('jwt_token') jwt_token: string) {
+    return this.invitesService.getEmailByToken(jwt_token);
   }
 
   @Get()

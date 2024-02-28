@@ -21,6 +21,7 @@ import { FilesPermissions } from './files-permissions/entities/files-permissions
 import { FilesPermissionsModule } from './files-permissions/files-permissions.module';
 import { File } from './files/entities/file.entity';
 import { JwtService } from '@nestjs/jwt';
+import { ThrottlerModule } from '@nestjs/throttler';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -31,12 +32,28 @@ import { JwtService } from '@nestjs/jwt';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      entities: [User, Folder, Invite, Permission, Group, FilesPermissions, File],
+      entities: [
+        User,
+        Folder,
+        Invite,
+        Permission,
+        Group,
+        FilesPermissions,
+        File,
+      ],
       synchronize: true,
       // ssl:{
       //   rejectUnauthorized:false
       // },
-      ssl:false
+      ssl: false,
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60, // seconds
+          limit: 300,
+        },
+      ],
     }),
     UsersModule,
     UploadsModule,
@@ -45,7 +62,7 @@ import { JwtService } from '@nestjs/jwt';
     PermissionModule,
     GroupsModule,
     FilesModule,
-    FilesPermissionsModule
+    FilesPermissionsModule,
   ],
   controllers: [AppController, MailController],
   providers: [AppService, EmailService, JwtService],

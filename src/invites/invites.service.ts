@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Invite } from '../invites/entities/invite.entity';
 import { Group } from 'src/groups/entities/group.entity';
-
+import { JwtService } from '@nestjs/jwt';
 @Injectable()
 export class InvitesService {
   constructor(
@@ -13,7 +13,8 @@ export class InvitesService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(Group)
-    private readonly groupRepository: Repository<Group>
+    private readonly groupRepository: Repository<Group>,
+    private readonly jwtService: JwtService,
   ) {}
 
   create(createInviteDto) {
@@ -32,7 +33,11 @@ export class InvitesService {
       .getMany();
   }
 
-  async addInvitesBySenderId(sender_id: string, emails: string[], group_id:string) {
+  async addInvitesBySenderId(
+    sender_id: string,
+    emails: string[],
+    group_id: string,
+  ) {
     const findUser = await this.userRepository.findOne({
       where: {
         id: sender_id,
@@ -48,12 +53,29 @@ export class InvitesService {
       return {
         sender: findUser,
         sent_to: email,
-        group: findGroup
+        group: findGroup,
       };
     });
     // console.log(invites, 'invites')
-    const invitesDB = await this.inviteRepository.insert(invites);
+    const invitesDB = await this.inviteRepository.save(invites);
     return { user: findUser, invites: invitesDB };
+  }
+
+  async getEmailByToken(jwt_token: string) {
+    try {
+      const resp = await this.jwtService.verify(jwt_token, {
+        secret: process.env.JWT_SECRET,
+      });
+      if (resp) {
+        const findUser = await this.inviteRepository.findOne({
+          where: {
+            id:resp.invite_id
+          },
+        });
+        if (!findUser) throw new NotFoundException('user not found');
+        return { email: findUser.sent_to };
+      }
+    } catch (error) {}
   }
 
   findOne(id: number) {

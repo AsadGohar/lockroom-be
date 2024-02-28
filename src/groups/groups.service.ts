@@ -26,13 +26,13 @@ export class GroupsService {
         },
       });
       if (group)
-        return new ConflictException('group already exists with same name');
+        throw new ConflictException('group already exists with same name');
       const findUser = await this.userRepository.findOne({
         where: {
           id: userId,
         },
       });
-      if (!findUser) return new NotFoundException('user not found');
+      if (!findUser) throw new NotFoundException('user not found');
       const new_group = this.groupsRepository.create({
         name,
         createdBy: findUser,
@@ -52,18 +52,18 @@ export class GroupsService {
         },
       });
       console.log(findGroup, 'fggggg');
-      if (!findGroup) return new NotFoundException('group not found');
+      if (!findGroup) throw new NotFoundException('group not found');
       const findUser = await this.userRepository.findOne({
         where: {
           id: userId,
         },
       });
-      if (!findUser) return new NotFoundException('user not found');
+      if (!findUser) throw new NotFoundException('user not found');
       const userExistsInGroup = findGroup.users.some(
         (existingUser) => existingUser.id === findUser.id,
       );
       if (userExistsInGroup)
-        return new ConflictException('user already exists group');
+        throw new ConflictException('user already exists group');
       findGroup.users.push(findUser);
       return await this.groupsRepository.save(findGroup);
     } catch (error) {
@@ -84,7 +84,7 @@ export class GroupsService {
       }
     });
     const userIndex = group.users.findIndex(existingUser => existingUser.id === user.id);
-    if (userIndex == -1) return new ConflictException('user not in the group')
+    if (userIndex == -1) throw new ConflictException('user not in the group')
     group.users.splice(userIndex, 1);
     return await this.groupsRepository.save(group);
   }
