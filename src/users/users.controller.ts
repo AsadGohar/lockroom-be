@@ -32,7 +32,8 @@ export class UsersController {
       access_token: data.access_token,
       sub_folder_count: data.sub_folder_count,
       id: data.id,
-      user:data.user
+      user:data.user,
+      organizations:data.organizations
     };
   }
 

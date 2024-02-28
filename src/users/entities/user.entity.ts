@@ -9,12 +9,16 @@ import {
   ManyToOne,
   OneToMany,
   UpdateDateColumn,
+  OneToOne,
+  JoinColumn
 } from 'typeorm';
 import { Folder } from '../../folders/entities/folder.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { Invite } from '../../invites/entities/invite.entity';
 import { Group } from '../..//groups/entities/group.entity';
 import { File } from 'src/files/entities/file.entity';
+import { Organization } from 'src/organizations/entities/organization.entity';
+
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -68,6 +72,13 @@ export class User {
   @Column({ default: '' })
   generated_otp: string;
 
+  @OneToOne(() => Organization, (organisation) => organisation.creator)
+  organization_created: Organization;
+
+  @ManyToMany(() => Organization, (organisation) => organisation.users)
+  @JoinTable()
+  organizations_added_in: Organization[];
+
   @OneToMany(() => Group, (group) => group.createdBy)
   createdGroups: Group[];
 
@@ -75,10 +86,10 @@ export class User {
   @JoinTable()
   folders: Folder[];
 
-  @ManyToOne(() => Group, (group) => group.users, {
-    nullable: true,
+  @ManyToMany(() => Group, (group) => group.users, {
+    onDelete: 'CASCADE',
   })
-  group: Group;
+  group: Group[];
 
   @OneToMany(() => Invite, (invite) => invite.sender)
   @JoinTable()

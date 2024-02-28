@@ -18,6 +18,8 @@ import { sendEmailUtil } from 'src/utils/email.utils';
 import { verificationTemplate } from 'src/utils/email.templates';
 import { decodeJwtResponse } from 'src/utils/jwt.utils';
 import { Invite } from 'src/invites/entities/invite.entity';
+import { Organization } from 'src/organizations/entities/organization.entity';
+import { last } from 'rxjs';
 // import { sendSMS } from 'src/utils/otp.utils';
 
 @Injectable()
@@ -30,29 +32,41 @@ export class UsersService {
     private readonly folderRepository: Repository<Folder>,
     @InjectRepository(Group)
     private readonly groupsRepository: Repository<Group>,
-    @InjectRepository(Invite)
-    private readonly Repository: Repository<Group>,
+    @InjectRepository(Organization)
+    private readonly orgRepository: Repository<Organization>,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    // console.log('here,in')
+    console.log('here,in ceeate');
     // await sendSMS(createUserDto.phone_number)
     try {
       const existingUser = await this.userRepository.findOne({
         where: { email: createUserDto.email },
       });
 
-      if (existingUser) throw new ConflictException('user already exists')
+      if (existingUser) throw new ConflictException('user already exists');
 
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
       createUserDto.password = hashedPassword;
       createUserDto.full_name = `${createUserDto.first_name} ${createUserDto.last_name}`;
       createUserDto.role = 'admin';
 
-      const user = await this.userRepository.save(createUserDto);
+      const create_user = this.userRepository.create({
+        email: createUserDto.email,
+        password: createUserDto.password,
+        first_name: createUserDto.first_name,
+        last_name: createUserDto.last_name,
+        role: createUserDto.role,
+        phone_number: createUserDto.phone_number,
+        full_name: createUserDto.full_name,
+      });
+
+      const user = await this.userRepository.save(create_user);
 
       const payload = { user_id: user.id, email: user.email };
-      const access_token = this.jwtService.sign(payload);
+      const access_token = this.jwtService.sign(payload, {
+        expiresIn:'1d'
+      });
 
       const folder = await this.folderRepository.save({
         name: 'Home',
@@ -76,7 +90,18 @@ export class UsersService {
         createdBy: user,
       });
 
-      await this.groupsRepository.save(new_group);
+      const saved_group = await this.groupsRepository.save(new_group);
+      const new_org = this.orgRepository.create({
+        name: 'ORG-' + user.id.slice(0, 5),
+        creator: user,
+        groups: [saved_group],
+        users: [],
+        invites: [],
+      });
+      console.log('here1', new_org);
+
+      const saveOrg = await this.orgRepository.save(new_org);
+      console.log('here2');
 
       const mail = {
         to: user.email,
@@ -90,8 +115,8 @@ export class UsersService {
         ),
       };
 
-      await sendEmailUtil(mail);
-
+      // await sendEmailUtil(mail);
+      
       return {
         user,
         access_token,
@@ -99,6 +124,7 @@ export class UsersService {
         files_count: 1,
         id: user.id,
         sub_folder_count: query1,
+        organizations: [saveOrg],
       };
     } catch (error) {
       console.log(error, 'err');
@@ -111,12 +137,29 @@ export class UsersService {
   async loginUser(email: string, password: string) {
     try {
       // console.log("in user login");
-      const user = await this.userRepository.findOne({ where: { email } });
+      const user = await this.userRepository.findOne({
+        relations: ['organizations_added_in.groups', 'organization_created.groups'],
+        where: { email },
+      });
+
+      const orgs = [];
+
       if (!user) {
         console.log(user);
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
-      if(user.sso_login && user.sso_type=='google') throw new UnauthorizedException('Login with Google')
+      if (user.sso_login && user.sso_type == 'google')
+        throw new UnauthorizedException('Login with Google');
+      // if (!user.is_email_verified)
+      //   throw new ConflictException({
+      //     status: false,
+      //     message: "verify your email",
+      //   }); // Throw ConflictException
+      const passwordMatched = await bcrypt.compare(password, user.password);
+      console.log(passwordMatched, 'match');
+      if (!passwordMatched) {
+        throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
+      }
       const query = await this.folderRepository
         .createQueryBuilder('folder')
         .leftJoinAndSelect('folder.users', 'user')
@@ -138,16 +181,11 @@ export class UsersService {
       };
       const accessToken = this.jwtService.sign(payload);
 
-      // if (!user.is_email_verified)
-      //   throw new ConflictException({
-      //     status: false,
-      //     message: "verify your email",
-      //   }); // Throw ConflictException
-      const passwordMatched = await bcrypt.compare(password, user.password);
-      console.log(passwordMatched, 'match');
-      if (!passwordMatched) {
-        throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
-      }
+      orgs.push(user.organization_created);
+      user.organizations_added_in.map((org) => {
+        orgs.push(org);
+      });
+
       return {
         accessToken,
         is_phone_number_verified: user.phone_number ? true : false,
@@ -156,10 +194,11 @@ export class UsersService {
         sub_folder_count: query1,
         id: user.id,
         user: user,
+        organizations: orgs,
       };
     } catch (error) {
       console.log(error);
-      throw error; // Rethrow the error to ensure it propagates
+      throw error;
     }
   }
 
@@ -169,12 +208,20 @@ export class UsersService {
       if (!user) throw new UnauthorizedException('token invalid');
 
       const findUser = await this.userRepository.findOne({
+        relations: ['organizations_added_in', 'organization_created'],
         where: {
           email: user.email,
         },
       });
 
       if (findUser) {
+        console.log('google sign finduser', findUser)
+        const orgs = [];
+        orgs.push(findUser.organization_created);
+        findUser.organizations_added_in.map((org) => {
+          orgs.push(org);
+        });
+        console.log(orgs,'dsa')
         const query = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
@@ -203,6 +250,7 @@ export class UsersService {
           sub_folder_count: query1,
           id: findUser.id,
           user: findUser,
+          organizations: orgs,
         };
       }
 
@@ -212,10 +260,10 @@ export class UsersService {
         first_name: user.given_name,
         last_name: user.family_name,
         display_picture_url: user.picture,
-        sso_login:true,
-        sso_type:'google',
+        sso_login: true,
+        sso_type: 'google',
       });
-      await this.userRepository.save(new_user);
+      const saved_user = await this.userRepository.save(new_user);
 
       const folder = await this.folderRepository.save({
         name: 'Home',
@@ -238,7 +286,18 @@ export class UsersService {
         name: 'Admin',
         createdBy: new_user,
       });
-      await this.groupsRepository.save(new_group);
+      const saved_group = await this.groupsRepository.save(new_group);
+
+      const new_org = this.orgRepository.create({
+        name: 'ORG-' + new_user.id.slice(0, 5),
+        creator: saved_user,
+        groups: [saved_group],
+        users: [],
+        invites: [],
+      });
+
+      const saveOrg = await this.orgRepository.save(new_org);
+      console.log(saveOrg,'oorg')
       const payload = { user_id: new_user.id, email: new_user.email };
       const access_token = this.jwtService.sign(payload);
 
@@ -249,8 +308,11 @@ export class UsersService {
         id: new_user.id,
         sub_folder_count: query1,
         user: new_user,
+        organizations: [saveOrg],
       };
-    } catch (error) {}
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   async verifyEmail(jwt_token: string) {
@@ -279,13 +341,20 @@ export class UsersService {
     console.log(resp, 'reesps');
     if (resp) {
       const findUser = await this.userRepository.findOne({
+        relations: ['organizations_added_in', 'organization_created'],
         where: {
           id: resp.user_id,
         },
       });
+
       if (!findUser) {
         throw new NotFoundException('user not found');
       }
+      const orgs = [];
+      orgs.push(findUser.organization_created);
+      findUser.organizations_added_in.map((org) => {
+        orgs.push(org);
+      });
       const query1 = await this.folderRepository
         .createQueryBuilder('folder')
         .leftJoinAndSelect('folder.users', 'user')
@@ -295,11 +364,10 @@ export class UsersService {
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
-      return { findUser, sub_folder_count: query1 };
+
+      return { findUser, sub_folder_count: query1, organizations: orgs };
     }
   }
-
-  async addInvitedUser() {}
 
   findAll() {
     try {

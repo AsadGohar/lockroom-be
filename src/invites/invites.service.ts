@@ -5,6 +5,9 @@ import { User } from '../users/entities/user.entity';
 import { Invite } from '../invites/entities/invite.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { Organization } from 'src/organizations/entities/organization.entity';
+
 @Injectable()
 export class InvitesService {
   constructor(
@@ -14,6 +17,8 @@ export class InvitesService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Group)
     private readonly groupRepository: Repository<Group>,
+    @InjectRepository(Organization)
+    private readonly orgRepository: Repository<Organization>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -37,6 +42,7 @@ export class InvitesService {
     sender_id: string,
     emails: string[],
     group_id: string,
+    organization_id:string
   ) {
     const findUser = await this.userRepository.findOne({
       where: {
@@ -45,7 +51,12 @@ export class InvitesService {
     });
     const findGroup = await this.groupRepository.findOne({
       where: {
-        id: sender_id,
+        id: group_id,
+      },
+    });
+    const findOrg = await this.groupRepository.findOne({
+      where: {
+        id: organization_id,
       },
     });
     console.log(findUser, 'user');
@@ -54,6 +65,7 @@ export class InvitesService {
         sender: findUser,
         sent_to: email,
         group: findGroup,
+        organization:findOrg
       };
     });
     // console.log(invites, 'invites')
@@ -76,6 +88,42 @@ export class InvitesService {
         return { email: findUser.sent_to };
       }
     } catch (error) {}
+  }
+
+  async addInvitedUser(email:string, password:string, first_name:string, last_name:string, jwt_token:string) {
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      password = hashedPassword;
+      const full_name = `${first_name} ${last_name}`;
+      const role = 'guest';
+      const new_user = this.userRepository.create({
+        email,
+        password,
+        first_name,
+        last_name,
+        role,
+        full_name
+      })
+      const resp = await this.jwtService.verify(jwt_token, {
+        secret: process.env.JWT_INVITE_SECRET,
+      });
+      const invite = await this.inviteRepository.findOne({
+        where:{
+          id:resp.invite_id
+        }
+      })
+      const find_org = await this.orgRepository.findOne({
+        where: {
+          id:invite.organization.id
+        }
+      })
+      const saved_user = await this.userRepository.save(new_user);
+      find_org.users.push(saved_user)
+      await this.orgRepository.save(find_org)
+      return saved_user
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   findOne(id: number) {
