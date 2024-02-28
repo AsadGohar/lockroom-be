@@ -35,7 +35,7 @@ export class FoldersService {
       throw new ConflictException('folder already exists with same name');
 
     const user = await this.userService.findOne({
-      sub,
+      id:sub,
     });
 
     const allChildFolders = await this.foldersRepository.find({

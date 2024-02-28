@@ -11,8 +11,10 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @Controller('users')
+@SkipThrottle()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -21,7 +23,7 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @Res({ passthrough: true }) res,
   ) {
-    const data = await this.usersService.create(createUserDto);
+    const data = await this.usersService.create(createUserDto)
     res.cookie('sWTNNOCEN', data.access_token, {
       expires: new Date(Date.now() + 3600000),
     });
@@ -30,17 +32,33 @@ export class UsersController {
       access_token: data.access_token,
       sub_folder_count: data.sub_folder_count,
       id: data.id,
+      user:data.user
     };
   }
 
   @Post('find-groups')
-  findAllGroupsByUserId(@Body('userId') userId: string,) {
+  findAllGroupsByUserId(@Body('userId') userId: string) {
     return this.usersService.getAllGroups(userId);
   } 
 
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
+  @Post('login')
+  login(@Body('email') email: string, @Body('password') password: string) {
+    return this.usersService.loginUser(email,password);
+  }
+
+  @Post('verify-email')
+  verifyEmail(@Body('jwt_token') jwt_token: string) {
+    return this.usersService.verifyEmail(jwt_token);
+  }
+
+  @Post('login-gmail')
+  loginWithGmail(@Body('jwt_token') jwt_token: string) {
+    return this.usersService.loginWithGoogle(jwt_token);
+  }
+
+  @Post('user-token')
+  getUserByToken(@Body('jwt_token') jwt_token: string) {
+    return this.usersService.getUserByToken(jwt_token);
   }
 
   @Get(':id')

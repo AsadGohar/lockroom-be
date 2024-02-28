@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { Group } from 'src/groups/entities/group.entity';
+import { Invite } from 'src/invites/entities/invite.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -14,7 +15,7 @@ import { Group } from 'src/groups/entities/group.entity';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
-    TypeOrmModule.forFeature([User, Folder, Group]),
+    TypeOrmModule.forFeature([User, Folder, Group, Invite]),
   ],
   controllers: [UsersController],
   providers: [UsersService],

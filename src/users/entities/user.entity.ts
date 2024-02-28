@@ -26,8 +26,11 @@ export class User {
   @Column({ nullable: true })
   family_name: string;
 
+  @Column({ nullable: false })
+  first_name: string;
+
   @Column({ nullable: true })
-  given_name: string;
+  last_name: string;
 
   @Column({ nullable: true })
   full_name: string;
@@ -51,28 +54,39 @@ export class User {
   sso_login: boolean;
 
   @Column({ default: false })
-  sso_type: boolean;
+  sso_type: string;
 
   @Column({ default: '' })
   display_picture_url: string;
 
-  @OneToMany(() => Group, group => group.createdBy)
+  @Column({ default: '' })
+  password: string;
+
+  @Column({ default: '' })
+  phone_number: string;
+
+  @Column({ default: '' })
+  generated_otp: string;
+
+  @OneToMany(() => Group, (group) => group.createdBy)
   createdGroups: Group[];
 
   @ManyToMany(() => Folder, (folder) => folder.users)
   @JoinTable()
   folders: Folder[];
 
-  @ManyToOne(() => Group, (group) => group.users)
+  @ManyToOne(() => Group, (group) => group.users, {
+    nullable: true,
+  })
   group: Group;
 
   @OneToMany(() => Invite, (invite) => invite.sender)
   @JoinTable()
   sent_invites: Invite[];
 
-  @OneToMany(() => File, file => file.user)
+  @OneToMany(() => File, (file) => file.user)
   files: File[];
-  
+
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
