@@ -65,6 +65,7 @@ export class MailController {
             secret: process.env.JWT_INVITE_SECRET,
           });
           const link = `${process.env.FE_HOST}/authentication/signup?confirm=${access_token}`;
+          console.log(link,'links')
           const mail = {
             to: invite.sent_to,
             subject: 'Invited to LockRoom',

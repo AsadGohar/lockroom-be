@@ -7,7 +7,8 @@ import {
   UpdateDateColumn,
   OneToMany,
   ManyToOne,
-  ManyToMany
+  ManyToMany,
+  JoinTable
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../users/entities/user.entity';
@@ -24,7 +25,8 @@ export class Group {
   @ManyToOne(() => User, (user) => user.createdGroups)
   createdBy: User;
 
-  @ManyToMany(() => User, (user) => user.group)
+  @ManyToMany(() => User, (user) => user.groups)
+  @JoinTable()
   users: User[];
 
   @OneToMany(() => Invite, (invite) => invite.group)

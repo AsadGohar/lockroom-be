@@ -42,7 +42,7 @@ export class InvitesService {
     sender_id: string,
     emails: string[],
     group_id: string,
-    organization_id:string
+    organization_id: string,
   ) {
     const findUser = await this.userRepository.findOne({
       where: {
@@ -54,21 +54,23 @@ export class InvitesService {
         id: group_id,
       },
     });
-    const findOrg = await this.groupRepository.findOne({
+    const findOrg = await this.orgRepository.findOne({
+      relations:['users'],
       where: {
         id: organization_id,
       },
     });
-    console.log(findUser, 'user');
+    console.log(findUser, 'user', findOrg);
     const invites = emails.map((email) => {
       return {
         sender: findUser,
         sent_to: email,
         group: findGroup,
-        organization:findOrg
+        organization: findOrg,
+        status:'pending'
       };
     });
-    // console.log(invites, 'invites')
+    console.log(invites, 'invites')
     const invitesDB = await this.inviteRepository.save(invites);
     return { user: findUser, invites: invitesDB };
   }
@@ -80,21 +82,87 @@ export class InvitesService {
       });
       if (resp) {
         const findInvite = await this.inviteRepository.findOne({
+          relations:['organization'],
           where: {
-            id:resp.invite_id
+            id: resp.invite_id,
           },
         });
         if (!findInvite) throw new NotFoundException('user not found');
-        return { email: findInvite.sent_to, organization_id: findInvite.organization.id };
+        console.log()
+        return {
+          email: findInvite.sent_to,
+          organization_id: findInvite.organization.id,
+        };
       }
-    } catch (error) {}
+    } catch (error) {
+      console.log(error)
+    }
   }
 
-  async addInvitedUser(email:string, password:string, first_name:string, last_name:string, jwt_token:string) {
+  async addInvitedUser(
+    email: string,
+    password: string,
+    first_name: string,
+    last_name: string,
+    phone_number: string,
+    jwt_token: string,
+  ) {
     try {
+      const find_user = await this.userRepository.findOne({
+        relations:['organizations_added_in'],
+        where: {
+          email: email,
+        },
+      });
+      if (find_user) {
+        const resp = await this.jwtService.verify(jwt_token, {
+          secret: process.env.JWT_INVITE_SECRET,
+        });
+        const invite = await this.inviteRepository.findOne({
+          relations:['organization', 'group'],
+          where: {
+            id: resp.invite_id,
+          },
+        });
+        const find_org = await this.orgRepository.findOne({
+          relations:['users'],
+          where: {
+            id: invite.organization.id,
+          },
+        });
+        const find_group = await this.groupRepository.findOne({
+          relations:['users'],
+          where: {
+            id: invite.group.id,
+          },
+        });
+        find_user.organizations_added_in.push(find_org)
+        find_group.users.push(find_user)
+        const saved_user = await this.userRepository.save(find_user);
+        await this.groupRepository.save(find_group);
+        find_org.users.push(saved_user);
+        await this.orgRepository.save(find_org);
+      }
       const hashedPassword = await bcrypt.hash(password, 10);
       password = hashedPassword;
       const full_name = `${first_name} ${last_name}`;
+
+      const resp = await this.jwtService.verify(jwt_token, {
+        secret: process.env.JWT_INVITE_SECRET,
+      });
+      const invite = await this.inviteRepository.findOne({
+        relations:['organization', 'group'],
+        where: {
+          id: resp.invite_id,
+        },
+      });
+      console.log(invite,'invite',)
+      const find_org = await this.orgRepository.findOne({
+        relations:['users'],
+        where: {
+          id: invite.organization.id,
+        },
+      });
       const role = 'guest';
       const new_user = this.userRepository.create({
         email,
@@ -102,27 +170,20 @@ export class InvitesService {
         first_name,
         last_name,
         role,
-        full_name
-      })
-      const resp = await this.jwtService.verify(jwt_token, {
-        secret: process.env.JWT_INVITE_SECRET,
+        phone_number,
+        full_name,
+        organizations_added_in: [find_org]
       });
-      const invite = await this.inviteRepository.findOne({
-        where:{
-          id:resp.invite_id
-        }
-      })
-      const find_org = await this.orgRepository.findOne({
-        where: {
-          id:invite.organization.id
-        }
-      })
       const saved_user = await this.userRepository.save(new_user);
-      find_org.users.push(saved_user)
-      await this.orgRepository.save(find_org)
-      return saved_user
+      console.log(find_org,'previous users', saved_user)
+      // if(saved_user){
+      //   console.log('saved', saved_user)
+      //   find_org.users = [...find_org.users, saved_user];
+      //   await this.orgRepository.save(find_org);
+      //   return saved_user;
+      // }
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 

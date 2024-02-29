@@ -101,7 +101,7 @@ export class UsersService {
       console.log('here1', new_org);
 
       const saveOrg = await this.orgRepository.save(new_org);
-      console.log('here2');
+      console.log('here2', saveOrg);
 
       const mail = {
         to: user.email,
@@ -335,37 +335,41 @@ export class UsersService {
 
   async getUserByToken(jwt_token: string) {
     // console.log('in user byb token');
-    const resp = await this.jwtService.verify(jwt_token, {
-      secret: process.env.JWT_SECRET,
-    });
-    console.log(resp, 'reesps');
-    if (resp) {
-      const findUser = await this.userRepository.findOne({
-        relations: ['organizations_added_in', 'organization_created'],
-        where: {
-          id: resp.user_id,
-        },
+    try {
+      const resp = await this.jwtService.verify(jwt_token, {
+        secret: process.env.JWT_SECRET,
       });
-
-      if (!findUser) {
-        throw new NotFoundException('user not found');
+      // console.log(resp, 'reesps');
+      if (resp) {
+        const findUser = await this.userRepository.findOne({
+          relations: ['organizations_added_in', 'organization_created'],
+          where: {
+            id: resp.user_id,
+          },
+        });
+  
+        if (!findUser) {
+          throw new NotFoundException('user not found');
+        }
+        const orgs = [];
+        orgs.push(findUser.organization_created);
+        findUser.organizations_added_in.map((org) => {
+          orgs.push(org);
+        });
+        const query1 = await this.folderRepository
+          .createQueryBuilder('folder')
+          .leftJoinAndSelect('folder.users', 'user')
+          .leftJoin('folder.sub_folders', 'sub_folder')
+          .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
+          .where('user.id = :userId', { userId: findUser.id })
+          .groupBy('folder.id, user.id')
+          .orderBy('folder.createdAt', 'ASC')
+          .getRawMany();
+  
+        return { findUser, sub_folder_count: query1, organizations: orgs };
       }
-      const orgs = [];
-      orgs.push(findUser.organization_created);
-      findUser.organizations_added_in.map((org) => {
-        orgs.push(org);
-      });
-      const query1 = await this.folderRepository
-        .createQueryBuilder('folder')
-        .leftJoinAndSelect('folder.users', 'user')
-        .leftJoin('folder.sub_folders', 'sub_folder')
-        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-        .where('user.id = :userId', { userId: findUser.id })
-        .groupBy('folder.id, user.id')
-        .orderBy('folder.createdAt', 'ASC')
-        .getRawMany();
-
-      return { findUser, sub_folder_count: query1, organizations: orgs };
+    } catch (error) {
+      console.log(error,'err')
     }
   }
 
@@ -386,7 +390,7 @@ export class UsersService {
   async getAllGroups(userId: string) {
     try {
       const findUser = await this.userRepository.findOne({
-        relations: ['group'],
+        relations: ['groups'],
         where: {
           id: userId,
         },
@@ -401,9 +405,9 @@ export class UsersService {
           where: { createdBy: { id: userId } },
         });
       }
-      return findUser.group;
+      return findUser.groups;
     } catch (error) {
-      console.log(error, 'in err');
+      console.log(error, 'in err lol');
     }
   }
 

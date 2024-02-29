@@ -24,12 +24,6 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ nullable: true })
-  sub: string;
-
-  @Column({ nullable: true })
-  family_name: string;
-
   @Column({ nullable: false })
   first_name: string;
 
@@ -38,9 +32,6 @@ export class User {
 
   @Column({ nullable: true })
   full_name: string;
-
-  @Column({ nullable: true })
-  nickname: string;
 
   @Column({ unique: true })
   email: string;
@@ -75,7 +66,9 @@ export class User {
   @OneToOne(() => Organization, (organisation) => organisation.creator)
   organization_created: Organization;
 
-  @ManyToMany(() => Organization, (organisation) => organisation.users)
+  @ManyToMany(() => Organization, (organisation) => organisation.users, {
+    cascade:true
+  })
   @JoinTable()
   organizations_added_in: Organization[];
 
@@ -89,7 +82,8 @@ export class User {
   @ManyToMany(() => Group, (group) => group.users, {
     onDelete: 'CASCADE',
   })
-  group: Group[];
+  @JoinTable()
+  groups: Group[];
 
   @OneToMany(() => Invite, (invite) => invite.sender)
   @JoinTable()
