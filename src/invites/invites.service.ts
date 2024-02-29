@@ -79,13 +79,13 @@ export class InvitesService {
         secret: process.env.JWT_SECRET,
       });
       if (resp) {
-        const findUser = await this.inviteRepository.findOne({
+        const findInvite = await this.inviteRepository.findOne({
           where: {
             id:resp.invite_id
           },
         });
-        if (!findUser) throw new NotFoundException('user not found');
-        return { email: findUser.sent_to };
+        if (!findInvite) throw new NotFoundException('user not found');
+        return { email: findInvite.sent_to, organization_id: findInvite.organization.id };
       }
     } catch (error) {}
   }
