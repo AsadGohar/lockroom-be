@@ -22,6 +22,27 @@ export class OrganizationsController {
     return this.organizationsService.findOne(id);
   }
 
+  @Post('org-group-users')
+  getUserByOrganizationAndGroup(
+    @Body('organization_id') organization_id: string,
+    @Body('group_id') group_id: string,
+  ) {
+    return this.organizationsService.getUsersByOrganizationAndGroup(
+      organization_id,
+      group_id,
+    );
+  }
+  
+  @Post('org-users')
+  getUserByOrganization(
+    @Body('organization_id') organization_id: string,
+  ) {
+    return this.organizationsService.getUsersByOrganization(
+      organization_id
+    );
+  }
+
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateOrganizationDto: UpdateOrganizationDto) {
     return this.organizationsService.update(+id, updateOrganizationDto);

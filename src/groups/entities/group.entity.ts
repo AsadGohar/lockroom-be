@@ -26,8 +26,7 @@ export class Group {
   createdBy: User;
 
   @ManyToMany(() => User, (user) => user.groups)
-  @JoinTable()
-  users: User[];
+  users: User[]
 
   @OneToMany(() => Invite, (invite) => invite.group)
   invites: Invite[];

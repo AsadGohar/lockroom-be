@@ -45,10 +45,10 @@ import { Organization } from './organizations/entities/organization.entity';
         Organization
       ],
       synchronize: true,
-      // ssl:{
-      //   rejectUnauthorized:false
-      // },
-      ssl: false,
+      ssl:{
+        rejectUnauthorized:false
+      },
+      // ssl: false,
     }),
     ThrottlerModule.forRoot({
       throttlers: [

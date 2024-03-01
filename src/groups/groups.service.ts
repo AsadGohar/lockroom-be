@@ -55,26 +55,42 @@ export class GroupsService {
 
   async addUserToAGroup(groupId: string, userId: string) {
     try {
+      console.log('inside rhggg')
       const findGroup = await this.groupsRepository.findOne({
         relations: ['users'],
         where: {
           id: groupId,
         },
       });
-      console.log(findGroup, 'fggggg');
+
+      const find_org = await this.orgRepository.findOne({
+        relations:['users'],
+        where: {
+          groups: {
+            id:groupId
+          }
+        }
+      })
+
+      // console.log(findGroup, 'fggggg');
       if (!findGroup) throw new NotFoundException('group not found');
       const findUser = await this.userRepository.findOne({
+        relations:['organizations_added_in'],
         where: {
           id: userId,
         },
       });
+      console.log('find user in grp', findUser)
       if (!findUser) throw new NotFoundException('user not found');
       const userExistsInGroup = findGroup.users.some(
         (existingUser) => existingUser.id === findUser.id,
       );
-      if (userExistsInGroup)
-        throw new ConflictException('user already exists group');
+      console.log('gere', findGroup.name, find_org.name )
+      if (userExistsInGroup) return
+        // throw new ConflictException('user already exists group');
       findGroup.users.push(findUser);
+      findUser.organizations_added_in.push(find_org)
+      await this.userRepository.save(findUser)
       return await this.groupsRepository.save(findGroup);
     } catch (error) {
       console.log(error);

@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -65,7 +65,7 @@ export class UsersService {
 
       const payload = { user_id: user.id, email: user.email };
       const access_token = this.jwtService.sign(payload, {
-        expiresIn:'1d'
+        expiresIn: '1d',
       });
 
       const folder = await this.folderRepository.save({
@@ -116,7 +116,7 @@ export class UsersService {
       };
 
       // await sendEmailUtil(mail);
-      
+
       return {
         user,
         access_token,
@@ -138,7 +138,10 @@ export class UsersService {
     try {
       // console.log("in user login");
       const user = await this.userRepository.findOne({
-        relations: ['organizations_added_in.groups', 'organization_created.groups'],
+        relations: [
+          'organizations_added_in.groups',
+          'organization_created.groups',
+        ],
         where: { email },
       });
 
@@ -156,7 +159,7 @@ export class UsersService {
       //     message: "verify your email",
       //   }); // Throw ConflictException
       const passwordMatched = await bcrypt.compare(password, user.password);
-      console.log(passwordMatched, 'match');
+      // console.log(passwordMatched, 'match');
       if (!passwordMatched) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
@@ -180,11 +183,20 @@ export class UsersService {
         role: user.role,
       };
       const accessToken = this.jwtService.sign(payload);
-
-      orgs.push(user.organization_created);
+      // console.log(user,'useree')
+      if(user.organization_created){
+        orgs.push(user.organization_created.id);
+      }
       user.organizations_added_in.map((org) => {
-        orgs.push(org);
+        orgs.push(org.id);
       });
+
+      const organizations = await this.orgRepository.find({
+        relations:['users','creator'],
+        where: {
+          id: In(orgs)
+        }
+      })
 
       return {
         accessToken,
@@ -194,7 +206,7 @@ export class UsersService {
         sub_folder_count: query1,
         id: user.id,
         user: user,
-        organizations: orgs,
+        organizations
       };
     } catch (error) {
       console.log(error);
@@ -215,13 +227,19 @@ export class UsersService {
       });
 
       if (findUser) {
-        console.log('google sign finduser', findUser)
+        console.log('google sign finduser', findUser);
         const orgs = [];
-        orgs.push(findUser.organization_created);
+        orgs.push(findUser.organization_created.id);
         findUser.organizations_added_in.map((org) => {
-          orgs.push(org);
+          orgs.push(org.id);
         });
-        console.log(orgs,'dsa')
+        const organizations = await this.orgRepository.find({
+          relations:['users','creator'],
+          where: {
+            id: In(orgs)
+          }
+        })
+        console.log(orgs, 'dsa');
         const query = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
@@ -250,7 +268,7 @@ export class UsersService {
           sub_folder_count: query1,
           id: findUser.id,
           user: findUser,
-          organizations: orgs,
+          organizations
         };
       }
 
@@ -297,7 +315,7 @@ export class UsersService {
       });
 
       const saveOrg = await this.orgRepository.save(new_org);
-      console.log(saveOrg,'oorg')
+      console.log(saveOrg, 'oorg');
       const payload = { user_id: new_user.id, email: new_user.email };
       const access_token = this.jwtService.sign(payload);
 
@@ -311,7 +329,7 @@ export class UsersService {
         organizations: [saveOrg],
       };
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 
@@ -347,7 +365,7 @@ export class UsersService {
             id: resp.user_id,
           },
         });
-  
+
         if (!findUser) {
           throw new NotFoundException('user not found');
         }
@@ -365,11 +383,11 @@ export class UsersService {
           .groupBy('folder.id, user.id')
           .orderBy('folder.createdAt', 'ASC')
           .getRawMany();
-  
+
         return { findUser, sub_folder_count: query1, organizations: orgs };
       }
     } catch (error) {
-      console.log(error,'err')
+      console.log(error, 'err');
     }
   }
 
@@ -387,12 +405,12 @@ export class UsersService {
     });
   }
 
-  async getAllGroups(userId: string) {
+  async getAllGroups(user_id: string) {
     try {
       const findUser = await this.userRepository.findOne({
         relations: ['groups'],
         where: {
-          id: userId,
+          id: user_id,
         },
       });
       if (!findUser)
@@ -402,7 +420,7 @@ export class UsersService {
         });
       if (findUser.role == 'admin') {
         return await this.groupsRepository.find({
-          where: { createdBy: { id: userId } },
+          where: { createdBy: { id: user_id } },
         });
       }
       return findUser.groups;

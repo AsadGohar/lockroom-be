@@ -42,11 +42,14 @@ export class MailController {
           email,
         });
         if (invitedUserAlreadyExists) {
-          return await this.groupService.addUserToAGroup(
+          console.log('in user already exists')
+         return await this.groupService.addUserToAGroup(
             group_id,
-            invitedUserAlreadyExists.id,
+            invitedUserAlreadyExists.id
           );
         }
+        console.log('out user already exists')
+
         new_users.push(email);
       });
 
@@ -54,9 +57,9 @@ export class MailController {
         sender_id,
         new_users,
         group_id,
-        organization_id
+        organization_id,
       );
-      
+
       if (invites.length > 0) {
         const sendEmails = invites.map((invite) => {
           const payload = { invite_id: invite.id };
@@ -65,7 +68,6 @@ export class MailController {
             secret: process.env.JWT_INVITE_SECRET,
           });
           const link = `${process.env.FE_HOST}/authentication/signup?confirm=${access_token}`;
-          console.log(link,'links')
           const mail = {
             to: invite.sent_to,
             subject: 'Invited to LockRoom',
@@ -78,11 +80,15 @@ export class MailController {
           return this.emailService.send(mail);
         });
         const result = await Promise.all(sendEmails);
+        const group_users = await this.groupService.findAllUsersInGroup(group_id)
         if (result.length > 0) {
-          return { data: result, message: 'Emails Sent Successfully', invites };
+          return { data: result, message: 'Emails Sent Successfully', invites, group_users };
         }
       }
-      
+      if(new_users.length==0){
+        const group_users = await this.groupService.findAllUsersInGroup(group_id)
+        return { group_users };
+      }
     } catch (error) {
       console.log(error);
     }

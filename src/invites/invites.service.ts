@@ -139,9 +139,19 @@ export class InvitesService {
         find_user.organizations_added_in.push(find_org)
         find_group.users.push(find_user)
         const saved_user = await this.userRepository.save(find_user);
+        const find_invite = await this.inviteRepository.findOne({
+          where: {
+            id:resp.invite_id
+          }
+        })
+        find_invite.status = 'accepted'
+        await this.inviteRepository.save(invite)
         await this.groupRepository.save(find_group);
         find_org.users.push(saved_user);
         await this.orgRepository.save(find_org);
+        return {
+          status:true
+        }
       }
       const hashedPassword = await bcrypt.hash(password, 10);
       password = hashedPassword;
@@ -164,6 +174,15 @@ export class InvitesService {
         },
       });
       const role = 'guest';
+
+      invite.status = 'accepted'
+      await this.inviteRepository.save(invite)
+      const find_group = await this.groupRepository.findOne({
+        relations:['users'],
+        where: {
+          id: invite.group.id,
+        },
+      });
       const new_user = this.userRepository.create({
         email,
         password,
@@ -172,10 +191,15 @@ export class InvitesService {
         role,
         phone_number,
         full_name,
-        organizations_added_in: [find_org]
+        organizations_added_in: [find_org],
+        groups:[find_group]
       });
+      await this.groupRepository.save(find_group);
       const saved_user = await this.userRepository.save(new_user);
-      console.log(find_org,'previous users', saved_user)
+      console.log( 'saved users', saved_user)
+      return {
+        status:true
+      }
       // if(saved_user){
       //   console.log('saved', saved_user)
       //   find_org.users = [...find_org.users, saved_user];
