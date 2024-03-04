@@ -7,7 +7,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Group } from './entities/group.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
-
+import { Organization } from 'src/organizations/entities/organization.entity';
+import { sendEmailUtil } from 'src/utils/email.utils';
+import { inviteTemplate } from 'src/utils/email.templates';
 @Injectable()
 export class GroupsService {
   constructor(
@@ -16,9 +18,12 @@ export class GroupsService {
 
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
+    @InjectRepository(Organization)
+    private readonly orgRepository: Repository<Organization>,
   ) {}
 
-  async create(name: string, userId: string) {
+  async create(name: string, user_id: string, organization_id: string) {
     try {
       const group = await this.groupsRepository.findOne({
         where: {
@@ -27,15 +32,21 @@ export class GroupsService {
       });
       if (group)
         throw new ConflictException('group already exists with same name');
-      const findUser = await this.userRepository.findOne({
+      const find_user = await this.userRepository.findOne({
         where: {
-          id: userId,
+          id: user_id,
         },
       });
-      if (!findUser) throw new NotFoundException('user not found');
+      if (!find_user) throw new NotFoundException('user not found');
+      const findOrg = await this.orgRepository.findOne({
+        where: {
+          id: organization_id,
+        },
+      });
       const new_group = this.groupsRepository.create({
         name,
-        createdBy: findUser,
+        createdBy: find_user,
+        organization: findOrg,
       });
       return await this.groupsRepository.save(new_group);
     } catch (error) {
@@ -43,70 +54,170 @@ export class GroupsService {
     }
   }
 
-  async addUserToAGroup(groupId: string, userId: string) {
+  async addUserToAGroup(groupId: string, user_id: string, sender_name: string) {
     try {
-      const findGroup = await this.groupsRepository.findOne({
+      const find_group = await this.groupsRepository.findOne({
         relations: ['users'],
         where: {
           id: groupId,
         },
       });
-      console.log(findGroup, 'fggggg');
-      if (!findGroup) throw new NotFoundException('group not found');
-      const findUser = await this.userRepository.findOne({
+
+      const find_org = await this.orgRepository.findOne({
+        relations: ['users'],
         where: {
-          id: userId,
+          groups: {
+            id: groupId,
+          },
         },
       });
-      if (!findUser) throw new NotFoundException('user not found');
-      const userExistsInGroup = findGroup.users.some(
-        (existingUser) => existingUser.id === findUser.id,
+
+      if (!find_group) throw new NotFoundException('group not found');
+      const find_user = await this.userRepository.findOne({
+        relations: ['organizations_added_in'],
+        where: {
+          id: user_id,
+        },
+      });
+      // console.log('find user in grp', find_user)
+      if (!find_user) throw new NotFoundException('user not found');
+      const userExistsInGroup = find_group.users.some(
+        (existingUser) => existingUser.id === find_user.id,
       );
-      if (userExistsInGroup)
-        throw new ConflictException('user already exists group');
-      findGroup.users.push(findUser);
-      return await this.groupsRepository.save(findGroup);
+      // console.log('gere', find_group.name, find_org.name )
+      if (userExistsInGroup) return;
+      const link = `${process.env.FE_HOST}/dashboard/${find_org.id}`;
+        console.log('should not reach this')
+      const mail = {
+        to: find_user.email,
+        subject: 'Invited to LockRoom',
+        from:
+          String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
+        text: 'Hello',
+        html: inviteTemplate(sender_name, link, 'View Organization'),
+      };
+      // throw new ConflictException('user already exists group');
+      find_group.users.push(find_user);
+      find_user.organizations_added_in.push(find_org);
+      await this.userRepository.save(find_user);
+      await sendEmailUtil(mail);
+      return await this.groupsRepository.save(find_group);
     } catch (error) {
       console.log(error);
     }
   }
 
-  async removeUserFromGroup(groupId: string, userId: string) {
+  async removeUserFromGroup(groupId: string, user_id: string) {
     const group = await this.groupsRepository.findOne({
-      relations:['users'],
-      where:{
-        id:groupId
-      }
+      relations: ['users'],
+      where: {
+        id: groupId,
+      },
     });
     const user = await this.userRepository.findOne({
       where: {
-        id:userId
-      }
+        id: user_id,
+      },
     });
-    const userIndex = group.users.findIndex(existingUser => existingUser.id === user.id);
-    if (userIndex == -1) throw new ConflictException('user not in the group')
+    const userIndex = group.users.findIndex(
+      (existingUser) => existingUser.id === user.id,
+    );
+    if (userIndex == -1) throw new ConflictException('user not in the group');
     group.users.splice(userIndex, 1);
     return await this.groupsRepository.save(group);
   }
 
-  async getGroupsCreatedByUser(createdByUserId: string) {
-   
+  async findAll() {
+    return await this.groupsRepository.find();
   }
 
-  async findAll() {
-    return await this.groupsRepository.find()
+  async findAllUsersInGroup(id: string) {
+    try {
+      return await this.groupsRepository.findOne({
+        relations: ['users'],
+        where: {
+          id,
+        },
+      });
+    } catch (error) {}
   }
 
   async findOne(id: string) {
     try {
       return await this.groupsRepository.findOne({
         where: {
-          id
+          id,
         },
-        relations:['users']
-      })
+        relations: ['users'],
+      });
+    } catch (error) {}
+  }
+
+  async getGroupsByOrganization(organization_id: string, user_id: string) {
+    try {
+      console.log('hello');
+      //   const groups = await this.groupsRepository.createQueryBuilder("group")
+      // .leftJoinAndSelect("group.organization", "organization")
+      // .leftJoinAndSelect("group.users", "user")
+      // .where("organization.creator.id = :id", { id: user_id })
+      // .where("users.id = :id", { id: user_id })
+      // .getManyAndCount()
+
+      // console.log(groups,'grouuuup')
+
+      const groups_result = [];
+
+      // const query = this.groupsRepository
+      //   .createQueryBuilder('group')
+      //   .leftJoinAndSelect('group.organization', 'organization')
+      //   .leftJoinAndSelect('group.createdBy', 'createdBy')
+      //   .leftJoinAndSelect('group.users', 'users');
+
+      // const find_user = await this.userRepository.findOne({
+      //   where: {
+      //     id: user_id,
+      //   },
+      // });
+
+      const find_groups = await this.groupsRepository.find({
+        relations: ['users', 'organization.creator'],
+        where: {
+          organization: {
+            id: organization_id,
+          },
+        },
+      });
+
+      // console.log(find_groups,'finnn')
+      find_groups.map((group) => {
+        console.log(group.users,'user')
+        if (group.organization.creator && group.organization.creator.id == user_id) {
+          console.log('now')
+          groups_result.push(group);
+        } else if (group.users.find((user) => user.id == user_id)) {
+          groups_result.push(group);
+        }
+        // console.log(group.users.find((user) => user.id == user_id),'hehe', group.name)
+      });
+
+      return groups_result
+
+      // if (find_group.o === 'admin') {
+      //   // Case 1: If the user is an admin (organization creator)
+      //   query.where('organization.creator = :userId', { userId: user.id });
+      // } else {
+      //   // Case 2: If the user is not an admin
+      //   query
+      //     .andWhere(
+      //       '(organization.creator != :userId OR organization.creator IS NULL)',
+      //       { userId: user.id },
+      //     )
+      //     .orWhere('users.id = :userId', { userId: user.id });
+      // }
+
+      // const groups = await query.getMany();
     } catch (error) {
-      
+      console.log(error, 'in group org');
     }
   }
 

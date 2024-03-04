@@ -7,13 +7,8 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Post()
-  create(@Body('name') name:string, @Body('userId') userId: string,) {
-    return this.groupsService.create(name, userId);
-  }
-
-  @Post('add-user')
-  addUserToAGroup(@Body('groupId') groupId:string, @Body('userId') userId: string,) {
-    return this.groupsService.addUserToAGroup(groupId, userId);
+  create(@Body('name') name:string, @Body('user_id') user_id: string, @Body('organization_id')  organization_id:string) {
+    return this.groupsService.create(name, user_id, organization_id);
   }
 
   @Post('remove-user')
@@ -24,6 +19,16 @@ export class GroupsController {
   @Get()
   findAll() {
     return this.groupsService.findAll();
+  }
+
+  @Post('find-users')
+  findAllUsersInGroup(@Body('id') id:string,) {
+    return this.groupsService.findAllUsersInGroup(id);
+  }
+
+  @Post('org-groups')
+  findGroupsByOrganizationAndUserId(@Body('organization_id') organization_id:string, @Body('user_id') user_id:string) {
+    return this.groupsService.getGroupsByOrganization(organization_id, user_id);
   }
 
   @Get(':id')

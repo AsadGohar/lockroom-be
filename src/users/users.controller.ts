@@ -23,7 +23,7 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @Res({ passthrough: true }) res,
   ) {
-    const data = await this.usersService.create(createUserDto)
+    const data = await this.usersService.create(createUserDto);
     res.cookie('sWTNNOCEN', data.access_token, {
       expires: new Date(Date.now() + 3600000),
     });
@@ -32,18 +32,19 @@ export class UsersController {
       access_token: data.access_token,
       sub_folder_count: data.sub_folder_count,
       id: data.id,
-      user:data.user
+      user: data.user,
+      organizations: data.organizations,
     };
   }
 
   @Post('find-groups')
   findAllGroupsByUserId(@Body('userId') userId: string) {
     return this.usersService.getAllGroups(userId);
-  } 
+  }
 
   @Post('login')
   login(@Body('email') email: string, @Body('password') password: string) {
-    return this.usersService.loginUser(email,password);
+    return this.usersService.loginUser(email, password);
   }
 
   @Post('verify-email')
