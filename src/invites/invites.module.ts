@@ -7,10 +7,11 @@ import { User } from 'src/users/entities/user.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { JwtService } from '@nestjs/jwt';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import { GroupsService } from 'src/groups/groups.service';
 @Module({
   imports:[TypeOrmModule.forFeature([Invite, User, Group, Organization])],
   controllers: [InvitesController],
-  providers: [InvitesService, JwtService],
+  providers: [InvitesService, JwtService, GroupsService],
   exports:[InvitesService]
 })
 export class InvitesModule {}

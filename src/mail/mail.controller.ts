@@ -45,7 +45,8 @@ export class MailController {
           console.log('in user already exists')
          return await this.groupService.addUserToAGroup(
             group_id,
-            invitedUserAlreadyExists.id
+            invitedUserAlreadyExists.id,
+            senderUser.first_name + ' ' + senderUser.last_name
           );
         }
         console.log('out user already exists')
@@ -53,7 +54,7 @@ export class MailController {
         new_users.push(email);
       });
 
-      const { invites } = await this.inviteService.addInvitesBySenderId(
+      const { invites } = await this.inviteService.sendInvitesBySenderId(
         sender_id,
         new_users,
         group_id,
@@ -75,7 +76,7 @@ export class MailController {
               String(process.env.VERIFIED_SENDER_EMAIL) ||
               'waleed@lockroom.com',
             text: 'Hello',
-            html: inviteTemplate(senderUser.first_name, link),
+            html: inviteTemplate(senderUser.first_name, link, 'Create Account'),
           };
           return this.emailService.send(mail);
         });

@@ -1,4 +1,4 @@
-export const inviteTemplate = (name:string, link:string) =>  `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+export const inviteTemplate = (name:string, link:string, btn_text:string) =>  `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html
   data-editor-version="2"
   class="sg-campaigns"
@@ -684,7 +684,7 @@ export const inviteTemplate = (name:string, link:string) =>  `<!DOCTYPE html PUB
                                                                       sans-serif;
                                                                   "
                                                                   target="_blank"
-                                                                  >CREATE ACCOUNT
+                                                                  >${btn_text}
                                                                   </a
                                                                 >
                                                               </td>

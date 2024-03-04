@@ -53,19 +53,4 @@ export class InvitesController {
   findAll() {
     return this.invitesService.findAll();
   }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.invitesService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInviteDto: UpdateInviteDto) {
-    return this.invitesService.update(+id, updateInviteDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.invitesService.remove(+id);
-  }
 }

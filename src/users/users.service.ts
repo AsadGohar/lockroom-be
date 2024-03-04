@@ -118,7 +118,7 @@ export class UsersService {
       // await sendEmailUtil(mail);
 
       return {
-        user,
+        user: {...user, organization_created: saveOrg},
         access_token,
         folders: [folder],
         files_count: 1,
@@ -205,7 +205,7 @@ export class UsersService {
         files_count: query.length,
         sub_folder_count: query1,
         id: user.id,
-        user: user,
+        user,
         organizations
       };
     } catch (error) {
@@ -313,19 +313,23 @@ export class UsersService {
         users: [],
         invites: [],
       });
-
       const saveOrg = await this.orgRepository.save(new_org);
-      console.log(saveOrg, 'oorg');
+      // console.log(saveOrg, 'oorg');
       const payload = { user_id: new_user.id, email: new_user.email };
       const access_token = this.jwtService.sign(payload);
-
+      // const find_created_user = await this.userRepository.find({
+      //   relations:['organization_created'],
+      //   where: {
+      //     id: new_user.id
+      //   }
+      // })
       return {
         access_token,
         folders: [folder],
         files_count: 1,
         id: new_user.id,
         sub_folder_count: query1,
-        user: new_user,
+        user: {...new_user, organization_created: saveOrg},
         organizations: [saveOrg],
       };
     } catch (error) {

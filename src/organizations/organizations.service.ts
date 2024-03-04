@@ -70,6 +70,7 @@ export class OrganizationsService {
     group_id: string,
   ) {
     try {
+      console.log(organization_id, group_id)
       const find_org = await this.orgRepository.findOne({
         relations: ['creator', 'groups.users'],
         where: {
