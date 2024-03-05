@@ -7,51 +7,57 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Folder } from './entities/folder.entity';
 import { UsersService } from '../users/users.service';
+import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
+import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
 @Injectable()
 export class FoldersService {
   constructor(
     @InjectRepository(Folder)
     private readonly foldersRepository: Repository<Folder>,
+    @InjectRepository(FilesPermissions)
+    private readonly fpRepository: Repository<FilesPermissions>,
+    @InjectRepository(GroupFilesPermissions)
+    private readonly gfpRepository: Repository<GroupFilesPermissions>,
     private readonly userService: UsersService,
   ) {}
 
-  async create(name: string, sub: string, parentFolderId?: string) {
+  async create(name: string, user_id: string, parent_folder_id?: string) {
     //check if parent repo exists
-    const parentFolder = await this.foldersRepository.findOne({
+    const parent_folder = await this.foldersRepository.findOne({
       where: {
-        id: parentFolderId,
+        id: parent_folder_id,
       },
     });
-    if (!parentFolder) throw new NotFoundException('parent folder found');
+    if (!parent_folder) throw new NotFoundException('parent folder found');
 
     //check if child repos have duplicate name
-    const childFoldersWithSameName = await this.foldersRepository.find({
+    const child_folders_with_same_name = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
         name: name,
       },
     });
-    if (childFoldersWithSameName.length > 0)
+    if (child_folders_with_same_name.length > 0)
       throw new ConflictException('folder already exists with same name');
 
     const user = await this.userService.findOne({
-      id:sub,
+      id: user_id,
     });
 
-    const allChildFolders = await this.foldersRepository.find({
+    const all_child_folders = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
       },
     });
 
-    const treeIndex = `${parentFolder.tree_index}.`;
+    const treeIndex = `${parent_folder.tree_index}.`;
     const next =
-      allChildFolders.length > 0 ? `${allChildFolders.length + 1}` : 1;
+      all_child_folders.length > 0 ? `${all_child_folders.length + 1}` : 1;
 
     if (!user) throw new NotFoundException('user not found');
     const new_folder = await this.foldersRepository.save({
       name,
-      parentFolderId,
+      parent_folder_id,
       tree_index: treeIndex + next,
       users: [user],
     });
@@ -59,7 +65,7 @@ export class FoldersService {
     const new_folder_1 = {
       ...new_folder,
       folder_name: new_folder.name,
-      folder_parentFolderId: new_folder.parentFolderId,
+      folder_parent_folder_id: new_folder.parent_folder_id,
       folder_tree_index: new_folder.tree_index,
       folder_createdAt : new_folder.createdAt,
       folder_id: new_folder.id
@@ -70,12 +76,12 @@ export class FoldersService {
       .leftJoinAndSelect('folder.users', 'user')
       .where('user.id = :userId', { userId: user.id});
 
-    if (parentFolderId) {
-      query.andWhere('folder.parentFolderId = :parentFolderId', {
-        parentFolderId,
+    if (parent_folder_id) {
+      query.andWhere('folder.parent_folder_id = :parent_folder_id', {
+        parent_folder_id,
       });
     } else {
-      query.andWhere('folder.parentFolderId IS NULL');
+      query.andWhere('folder.parent_folder_id IS NULL');
     }
     const data = await query.getMany();
     return { new_folder: new_folder_1, files_count: data.length };
@@ -100,10 +106,10 @@ export class FoldersService {
     return `This action returns a #${id} folder`;
   }
 
-  async update(prev_name: string, new_name: string, parentFolderId?: string) {
+  async update(prev_name: string, new_name: string, parent_folder_id?: string) {
     const findRepo = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
         name: prev_name,
       },
     });
@@ -114,7 +120,7 @@ export class FoldersService {
 
     const findRepoWithNewName = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
         name: new_name,
       },
     });
@@ -124,7 +130,7 @@ export class FoldersService {
 
     await this.foldersRepository.update(
       {
-        parentFolderId,
+        parent_folder_id,
         name: prev_name,
       },
       {
@@ -144,52 +150,54 @@ export class FoldersService {
     );
   }
 
-  async createFolderWithDefaultPermissions(name: string, sub: string, parentFolderId?: string) {
+  async createFolderWithDefaultPermissions(name: string, sub: string, parent_folder_id?: string) {
 
     //check if parent repo exists
-    const parentFolder = await this.foldersRepository.findOne({
+    const parent_folder = await this.foldersRepository.findOne({
       where: {
-        id: parentFolderId,
+        id: parent_folder_id,
       },
     });
-    if (!parentFolder) throw new NotFoundException('parent folder found');
+    if (!parent_folder) throw new NotFoundException('parent folder found');
 
     //check if child repos have duplicate name
-    const childFoldersWithSameName = await this.foldersRepository.find({
+    const child_folders_with_same_name = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
         name: name,
       },
     });
-    if (childFoldersWithSameName.length > 0)
+    if (child_folders_with_same_name.length > 0)
       throw new ConflictException('folder already exists with same name');
 
     const user = await this.userService.findOne({
       sub,
     });
 
-    const allChildFolders = await this.foldersRepository.find({
+    const all_child_folders = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
       },
     });
 
-    const treeIndex = `${parentFolder.tree_index}.`;
+    const treeIndex = `${parent_folder.tree_index}.`;
     const next =
-      allChildFolders.length > 0 ? `${allChildFolders.length + 1}` : 1;
+      all_child_folders.length > 0 ? `${all_child_folders.length + 1}` : 1;
 
     if (!user) throw new NotFoundException('user not found');
     const new_folder = await this.foldersRepository.save({
       name,
-      parentFolderId,
+      parent_folder_id,
       tree_index: treeIndex + next,
       users: [user],
     });
 
+    
+
     const new_folder_1 = {
       ...new_folder,
       folder_name: new_folder.name,
-      folder_parentFolderId: new_folder.parentFolderId,
+      folder_parent_folder_id: new_folder.parent_folder_id,
       folder_tree_index: new_folder.tree_index,
       folder_createdAt : new_folder.createdAt,
       folder_id: new_folder.id
@@ -200,12 +208,12 @@ export class FoldersService {
       .leftJoinAndSelect('folder.users', 'user')
       .where('user.id = :userId', { userId: user.id});
 
-    if (parentFolderId) {
-      query.andWhere('folder.parentFolderId = :parentFolderId', {
-        parentFolderId,
+    if (parent_folder_id) {
+      query.andWhere('folder.parent_folder_id = :parent_folder_id', {
+        parent_folder_id,
       });
     } else {
-      query.andWhere('folder.parentFolderId IS NULL');
+      query.andWhere('folder.parent_folder_id IS NULL');
     }
     const data = await query.getMany();
     // return { new_folder: new_folder_1, files_count: data.length };

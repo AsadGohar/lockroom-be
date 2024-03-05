@@ -24,7 +24,7 @@ export class Folder {
   parentFolder: Folder;
 
   @Column({ nullable: true })
-  parentFolderId: string;
+  parent_folder_id: string;
 
   @Column({ nullable: true, default: false })
   is_deleted: boolean;

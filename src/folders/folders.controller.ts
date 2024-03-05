@@ -17,11 +17,11 @@ export class FoldersController {
   @Post('/create')
   create(
     @Body('name') name: string,
-    @Body('sub') sub: string,
-    @Body('parentFolderId') parentFolderId: string,
+    @Body('user_id') user_id: string,
+    @Body('parent_folder_id') parent_folder_id: string,
   ) {
     try {
-      return this.foldersService.create(name, sub, parentFolderId)
+      return this.foldersService.create(name, user_id, parent_folder_id)
     } catch (error) {
       console.log(error)
     }
