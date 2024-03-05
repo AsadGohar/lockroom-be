@@ -7,13 +7,14 @@ import {
   UpdateDateColumn,
   OneToMany,
   ManyToOne,
-  ManyToMany,
-  JoinTable
+  ManyToMany
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../users/entities/user.entity';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
+
 @Entity()
 export class Group {
   @PrimaryGeneratedColumn('uuid')
@@ -33,6 +34,9 @@ export class Group {
 
   @ManyToOne(() => Organization, (organization) => organization.groups, { onDelete:'CASCADE'})
   organization: Organization;
+
+  @OneToMany(() => GroupFilesPermissions, (groupFilesPermissions) => groupFilesPermissions.group)
+  group_files_permissions: GroupFilesPermissions[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

@@ -6,7 +6,8 @@ import {
   ManyToOne,
   BeforeInsert,
   CreateDateColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
+  JoinColumn
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
@@ -34,6 +35,7 @@ export class File {
   user: User;
 
   @OneToMany(() => FilesPermissions, fp => fp.permission)
+  @JoinColumn()
   FilesPermissions: FilesPermissions[];
   
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

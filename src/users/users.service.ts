@@ -70,7 +70,7 @@ export class UsersService {
 
       const folder = await this.folderRepository.save({
         name: 'Home',
-        parentFolderId: null,
+        parent_folder_id: null,
         tree_index: '1',
         users: [user],
       });
@@ -285,7 +285,7 @@ export class UsersService {
 
       const folder = await this.folderRepository.save({
         name: 'Home',
-        parentFolderId: null,
+        parent_folder_id: null,
         tree_index: '1',
         users: [new_user],
       });
