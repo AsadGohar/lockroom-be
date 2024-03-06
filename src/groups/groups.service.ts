@@ -200,7 +200,7 @@ export class GroupsService {
         // console.log(group.users.find((user) => user.id == user_id),'hehe', group.name)
       });
 
-      return groups_result
+      return groups_result.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 
       // if (find_group.o === 'admin') {
       //   // Case 1: If the user is an admin (organization creator)
