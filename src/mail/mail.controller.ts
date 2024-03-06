@@ -42,6 +42,7 @@ export class MailController {
           email,
         });
         if (invitedUserAlreadyExists) {
+          if(invitedUserAlreadyExists.organization_created.id == organization_id) return
           console.log('in user already exists')
          return await this.groupService.addUserToAGroup(
             group_id,

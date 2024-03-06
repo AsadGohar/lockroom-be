@@ -8,7 +8,6 @@ import {
   BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
-  JoinTable
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';

@@ -405,6 +405,7 @@ export class UsersService {
 
   async findOne(where: any) {
     return await this.userRepository.findOne({
+      relations:['organization_created', 'organizations_added_in'],
       where: where,
     });
   }
