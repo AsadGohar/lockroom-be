@@ -20,11 +20,11 @@ export class PermissionService {
     try {
       const new_permissions = [
         {
-          type: 'can_be_viewed',
+          type: 'view',
           status: false,
         },
         {
-          type: 'can_be_downloaded',
+          type: 'download',
           status: false,
         },
       ];

@@ -9,15 +9,14 @@ import { Folder } from './entities/folder.entity';
 import { UsersService } from '../users/users.service';
 import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
+import { File } from 'src/files/entities/file.entity';
 @Injectable()
 export class FoldersService {
   constructor(
     @InjectRepository(Folder)
     private readonly foldersRepository: Repository<Folder>,
-    @InjectRepository(FilesPermissions)
-    private readonly fpRepository: Repository<FilesPermissions>,
-    @InjectRepository(GroupFilesPermissions)
-    private readonly gfpRepository: Repository<GroupFilesPermissions>,
+    @InjectRepository(File)
+    private readonly fileRepository: Repository<File>,
     private readonly userService: UsersService,
   ) {}
 
@@ -50,9 +49,17 @@ export class FoldersService {
       },
     });
 
+    const all_child_files = await this.fileRepository.find({
+      where: {
+        folder: {
+          id: parent_folder_id,
+        },
+      },
+    });
+
     const treeIndex = `${parent_folder.tree_index}.`;
     const next =
-      all_child_folders.length > 0 ? `${all_child_folders.length + 1}` : 1;
+      all_child_folders.length + all_child_files.length > 0 ? `${all_child_folders.length + all_child_files.length + 1}` : 1;
 
     if (!user) throw new NotFoundException('user not found');
     const new_folder = await this.foldersRepository.save({

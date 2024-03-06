@@ -1,44 +1,45 @@
 import { Module } from '@nestjs/common';
-import { GroupsService } from './groups.service';
-import { GroupsController } from './groups.controller';
-import { Group } from './entities/group.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { GroupFilesPermissions } from './entities/group-files-permissions.entity';
+import { GroupFilesPermissionsService } from './group-files-permissions.service';
+import { GroupsService } from 'src/groups/groups.service';
+import { Group } from 'src/groups/entities/group.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { FilesService } from 'src/files/files.service';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { File } from 'src/files/entities/file.entity';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
-import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
-import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { OrganizationsService } from 'src/organizations/organizations.service';
-import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
+import { Permission } from 'src/permission/entities/permission.entity';
 import { PermissionService } from 'src/permission/permission.service';
 import { Invite } from 'src/invites/entities/invite.entity';
-import { Permission } from 'src/permission/entities/permission.entity';
+import { JwtService } from '@nestjs/jwt';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Group,
       User,
       Organization,
+      FilesPermissions,
       Folder,
       File,
-      FilesPermissions,
-      GroupFilesPermissions,
       Invite,
+      GroupFilesPermissions,
       Permission,
     ]),
   ],
-  controllers: [GroupsController],
   providers: [
+    GroupFilesPermissionsService,
     GroupsService,
     FilesService,
     FilesPermissionsService,
     OrganizationsService,
     PermissionService,
-    GroupFilesPermissionsService
+    // JwtService
   ],
-  exports: [GroupsService],
+  exports: [GroupFilesPermissionsService],
 })
-export class GroupsModule {}
+export class GroupFilesPermissionsModule {}

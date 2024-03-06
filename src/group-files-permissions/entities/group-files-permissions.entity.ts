@@ -9,12 +9,12 @@ export class GroupFilesPermissions {
   id: number;
 
   @ManyToOne(() => Group, (group) => group.group_files_permissions)
-  @JoinColumn({ name: 'groupId' })
+  @JoinColumn()
   group: Group;
 
   @ManyToOne(() => FilesPermissions, (filePermission) => filePermission.group_files_permissions)
-  @JoinColumn({ name: 'filePermissionId' })
-  filePermission: FilesPermissions;
+  @JoinColumn()
+  file_permission: FilesPermissions;
 
  @BeforeInsert()
   addId() {

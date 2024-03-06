@@ -14,7 +14,7 @@ export class FilesPermissions {
   @ManyToOne(() => Permission, (permission) => permission.FilesPermissions)
   permission: Permission;
 
-  @OneToMany(() => GroupFilesPermissions, (groupFilePermission) => groupFilePermission.filePermission)
+  @OneToMany(() => GroupFilesPermissions, (groupFilePermission) => groupFilePermission.file_permission)
   group_files_permissions: GroupFilesPermissions[];
 
   @BeforeInsert()
