@@ -68,22 +68,7 @@ export class UsersService {
         expiresIn: '1d',
       });
 
-      const folder = await this.folderRepository.save({
-        name: 'Home',
-        parent_folder_id: null,
-        tree_index: '1',
-        users: [user],
-      });
 
-      const query1 = await this.folderRepository
-        .createQueryBuilder('folder')
-        .leftJoinAndSelect('folder.users', 'user')
-        .leftJoin('folder.sub_folders', 'sub_folder')
-        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-        .where('user.id = :userId', { userId: user.id })
-        .groupBy('folder.id, user.id')
-        .orderBy('folder.createdAt', 'ASC')
-        .getRawMany();
 
       const new_group = this.groupsRepository.create({
         name: 'Admin',
@@ -102,6 +87,25 @@ export class UsersService {
 
       const saveOrg = await this.orgRepository.save(new_org);
       console.log('here2', saveOrg);
+
+      const folder = await this.folderRepository.save({
+        name: 'Home',
+        parent_folder_id: null,
+        tree_index: '1',
+        users: [user],
+        organization: saveOrg
+      });
+
+      const query1 = await this.folderRepository
+        .createQueryBuilder('folder')
+        .leftJoinAndSelect('folder.users', 'user')
+        .leftJoin('folder.sub_folders', 'sub_folder')
+        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
+        .where('user.id = :userId', { userId: user.id })
+        .andWhere('folder.organization.id = :organizationId', { organizationId: saveOrg.id }) 
+        .groupBy('folder.id, user.id')
+        .orderBy('folder.createdAt', 'ASC')
+        .getRawMany();
 
       const mail = {
         to: user.email,
@@ -148,7 +152,7 @@ export class UsersService {
       const orgs = [];
 
       if (!user) {
-        console.log(user);
+        // console.log(user);
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
       if (user.sso_login && user.sso_type == 'google')
@@ -168,6 +172,7 @@ export class UsersService {
         .leftJoinAndSelect('folder.users', 'user')
         .where('user.id = :userId', { userId: user.id })
         .getMany();
+
       const query1 = await this.folderRepository
         .createQueryBuilder('folder')
         .leftJoinAndSelect('folder.users', 'user')
@@ -229,7 +234,7 @@ export class UsersService {
       if (findUser) {
         console.log('google sign finduser', findUser);
         const orgs = [];
-        orgs.push(findUser.organization_created.id);
+        orgs.push(findUser?.organization_created?.id);
         findUser.organizations_added_in.map((org) => {
           orgs.push(org.id);
         });
@@ -283,19 +288,15 @@ export class UsersService {
       });
       const saved_user = await this.userRepository.save(new_user);
 
-      const folder = await this.folderRepository.save({
-        name: 'Home',
-        parent_folder_id: null,
-        tree_index: '1',
-        users: [new_user],
-      });
-
       const query1 = await this.folderRepository
         .createQueryBuilder('folder')
         .leftJoinAndSelect('folder.users', 'user')
         .leftJoin('folder.sub_folders', 'sub_folder')
         .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
         .where('user.id = :userId', { userId: new_user.id })
+        // .andWhere('folder.organization.id = :organizationId', {
+        //   organizationId: organization_id,
+        // })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
@@ -317,6 +318,14 @@ export class UsersService {
       // console.log(saveOrg, 'oorg');
       const payload = { user_id: new_user.id, email: new_user.email };
       const access_token = this.jwtService.sign(payload);
+
+      const folder = await this.folderRepository.save({
+        name: 'Home',
+        parent_folder_id: null,
+        tree_index: '1',
+        users: [new_user],
+        organization:saveOrg
+      });
       // const find_created_user = await this.userRepository.find({
       //   relations:['organization_created'],
       //   where: {

@@ -75,6 +75,7 @@ export class GroupsService {
           find_file_permissions,
         );
       console.log(new_group_file_permissions);
+      return saved_group
     } catch (error) {
       console.log(error, 'err');
     }
@@ -113,7 +114,7 @@ export class GroupsService {
       // console.log('gere', find_group.name, find_org.name )
       if (userExistsInGroup) return;
       const link = `${process.env.FE_HOST}/dashboard/${find_org.id}`;
-      console.log('should not reach this');
+      // console.log('should not reach this');
       const mail = {
         to: find_user.email,
         subject: 'Invited to LockRoom',
@@ -221,7 +222,7 @@ export class GroupsService {
           group.organization.creator &&
           group.organization.creator.id == user_id
         ) {
-          console.log('now');
+          // console.log('now');
           groups_result.push(group);
         } else if (group.users.find((user) => user.id == user_id)) {
           groups_result.push(group);

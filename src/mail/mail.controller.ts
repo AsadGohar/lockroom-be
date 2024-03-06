@@ -41,8 +41,9 @@ export class MailController {
         const invitedUserAlreadyExists = await this.userService.findOne({
           email,
         });
+        // console.log(invitedUserAlreadyExists,'useeeeee')
         if (invitedUserAlreadyExists) {
-          if(invitedUserAlreadyExists.organization_created.id == organization_id) return
+          if(invitedUserAlreadyExists?.organization_created?.id == organization_id) return
           console.log('in user already exists')
          return await this.groupService.addUserToAGroup(
             group_id,

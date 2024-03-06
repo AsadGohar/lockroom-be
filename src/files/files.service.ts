@@ -9,6 +9,7 @@ import { File } from './entities/file.entity';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { OrganizationsService } from 'src/organizations/organizations.service';
+
 @Injectable()
 export class FilesService {
   constructor(
@@ -90,12 +91,24 @@ export class FilesService {
 
   async getAllFilesByOrganization(organization_id: string) {
     return this.fileRepository.find({
+      relations:['folder'],
       where: {
         organization: {
           id: organization_id,
         },
       },
     });
+  }
+
+  async getFilesWithGroupPermissions(organization_id:string) {
+    try {
+      const find_files = await this.getAllFilesByOrganization(organization_id)
+      const file_ids = find_files.map(file => file.id)
+      const find_group_files_permissions = this.gfpService.getGroupFilesPermissiosnByFileId(file_ids)
+      
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   findAll() {

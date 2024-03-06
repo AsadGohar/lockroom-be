@@ -67,7 +67,7 @@ export class InvitesService {
         id: organization_id,
       },
     });
-    console.log(findUser, 'user', findOrg);
+    // console.log(findUser, 'user', findOrg);
     const invites = emails.map((email) => {
       return {
         sender: findUser,

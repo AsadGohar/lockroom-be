@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { GroupFilesPermissions } from './entities/group-files-permissions.entity';
 import { GroupsService } from 'src/groups/groups.service';
 import { Group } from 'src/groups/entities/group.entity';
+import { In } from 'typeorm';
 
 @Injectable()
 export class GroupFilesPermissionsService {
@@ -88,6 +89,24 @@ export class GroupFilesPermissionsService {
       );
       find_group_files_permissions.file_permission.permission.status = status
       await this.groupFilePermRepo.save(find_group_files_permissions)
-    } catch (error) {}
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  async getGroupFilesPermissiosnByFileId(file_ids:string[]) {
+    try {
+      return await this.groupFilePermRepo.find({
+        where: {
+          file_permission : {
+            file : {
+              id:  In(file_ids)
+            }
+          }
+        }
+      })
+    } catch (error) {
+      console.log(error)
+    }
   }
 }
