@@ -217,7 +217,7 @@ export class GroupsService {
 
       // console.log(find_groups,'finnn')
       find_groups.map((group) => {
-        console.log(group.users, 'user');
+        // console.log(group.users, 'user');
         if (
           group.organization.creator &&
           group.organization.creator.id == user_id

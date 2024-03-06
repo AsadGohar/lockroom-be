@@ -399,8 +399,11 @@ export class UsersService {
 
         return { findUser, sub_folder_count: query1, organizations: orgs };
       }
+      throw new UnauthorizedException('jwt token expired')
+
     } catch (error) {
       console.log(error, 'err');
+      throw error
     }
   }
 
