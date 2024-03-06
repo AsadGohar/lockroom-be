@@ -66,4 +66,28 @@ export class GroupFilesPermissionsService {
       console.log(error);
     }
   }
+
+  async updateGroupFilePermissions(
+    group_id: string,
+    file_permission_id: number,
+    status: boolean
+  ) {
+    try {
+      const find_group_files_permissions = await this.groupFilePermRepo.findOne(
+        {
+          relations: ['group', 'file_permission'],
+          where: {
+            group: {
+              id: group_id,
+            },
+            file_permission: {
+              id: file_permission_id,
+            },
+          },
+        },
+      );
+      find_group_files_permissions.file_permission.permission.status = status
+      await this.groupFilePermRepo.save(find_group_files_permissions)
+    } catch (error) {}
+  }
 }
