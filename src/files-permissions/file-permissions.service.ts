@@ -1,13 +1,9 @@
 import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
+  Injectable
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FilesPermissions } from './entities/files-permissions.entity';
-import { File } from 'src/files/entities/file.entity';
-import { Permission } from 'src/permission/entities/permission.entity';
 import { PermissionService } from 'src/permission/permission.service';
 
 @Injectable()
@@ -27,10 +23,22 @@ export class FilesPermissionsService {
           permission,
         };
       });
+      // console.log(file_permissions,'file permiss')
       const new_files_permissions = await this.filePermRepo.save(file_permissions)
-      console.log(new_files_permissions)
+      // console.log(new_files_permissions)
+      return new_files_permissions
     } catch (error) {
       console.log(error)
     }
+  }
+
+  async findFilePermissiosn(file_id){
+    return await this.filePermRepo.find({
+      where:{
+        file:{
+          id:file_id
+        }
+      }
+    })
   }
 }

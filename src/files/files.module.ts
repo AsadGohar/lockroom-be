@@ -9,12 +9,36 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { File } from './entities/file.entity';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { PermissionService } from 'src/permission/permission.service';
-
+import { Permission } from 'src/permission/entities/permission.entity';
+import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
+import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
+import { GroupsService } from 'src/groups/groups.service';
+import { Group } from 'src/groups/entities/group.entity';
+import { Organization } from 'src/organizations/entities/organization.entity';
+import { OrganizationsService } from 'src/organizations/organizations.service';
+import { Invite } from 'src/invites/entities/invite.entity';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Folder, User, File, FilesPermissions])
+    TypeOrmModule.forFeature([
+      Folder,
+      User,
+      File,
+      FilesPermissions,
+      Permission,
+      GroupFilesPermissions,
+      Group,
+      Organization,
+      Invite
+    ]),
   ],
   controllers: [FilesController],
-  providers: [FilesService, FilesPermissionsService, PermissionService],
+  providers: [
+    FilesService,
+    FilesPermissionsService,
+    PermissionService,
+    GroupFilesPermissionsService,
+    GroupsService,
+    OrganizationsService
+  ],
 })
 export class FilesModule {}

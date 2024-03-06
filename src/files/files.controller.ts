@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { FilesService } from './files.service';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
@@ -10,6 +18,16 @@ export class FilesController {
   @Post()
   create(@Body() createFileDto: CreateFileDto) {
     return this.filesService.create(createFileDto);
+  }
+
+  @Post('add')
+  addNewFileToFolder(
+    @Body('name') name: string,
+    @Body('folder_id') folder_id: string,
+    @Body('user_id') user_id: string,
+    @Body('organization_id') organization_id: string,
+  ) {
+    return this.filesService.addFileToAFolder(name, folder_id, user_id, organization_id);
   }
 
   @Get()
