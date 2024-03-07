@@ -16,6 +16,7 @@ import { FilesPermissions } from 'src/files-permissions/entities/files-permissio
 import { PermissionService } from 'src/permission/permission.service';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Permission } from 'src/permission/entities/permission.entity';
+import { UploadService } from 'src/uploads/uploads.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -37,7 +38,7 @@ import { Permission } from 'src/permission/entities/permission.entity';
     FilesPermissionsService,
     OrganizationsService,
     PermissionService,
-    GroupFilesPermissionsService
+    GroupFilesPermissionsService,
   ],
   exports: [GroupsService],
 })

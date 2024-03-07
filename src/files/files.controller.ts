@@ -20,19 +20,19 @@ export class FilesController {
     return this.filesService.create(createFileDto);
   }
 
-  @Post('add')
-  addNewFileToFolder(
-    @Body('name') name: string,
-    @Body('folder_id') folder_id: string,
-    @Body('user_id') user_id: string,
-    @Body('organization_id') organization_id: string,
-  ) {
-    return this.filesService.addFileToAFolder(name, folder_id, user_id, organization_id);
-  }
+  // @Post('add')
+  // addNewFileToFolder(
+  //   @Body('name') name: string,
+  //   @Body('folder_id') folder_id: string,
+  //   @Body('user_id') user_id: string,
+  //   @Body('organization_id') organization_id: string,
+  // ) {
+  //   return this.filesService.addFileToAFolder(name, folder_id, user_id, organization_id);
+  // }
 
-  @Get()
-  findAll() {
-    return this.filesService.findAll();
+  @Post('organization/all')
+  findAll(@Body('organization_id') organization_id: string,) {
+    return this.filesService.getAllFilesByOrganization(organization_id);
   }
 
   @Get(':id')

@@ -17,6 +17,7 @@ import { FilesPermissionsService } from 'src/files-permissions/file-permissions.
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { PermissionService } from 'src/permission/permission.service';
 import { Permission } from 'src/permission/entities/permission.entity';
+import { UploadService } from 'src/uploads/uploads.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([

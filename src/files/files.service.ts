@@ -9,7 +9,6 @@ import { File } from './entities/file.entity';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { OrganizationsService } from 'src/organizations/organizations.service';
-
 @Injectable()
 export class FilesService {
   constructor(
@@ -33,6 +32,7 @@ export class FilesService {
     folder_id: string,
     user_id: string,
     organization_id: string,
+    mime_type: string
   ) {
     try {
       const find_user = await this.userRepository.findOne({
@@ -68,9 +68,12 @@ export class FilesService {
 
       const new_file = this.fileRepository.create({
         name,
+        user: find_user,
         folder: find_folder,
         tree_index: treeIndex + next,
         organization,
+        mime_type,
+        bucket_url: 'https://lockroom.s3.amazonaws.com'+name
       });
 
       // console.log(new_file)
@@ -104,7 +107,8 @@ export class FilesService {
     try {
       const find_files = await this.getAllFilesByOrganization(organization_id)
       const file_ids = find_files.map(file => file.id)
-      const find_group_files_permissions = this.gfpService.getGroupFilesPermissiosnByFileId(file_ids)
+      const find_group_files_permissions = this.gfpService.getGroupFilesPermissiosnByFileIds(file_ids)
+      console.log(find_group_files_permissions)
       
     } catch (error) {
       console.log(error)

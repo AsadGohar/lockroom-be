@@ -38,6 +38,9 @@ export class File {
   @Column({ nullable: false })
   tree_index: string;
 
+  @Column({ nullable: true })
+  bucket_url: string;
+
   @ManyToOne(() => User, user => user.files)
   user: User;
 

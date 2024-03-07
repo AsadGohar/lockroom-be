@@ -94,7 +94,7 @@ export class GroupFilesPermissionsService {
     }
   }
 
-  async getGroupFilesPermissiosnByFileId(file_ids:string[]) {
+  async getGroupFilesPermissiosnByFileIds(file_ids:string[]) {
     try {
       return await this.groupFilePermRepo.find({
         where: {
