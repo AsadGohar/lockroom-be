@@ -8,10 +8,12 @@ import {
   BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinColumn
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { File } from 'src/files/entities/file.entity';
+import { Organization } from 'src/organizations/entities/organization.entity';
 @Entity()
 export class Folder {
   @PrimaryGeneratedColumn('uuid')
@@ -24,7 +26,7 @@ export class Folder {
   parentFolder: Folder;
 
   @Column({ nullable: true })
-  parentFolderId: string;
+  parent_folder_id: string;
 
   @Column({ nullable: true, default: false })
   is_deleted: boolean;
@@ -40,6 +42,10 @@ export class Folder {
 
   @ManyToMany(() => User, (user) => user.folders)
   users: User[]
+
+  @ManyToOne(() => Organization, (organization) => organization.files)
+  @JoinColumn()
+  organization: Organization;
   
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

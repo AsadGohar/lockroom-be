@@ -10,6 +10,11 @@ import { User } from 'src/users/entities/user.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { sendEmailUtil } from 'src/utils/email.utils';
 import { inviteTemplate } from 'src/utils/email.templates';
+import { FilesService } from 'src/files/files.service';
+import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
+import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
+import { In } from 'typeorm';
+import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 @Injectable()
 export class GroupsService {
   constructor(
@@ -21,6 +26,11 @@ export class GroupsService {
 
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
+
+    @InjectRepository(FilesPermissions)
+    private readonly fpRepository: Repository<FilesPermissions>,
+    private readonly fileService: FilesService,
+    private readonly gfpService: GroupFilesPermissionsService,
   ) {}
 
   async create(name: string, user_id: string, organization_id: string) {
@@ -48,7 +58,24 @@ export class GroupsService {
         createdBy: find_user,
         organization: findOrg,
       });
-      return await this.groupsRepository.save(new_group);
+
+      const find_files =
+        await this.fileService.getAllFilesByOrganization(organization_id);
+      const files_ids = find_files.map((files) => files.id);
+
+      const find_file_permissions = await this.fpRepository.find({
+        where: {
+          file: In(files_ids),
+        },
+      });
+      const saved_group = await this.groupsRepository.save(new_group);
+      const new_group_file_permissions =
+        await this.gfpService.createGroupFilePermissionsForOneGroup(
+          saved_group,
+          find_file_permissions,
+        );
+      console.log(new_group_file_permissions);
+      return saved_group
     } catch (error) {
       console.log(error, 'err');
     }
@@ -87,7 +114,7 @@ export class GroupsService {
       // console.log('gere', find_group.name, find_org.name )
       if (userExistsInGroup) return;
       const link = `${process.env.FE_HOST}/dashboard/${find_org.id}`;
-        console.log('should not reach this')
+      // console.log('should not reach this');
       const mail = {
         to: find_user.email,
         subject: 'Invited to LockRoom',
@@ -190,9 +217,12 @@ export class GroupsService {
 
       // console.log(find_groups,'finnn')
       find_groups.map((group) => {
-        console.log(group.users,'user')
-        if (group.organization.creator && group.organization.creator.id == user_id) {
-          console.log('now')
+        // console.log(group.users, 'user');
+        if (
+          group.organization.creator &&
+          group.organization.creator.id == user_id
+        ) {
+          // console.log('now');
           groups_result.push(group);
         } else if (group.users.find((user) => user.id == user_id)) {
           groups_result.push(group);
@@ -219,6 +249,16 @@ export class GroupsService {
     } catch (error) {
       console.log(error, 'in group org');
     }
+  }
+
+  async getGroupsByOrg(organization_id: string) {
+    return this.groupsRepository.find({
+      where: {
+        organization: {
+          id: organization_id,
+        },
+      },
+    });
   }
 
   update(id: number) {

@@ -15,7 +15,7 @@ export class Permission {
   id: string;
 
   @Column({ nullable: false })
-  name: string;
+  type: string;
 
   @Column({ nullable: true})
   status: boolean

@@ -15,6 +15,8 @@ import { User } from 'src/users/entities/user.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { File } from 'src/files/entities/file.entity';
+import { Folder } from 'src/folders/entities/folder.entity';
 
 @Entity()
 export class Organization {
@@ -37,6 +39,12 @@ groups: Group[];
 
 @OneToMany(() => Invite, (invite) => invite.organization, { nullable: true, cascade:true })
 invites: Invite[];
+
+@OneToMany(() => File, (file) => file.organization)
+files: File[];
+
+@OneToMany(() => Folder, (folder) => folder.organization)
+folder: Folder[];
 
 @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
 createdAt: Date;

@@ -3,9 +3,11 @@ import {
   ParseFilePipe,
   Post,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
+  Body,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './uploads.service';
 
 @Controller('upload')
@@ -13,18 +15,15 @@ export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(AnyFilesInterceptor())
   async uploadFile(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          // new MaxFileSizeValidator({ maxSize: 1000 }),
-          // new FileTypeValidator({ fileType: 'image/jpeg' }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
+    @UploadedFiles()
+    files: Array<Express.Multer.File>,
+    @Body('organization_id') organization_id: string,
+    @Body('user_id') user_id: string,
+    @Body('folder_id') folder_id: string,
   ) {
-    await this.uploadService.upload(file.originalname, file.buffer);
+    // console.log(files, 'files', organization_id, folder_id, user_id);
+    await this.uploadService.uploadMultiple(files, folder_id, user_id, organization_id);
   }
 }

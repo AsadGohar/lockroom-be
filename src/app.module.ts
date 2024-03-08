@@ -24,6 +24,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { Organization } from './organizations/entities/organization.entity';
+import { GroupFilesPermissions } from './group-files-permissions/entities/group-files-permissions.entity';
+import { GroupFilesPermissionsModule } from './group-files-permissions/group-files-permissions.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -38,11 +40,12 @@ import { Organization } from './organizations/entities/organization.entity';
         User,
         Folder,
         Invite,
-        Permission,
         Group,
-        FilesPermissions,
+        Organization,
         File,
-        Organization
+        Permission,
+        FilesPermissions,
+        GroupFilesPermissions
       ],
       synchronize: true,
       ssl:{
@@ -67,6 +70,7 @@ import { Organization } from './organizations/entities/organization.entity';
     FilesModule,
     FilesPermissionsModule,
     OrganizationsModule,
+    GroupFilesPermissionsModule
   ],
   controllers: [AppController, MailController],
   providers: [AppService, EmailService, JwtService],
