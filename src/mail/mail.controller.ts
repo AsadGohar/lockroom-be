@@ -43,6 +43,8 @@ export class MailController {
         });
         // console.log(invitedUserAlreadyExists,'useeeeee')
         if (invitedUserAlreadyExists) {
+          if(invitedUserAlreadyExists.role == 'admin') return
+          // return
           if(invitedUserAlreadyExists?.organization_created?.id == organization_id) return
           console.log('in user already exists')
          return await this.groupService.addUserToAGroup(
@@ -51,7 +53,7 @@ export class MailController {
             senderUser.first_name + ' ' + senderUser.last_name
           );
         }
-        console.log('out user already exists')
+        // console.log('out user already exists')
 
         new_users.push(email);
       });
@@ -66,7 +68,7 @@ export class MailController {
       if (invites.length > 0) {
         const sendEmails = invites.map((invite) => {
           const payload = { invite_id: invite.id };
-          console.log('here in x');
+          // console.log('here in x');
           const access_token = this.jwtService.sign(payload, {
             secret: process.env.JWT_INVITE_SECRET,
           });

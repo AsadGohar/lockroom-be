@@ -1,5 +1,7 @@
 import {
+  ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -77,7 +79,7 @@ export class InvitesService {
         status: 'pending',
       };
     });
-    console.log(invites, 'invites');
+    // console.log(invites, 'invites');
     const invitesDB = await this.inviteRepository.save(invites);
     return { user: findUser, invites: invitesDB };
   }
@@ -122,43 +124,44 @@ export class InvitesService {
         },
       });
       if (find_user) {
-        const resp = await this.jwtService.verify(jwt_token, {
-          secret: process.env.JWT_INVITE_SECRET,
-        });
-        const invite = await this.inviteRepository.findOne({
-          relations: ['organization', 'group'],
-          where: {
-            id: resp.invite_id,
-          },
-        });
-        const find_org = await this.orgRepository.findOne({
-          relations: ['users'],
-          where: {
-            id: invite.organization.id,
-          },
-        });
-        const find_group = await this.groupRepository.findOne({
-          relations: ['users'],
-          where: {
-            id: invite.group.id,
-          },
-        });
-        find_user.organizations_added_in.push(find_org);
-        find_group.users.push(find_user);
-        const saved_user = await this.userRepository.save(find_user);
-        const find_invite = await this.inviteRepository.findOne({
-          where: {
-            id: resp.invite_id,
-          },
-        });
-        find_invite.status = 'accepted';
-        await this.inviteRepository.save(invite);
-        await this.groupRepository.save(find_group);
-        find_org.users.push(saved_user);
-        await this.orgRepository.save(find_org);
-        return {
-          status: true,
-        };
+        throw new ConflictException('User Already Exists')
+        // const resp = await this.jwtService.verify(jwt_token, {
+        //   secret: process.env.JWT_INVITE_SECRET,
+        // });
+        // const invite = await this.inviteRepository.findOne({
+        //   relations: ['organization', 'group'],
+        //   where: {
+        //     id: resp.invite_id,
+        //   },
+        // });
+        // const find_org = await this.orgRepository.findOne({
+        //   relations: ['users'],
+        //   where: {
+        //     id: invite.organization.id,
+        //   },
+        // });
+        // const find_group = await this.groupRepository.findOne({
+        //   relations: ['users'],
+        //   where: {
+        //     id: invite.group.id,
+        //   },
+        // });
+        // find_user.organizations_added_in.push(find_org);
+        // find_group.users.push(find_user);
+        // const saved_user = await this.userRepository.save(find_user);
+        // const find_invite = await this.inviteRepository.findOne({
+        //   where: {
+        //     id: resp.invite_id,
+        //   },
+        // });
+        // find_invite.status = 'accepted';
+        // await this.inviteRepository.save(invite);
+        // await this.groupRepository.save(find_group);
+        // find_org.users.push(saved_user);
+        // await this.orgRepository.save(find_org);
+        // return {
+        //   status: true,
+        // };
       }
       const hashedPassword = await bcrypt.hash(password, 10);
       password = hashedPassword;
@@ -173,7 +176,7 @@ export class InvitesService {
           id: resp.invite_id,
         },
       });
-      console.log(invite, 'invite');
+      // console.log(invite, 'invite');
       const find_org = await this.orgRepository.findOne({
         relations: ['users'],
         where: {
@@ -215,6 +218,9 @@ export class InvitesService {
       // }
     } catch (error) {
       console.log(error);
+      throw new InternalServerErrorException(
+        error.message || 'failed to create user',
+      );
     }
   }
 
@@ -257,7 +263,7 @@ export class InvitesService {
       if (invites.length > 0) {
         const sendEmails = invites.map(async (invite) => {
           const payload = { invite_id: invite.id };
-          console.log('here in x');
+          // console.log('here in x');
           const access_token = this.jwtService.sign(payload, {
             secret: process.env.JWT_INVITE_SECRET,
           });

@@ -34,10 +34,12 @@ export class UsersService {
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
+    @InjectRepository(Invite)
+    private readonly inviteRepository: Repository<Invite>,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    console.log('here,in ceeate');
+    // console.log('here,in ceeate');
     // await sendSMS(createUserDto.phone_number)
     try {
       const existingUser = await this.userRepository.findOne({
@@ -45,6 +47,13 @@ export class UsersService {
       });
 
       if (existingUser) throw new ConflictException('user already exists');
+
+      const find_invites = await this.inviteRepository.find({
+        where : {
+          sent_to: createUserDto.email
+        }
+      })
+      if(find_invites.length>0) throw new ConflictException(`You've already been invited, Check your email!`);
 
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
       createUserDto.password = hashedPassword;
@@ -65,10 +74,9 @@ export class UsersService {
 
       const payload = { user_id: user.id, email: user.email };
       const access_token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
         expiresIn: '1d',
       });
-
-
 
       const new_group = this.groupsRepository.create({
         name: 'Admin',
@@ -93,7 +101,7 @@ export class UsersService {
         parent_folder_id: null,
         tree_index: '1',
         users: [user],
-        organization: saveOrg
+        organization: saveOrg,
       });
 
       const query1 = await this.folderRepository
@@ -102,7 +110,9 @@ export class UsersService {
         .leftJoin('folder.sub_folders', 'sub_folder')
         .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
         .where('user.id = :userId', { userId: user.id })
-        .andWhere('folder.organization.id = :organizationId', { organizationId: saveOrg.id }) 
+        .andWhere('folder.organization.id = :organizationId', {
+          organizationId: saveOrg.id,
+        })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
@@ -122,7 +132,7 @@ export class UsersService {
       // await sendEmailUtil(mail);
 
       return {
-        user: {...user, organization_created: saveOrg},
+        user: { ...user, organization_created: saveOrg },
         access_token,
         folders: [folder],
         files_count: 1,
@@ -150,6 +160,7 @@ export class UsersService {
       });
 
       const orgs = [];
+      
 
       if (!user) {
         // console.log(user);
@@ -187,9 +198,12 @@ export class UsersService {
         email: user.email,
         role: user.role,
       };
-      const accessToken = this.jwtService.sign(payload);
+      const accessToken = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '1d',
+      });
       // console.log(user,'useree')
-      if(user.organization_created){
+      if (user.organization_created) {
         orgs.push(user.organization_created.id);
       }
       user.organizations_added_in.map((org) => {
@@ -197,21 +211,21 @@ export class UsersService {
       });
 
       const organizations = await this.orgRepository.find({
-        relations:['users','creator'],
+        relations: ['users', 'creator'],
         where: {
-          id: In(orgs)
-        }
-      })
+          id: In(orgs),
+        },
+      });
 
       return {
-        accessToken,
+        access_token:accessToken,
         is_phone_number_verified: user.phone_number ? true : false,
         folders: query,
         files_count: query.length,
         sub_folder_count: query1,
         id: user.id,
         user,
-        organizations
+        organizations,
       };
     } catch (error) {
       console.log(error);
@@ -222,7 +236,10 @@ export class UsersService {
   async loginWithGoogle(jwt_token: string) {
     try {
       const user = decodeJwtResponse(jwt_token);
+
       if (!user) throw new UnauthorizedException('token invalid');
+
+     
 
       const findUser = await this.userRepository.findOne({
         relations: ['organizations_added_in', 'organization_created'],
@@ -232,19 +249,19 @@ export class UsersService {
       });
 
       if (findUser) {
-        console.log('google sign finduser', findUser);
+        // console.log('google sign finduser', findUser);
         const orgs = [];
         orgs.push(findUser?.organization_created?.id);
         findUser.organizations_added_in.map((org) => {
           orgs.push(org.id);
         });
         const organizations = await this.orgRepository.find({
-          relations:['users','creator'],
+          relations: ['users', 'creator'],
           where: {
-            id: In(orgs)
-          }
-        })
-        console.log(orgs, 'dsa');
+            id: In(orgs),
+          },
+        });
+        // console.log(orgs, 'dsa');
         const query = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
@@ -264,18 +281,28 @@ export class UsersService {
           email: findUser.email,
           role: findUser.role,
         };
-        const accessToken = this.jwtService.sign(payload);
+        const accessToken = this.jwtService.sign(payload, {
+          secret: process.env.JWT_SECRET,
+          expiresIn: '1d',
+        });
         return {
-          accessToken,
+          access_token: accessToken,
           is_phone_number_verified: findUser.phone_number ? true : false,
           folders: query,
           files_count: query.length,
           sub_folder_count: query1,
           id: findUser.id,
           user: findUser,
-          organizations
+          organizations,
         };
       }
+      // console.log('1')
+      const find_invites = await this.inviteRepository.find({
+        where : {
+          sent_to: user?.email
+        }
+      })
+      if(find_invites.length>0) throw new ConflictException(`You've already been invited, Check your email!`);
 
       const new_user = this.userRepository.create({
         email: user.email,
@@ -317,14 +344,17 @@ export class UsersService {
       const saveOrg = await this.orgRepository.save(new_org);
       // console.log(saveOrg, 'oorg');
       const payload = { user_id: new_user.id, email: new_user.email };
-      const access_token = this.jwtService.sign(payload);
+      const access_token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '1d',
+      });
 
       const folder = await this.folderRepository.save({
         name: 'Home',
         parent_folder_id: null,
         tree_index: '1',
         users: [new_user],
-        organization:saveOrg
+        organization: saveOrg,
       });
       // const find_created_user = await this.userRepository.find({
       //   relations:['organization_created'],
@@ -338,11 +368,14 @@ export class UsersService {
         files_count: 1,
         id: new_user.id,
         sub_folder_count: query1,
-        user: {...new_user, organization_created: saveOrg},
+        user: { ...new_user, organization_created: saveOrg },
         organizations: [saveOrg],
       };
     } catch (error) {
       console.log(error);
+      throw new InternalServerErrorException(
+        error.message || 'failed to create user',
+      );
     }
   }
 
@@ -365,7 +398,7 @@ export class UsersService {
   }
 
   async getUserByToken(jwt_token: string) {
-    // console.log('in user byb token');
+    // console.log('in user byb token', jwt_token);
     try {
       const resp = await this.jwtService.verify(jwt_token, {
         secret: process.env.JWT_SECRET,
@@ -399,11 +432,10 @@ export class UsersService {
 
         return { findUser, sub_folder_count: query1, organizations: orgs };
       }
-      throw new UnauthorizedException('jwt token expired')
-
+      throw new UnauthorizedException('jwt token expired');
     } catch (error) {
       console.log(error, 'err');
-      throw error
+      throw error;
     }
   }
 
@@ -417,7 +449,7 @@ export class UsersService {
 
   async findOne(where: any) {
     return await this.userRepository.findOne({
-      relations:['organization_created', 'organizations_added_in'],
+      relations: ['organization_created', 'organizations_added_in'],
       where: where,
     });
   }

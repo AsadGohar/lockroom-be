@@ -182,7 +182,7 @@ export class GroupsService {
 
   async getGroupsByOrganization(organization_id: string, user_id: string) {
     try {
-      console.log('hello');
+      // console.log('hello');
       //   const groups = await this.groupsRepository.createQueryBuilder("group")
       // .leftJoinAndSelect("group.organization", "organization")
       // .leftJoinAndSelect("group.users", "user")
