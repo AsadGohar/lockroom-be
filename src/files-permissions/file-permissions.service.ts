@@ -32,8 +32,9 @@ export class FilesPermissionsService {
     }
   }
 
-  async findFilePermissiosn(file_id){
+  async findFilePermissiosn(file_id:string){
     return await this.filePermRepo.find({
+      relations:['permission', 'file'],
       where:{
         file:{
           id:file_id

@@ -48,10 +48,11 @@ import { GroupFilesPermissionsModule } from './group-files-permissions/group-fil
         GroupFilesPermissions
       ],
       synchronize: true,
-      ssl:{
-        rejectUnauthorized:false
-      },
-      // ssl: false,
+      // logging:'all',
+      // ssl:{
+      //   rejectUnauthorized:false
+      // },
+      ssl: false,
     }),
     ThrottlerModule.forRoot({
       throttlers: [

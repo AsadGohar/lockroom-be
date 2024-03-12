@@ -31,6 +31,7 @@ export class FoldersService {
   ) {
     //check if parent repo exists
     const parent_folder = await this.foldersRepository.findOne({
+      relations:['sub_folders'],
       where: {
         id: parent_folder_id,
       },
@@ -65,7 +66,7 @@ export class FoldersService {
       },
     });
 
-    const treeIndex = `${parent_folder.tree_index}.`;
+    const current_tree_index = `${parent_folder.tree_index}.`;
     const next =
       all_child_folders.length + all_child_files.length > 0
         ? `${all_child_folders.length + all_child_files.length + 1}`
@@ -78,10 +79,12 @@ export class FoldersService {
         id: organization_id,
       },
     });
+
+    console.log(current_tree_index + next,'treehehehe')
     const new_folder = await this.foldersRepository.save({
       name,
       parent_folder_id,
-      tree_index: treeIndex + next,
+      tree_index: current_tree_index + next,
       users: [user],
       organization: find_org,
     });
@@ -108,7 +111,9 @@ export class FoldersService {
       query.andWhere('folder.parent_folder_id IS NULL');
     }
     const data = await query.getMany();
-    return { new_folder: new_folder_1, files_count: data.length };
+    parent_folder.sub_folders.push(new_folder)
+    const update_parent_folder = await this.foldersRepository.save(parent_folder)
+    return { new_folder: new_folder_1, files_count: data.length, parent_folder: update_parent_folder };
   }
 
   async findAll() {
@@ -222,15 +227,17 @@ export class FoldersService {
       },
     });
 
-    const treeIndex = `${parent_folder.tree_index}.`;
+    const current_tree_index = `${parent_folder.tree_index}.`;
     const next =
       all_child_folders.length > 0 ? `${all_child_folders.length + 1}` : 1;
+
+      console.log(current_tree_index + next,'trehehehe1')
 
     if (!user) throw new NotFoundException('user not found');
     const new_folder = await this.foldersRepository.save({
       name,
       parent_folder_id,
-      tree_index: treeIndex + next,
+      tree_index: current_tree_index + next,
       users: [user],
     });
 

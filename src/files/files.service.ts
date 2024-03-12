@@ -9,6 +9,7 @@ import { File } from './entities/file.entity';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { OrganizationsService } from 'src/organizations/organizations.service';
+import { Not, IsNull } from 'typeorm';
 @Injectable()
 export class FilesService {
   constructor(
@@ -32,7 +33,8 @@ export class FilesService {
     folder_id: string,
     user_id: string,
     organization_id: string,
-    mime_type: string
+    mime_type: string,
+    size: number,
   ) {
     try {
       const find_user = await this.userRepository.findOne({
@@ -58,22 +60,32 @@ export class FilesService {
         },
       });
 
-      const treeIndex = `${find_folder.tree_index}.`;
+      console.log(all_child_folders, 'folders');
+
+      const current_tree_index = `${find_folder.tree_index}.`;
       const next =
         all_child_files.length + all_child_folders.length > 0
           ? `${all_child_files.length + all_child_folders.length + 1}`
           : 1;
-
+      console.log(
+        current_tree_index + next,
+        'treeee index',
+        current_tree_index,
+        next,
+        all_child_files.length,
+        all_child_folders.length,
+      );
       const organization = await this.orgService.findOne(organization_id);
 
       const new_file = this.fileRepository.create({
         name,
         user: find_user,
         folder: find_folder,
-        tree_index: treeIndex + next,
+        tree_index: current_tree_index + next,
         organization,
         mime_type,
-        bucket_url: 'https://lockroom.s3.amazonaws.com'+name
+        bucket_url: 'https://lockroom.s3.amazonaws.com/' + name,
+        size_bytes: size,
       });
 
       // console.log(new_file)
@@ -94,7 +106,7 @@ export class FilesService {
 
   async getAllFilesByOrganization(organization_id: string) {
     return this.fileRepository.find({
-      relations:['folder'],
+      relations: ['folder'],
       where: {
         organization: {
           id: organization_id,
@@ -103,15 +115,15 @@ export class FilesService {
     });
   }
 
-  async getFilesWithGroupPermissions(organization_id:string) {
+  async getFilesWithGroupPermissions(organization_id: string) {
     try {
-      const find_files = await this.getAllFilesByOrganization(organization_id)
-      const file_ids = find_files.map(file => file.id)
-      const find_group_files_permissions = this.gfpService.getGroupFilesPermissiosnByFileIds(file_ids)
-      console.log(find_group_files_permissions)
-      
+      const find_files = await this.getAllFilesByOrganization(organization_id);
+      const file_ids = find_files.map((file) => file.id);
+      const find_group_files_permissions =
+        this.gfpService.getGroupFilesPermissiosnByFileIds(file_ids);
+      console.log(find_group_files_permissions);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 
@@ -129,5 +141,62 @@ export class FilesService {
 
   remove(id: number) {
     return `This action removes a #${id} file`;
+  }
+
+  async buildFolderFileStructure(folder: Folder): Promise<any> {
+    const folderFiles = {
+      name: folder.name,
+      id: folder.id,
+      type: 'folder',
+      index: folder.tree_index,
+      children: [],
+    };
+
+    console.log(folder.name)
+    if (folder.files && folder.files.length > 0) {
+      for (const file of folder.files) {
+        const file_permissions = await this.fpService.findFilePermissiosn(
+          file.id,
+        );
+        const fileAccess = {
+          type: 'file',
+          name: file.name,
+          has_view_access: file_permissions[0].permission.status,
+          has_download_access: file_permissions[1].permission.status,
+          tree_indes: file.tree_index,
+        };
+        folderFiles.children.push(fileAccess);
+      }
+    }
+    return folderFiles;
+  }
+
+  async getFoldersAndFilesByOrganizationId(
+    organizationId: string,
+    parent_folder_id: string,
+  ) {
+    const root_folders = await this.foldersRepository.find({
+      where: {
+        organization: { id: organizationId },
+        parent_folder_id: parent_folder_id,
+      },
+      relations: ['sub_folders', 'files.organization'],
+    });
+
+    const folder_file_structures = [];
+    if (root_folders.length > 0) {
+      for (const root_folder of root_folders) {
+        const folder_file_structure =
+          await this.buildFolderFileStructure(root_folder);
+        folder_file_structures.push(folder_file_structure);
+      }
+      for (const sub of folder_file_structures) {
+        const folder_file_structure =
+          await this.getFoldersAndFilesByOrganizationId(organizationId, sub.id);
+        sub.children.push(...folder_file_structure);
+      }
+    }
+    // return
+    return folder_file_structures;
   }
 }

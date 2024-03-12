@@ -45,33 +45,34 @@ export class UploadService {
     user_id: string,
     organization_id: string,
   ) {
+    console.log(folder_id,user_id, organization_id)
     if (files.length > 0) {
       console.log(files[0])
-      const file_promises = files.map((file: any) => {
-        return this.s3Client.send(
-          new PutObjectCommand({
-            Bucket: 'lockroom',
-            Key: file.originalname + uuidv4(),
-            Body: file.buffer,
-          }),
-        );
-      });
+      // const file_promises = files.map((file: any) => {
+      //   return this.s3Client.send(
+      //     new PutObjectCommand({
+      //       Bucket: 'lockroom',
+      //       Key: file.originalname + uuidv4(),
+      //       Body: file.buffer,
+      //     }),
+      //   );
+      // });
 
-      const response = await Promise.all(file_promises);
-      if (response) {
-        files.map(async (file) => {
-          return await this.fileService.addFileToAFolder(
-            file.originalname + uuidv4(),
+      // const response = await Promise.all(file_promises);
+      if (true) {
+        for (let index = 0; index < files.length; index++) {
+          await this.fileService.addFileToAFolder(
+            files[index].originalname + uuidv4(),
             folder_id,
             user_id,
             organization_id,
-            file.mimetype
+            files[index].mimetype || 'image',
+            files[index].size || 30000000
           );
-        });
-        // const response_db = await Promise.all(file_records)
-        // console.log(response_db)
+        }
       }
-      console.log(response, 'uploads');
+      // console.log(response, 'uploads');
+      // return response
     }
   }
 }
