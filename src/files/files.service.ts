@@ -159,6 +159,7 @@ export class FilesService {
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
         );
+        console.log(file_permissions[0].permission.status, file_permissions[0].permission.type)
         const file_access = {
           type: 'file',
           name: file.name,
