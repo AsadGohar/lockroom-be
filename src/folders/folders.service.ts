@@ -156,7 +156,8 @@ export class FoldersService {
           folder_name: file.folder.name,
           size: formatBytes(file.size_bytes),
           mime_type: file.mime_type,
-          url: file.bucket_url
+          url: file.bucket_url,
+          file_id:file.id
         };
       });
       const query1 = await this.foldersRepository

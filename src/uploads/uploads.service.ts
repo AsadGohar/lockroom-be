@@ -61,7 +61,7 @@ export class UploadService {
       });
 
       const response = await Promise.all(file_promises);
-      if (response) {
+      if (true) {
         for (let index = 0; index < files.length; index++) {
           await this.fileService.addFileToAFolder(
             file_names[index],

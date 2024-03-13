@@ -130,8 +130,12 @@ export class FilesService {
     return `This action returns all files`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} file`;
+  async findOne(id: string) {
+    return await this.fileRepository.findOne({
+      where: {
+        id
+      }
+    })
   }
 
   update(id: number, updateFileDto: UpdateFileDto) {
@@ -161,7 +165,9 @@ export class FilesService {
           has_view_access: file_permissions[0].permission.status,
           has_download_access: file_permissions[1].permission.status,
           index: file.tree_index,
-          mime_type:file.mime_type
+          mime_type:file.mime_type,
+          id:file.id,
+          url:file.bucket_url
         };
         folder_files.children.push(file_access);
       }
