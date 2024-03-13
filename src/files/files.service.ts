@@ -9,7 +9,6 @@ import { File } from './entities/file.entity';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { OrganizationsService } from 'src/organizations/organizations.service';
-import { Not, IsNull } from 'typeorm';
 @Injectable()
 export class FilesService {
   constructor(
@@ -143,32 +142,32 @@ export class FilesService {
     return `This action removes a #${id} file`;
   }
 
-  async buildFolderFileStructure(folder: Folder): Promise<any> {
-    const folderFiles = {
+  async buildFolderFileStructure(folder: Folder) {
+    const folder_files = {
       name: folder.name,
       id: folder.id,
       type: 'folder',
       index: folder.tree_index,
       children: [],
     };
-
-    console.log(folder.name)
     if (folder.files && folder.files.length > 0) {
       for (const file of folder.files) {
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
         );
-        const fileAccess = {
+        const file_access = {
           type: 'file',
           name: file.name,
           has_view_access: file_permissions[0].permission.status,
           has_download_access: file_permissions[1].permission.status,
-          tree_indes: file.tree_index,
+          index: file.tree_index,
+          mime_type:file.mime_type
         };
-        folderFiles.children.push(fileAccess);
+        folder_files.children.push(file_access);
       }
     }
-    return folderFiles;
+    folder_files.children = folder_files.children.sort((a, b) => Number(a.index) - Number(b.index));
+    return folder_files;
   }
 
   async getFoldersAndFilesByOrganizationId(
@@ -181,6 +180,9 @@ export class FilesService {
         parent_folder_id: parent_folder_id,
       },
       relations: ['sub_folders', 'files.organization'],
+      order: {
+        tree_index: 'ASC',
+      },
     });
 
     const folder_file_structures = [];
@@ -191,12 +193,38 @@ export class FilesService {
         folder_file_structures.push(folder_file_structure);
       }
       for (const sub of folder_file_structures) {
-        const folder_file_structure =
-          await this.getFoldersAndFilesByOrganizationId(organizationId, sub.id);
+        const folder_file_structure = 
+          await this.getFoldersAndFilesByOrganizationId(organizationId, sub.id)
         sub.children.push(...folder_file_structure);
       }
     }
     // return
     return folder_file_structures;
+  }
+
+  async getAllFilesByOrg(organizationId: string, parent_folder_id: string) {
+    const result = await this.getFoldersAndFilesByOrganizationId(
+      organizationId,
+      parent_folder_id,
+    );
+    const home_folder = JSON.parse(
+      JSON.stringify(
+        await this.foldersRepository.findOne({
+          where: {
+            organization: { id: organizationId },
+            id: parent_folder_id,
+          },
+          relations: ['sub_folders', 'files.organization'],
+        }),
+      ),
+    );
+    const folder_file_structure =
+      await this.buildFolderFileStructure(home_folder);
+    folder_file_structure.children = [
+      ...folder_file_structure.children,
+      ...result,
+    ].sort((a,b) => a.index - b.index);
+    // console.log(folder_file_structure,'struc', result)
+    return folder_file_structure;
   }
 }

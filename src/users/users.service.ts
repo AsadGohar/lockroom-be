@@ -141,10 +141,8 @@ export class UsersService {
       return {
         user: { ...user, organization_created: saveOrg },
         access_token,
-        folders: [folder],
         files_count: 1,
         id: user.id,
-        sub_folder_count: query1,
         organizations: [saveOrg],
       };
     } catch (error) {
@@ -180,27 +178,10 @@ export class UsersService {
       //     message: "verify your email",
       //   }); // Throw ConflictException
       const passwordMatched = await bcrypt.compare(password, user.password);
-      // console.log(passwordMatched, 'match');
       if (!passwordMatched) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
       if (user.role == 'admin') {
-        const query = await this.folderRepository
-          .createQueryBuilder('folder')
-          .leftJoinAndSelect('folder.users', 'user')
-          .where('user.id = :userId', { userId: user.id })
-          .getMany();
-
-        const query1 = await this.folderRepository
-          .createQueryBuilder('folder')
-          .leftJoinAndSelect('folder.users', 'user')
-          .leftJoin('folder.sub_folders', 'sub_folder')
-          .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-          .where('user.id = :userId', { userId: user.id })
-          .groupBy('folder.id, user.id')
-          .orderBy('folder.createdAt', 'ASC')
-          .getRawMany();
-
         const payload = {
           user_id: user.id,
           email: user.email,
@@ -210,7 +191,6 @@ export class UsersService {
           secret: process.env.JWT_SECRET,
           expiresIn: '1d',
         });
-        // console.log(user,'useree')
         if (user.organization_created) {
           orgs.push(user.organization_created.id);
         }
@@ -225,64 +205,15 @@ export class UsersService {
           },
         });
 
-        const get_files = await this.fileRepository.find({
-          relations: ['folder'],
-          where: {
-            organization: {
-              id: In(orgs),
-            },
-          },
-        });
-
-        // console.log(get_files, 'files', get_files.length)
-
-        const file_data = get_files.map((file) => {
-          return {
-            name: file.name,
-            tree_index: file.tree_index,
-            folder_id: file.folder.id,
-            folder_name: file.folder.name,
-            size: formatBytes(file.size_bytes),
-          };
-        });
         return {
           access_token: accessToken,
           is_phone_number_verified: user.phone_number ? true : false,
-          // folders: query,
-          files_count: query.length,
-          sub_folder_count: [...query1, ...file_data],
-          // files: get_files,
           id: user.id,
           user,
           organizations,
         };
       }
       if (user.role == 'guest') {
-        const find_group_file_permissions = await this.groupsRepository.find({
-          relations: ['group_files_permissions.file_permission'],
-          where: {
-            users: {
-              id: user.id,
-            },
-          },
-        });
-        console.log(find_group_file_permissions, 'in guests');
-
-        const query = await this.folderRepository
-          .createQueryBuilder('folder')
-          .leftJoinAndSelect('folder.users', 'user')
-          .where('user.id = :userId', { userId: user.id })
-          .getMany();
-
-        const query1 = await this.folderRepository
-          .createQueryBuilder('folder')
-          .leftJoinAndSelect('folder.users', 'user')
-          .leftJoin('folder.sub_folders', 'sub_folder')
-          .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-          .where('user.id = :userId', { userId: user.id })
-          .groupBy('folder.id, user.id')
-          .orderBy('folder.createdAt', 'ASC')
-          .getRawMany();
         const payload = {
           user_id: user.id,
           email: user.email,
@@ -292,13 +223,10 @@ export class UsersService {
           secret: process.env.JWT_SECRET,
           expiresIn: '1d',
         });
-        // console.log(user,'useree')
-        if (user.organization_created) {
-          orgs.push(user.organization_created.id);
-        }
         user.organizations_added_in.map((org) => {
           orgs.push(org.id);
         });
+        console.log(orgs,'useree')
 
         const organizations = await this.orgRepository.find({
           relations: ['users', 'creator'],
@@ -310,9 +238,6 @@ export class UsersService {
         return {
           access_token: accessToken,
           is_phone_number_verified: user.phone_number ? true : false,
-          folders: query,
-          files_count: query.length,
-          sub_folder_count: query1,
           id: user.id,
           user,
           organizations,
@@ -507,84 +432,13 @@ export class UsersService {
         if (!find_user) {
           throw new NotFoundException('user not found');
         }
-        if (find_user.role == 'admin') {
-          const orgs = [];
-          orgs.push(find_user.organization_created);
-          find_user.organizations_added_in.map((org) => {
-            orgs.push(org);
-          });
-          const query1 = await this.folderRepository
-            .createQueryBuilder('folder')
-            .leftJoinAndSelect('folder.users', 'user')
-            .leftJoin('folder.sub_folders', 'sub_folder')
-            .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-            .where('user.id = :userId', { userId: find_user.id })
-            .groupBy('folder.id, user.id')
-            .orderBy('folder.createdAt', 'ASC')
-            .getRawMany();
+        const orgs = [];
+        if(find_user.role=='admin') orgs.push(find_user.organization_created);
+        find_user.organizations_added_in.map((org) => {
+          orgs.push(org);
+        });
 
-          const get_files = await this.fileRepository.find({
-            relations: ['folder'],
-            where: {
-              organization: {
-                id: In(orgs),
-              },
-            },
-          });
-          const file_data = get_files.map((file) => {
-            return {
-              name: file.name,
-              tree_index: file.tree_index,
-              folder_id: file.folder.id,
-              folder_name: file.folder.name,
-              size: formatBytes(file.size_bytes),
-            };
-          });
-          return {
-            findUser: find_user,
-            sub_folder_count: [...query1, ...file_data],
-            organizations: orgs,
-          };
-        }
-        if (find_user.role == 'guest') {
-          const orgs = [];
-          orgs.push(find_user.organization_created);
-          find_user.organizations_added_in.map((org) => {
-            orgs.push(org);
-          });
-          const query1 = await this.folderRepository
-            .createQueryBuilder('folder')
-            .leftJoinAndSelect('folder.users', 'user')
-            .leftJoin('folder.sub_folders', 'sub_folder')
-            .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-            .where('user.id = :userId', { userId: find_user.id })
-            .groupBy('folder.id, user.id')
-            .orderBy('folder.createdAt', 'ASC')
-            .getRawMany();
-
-          const get_files = await this.fileRepository.find({
-            relations: ['folder'],
-            where: {
-              organization: {
-                id: In(orgs),
-              },
-            },
-          });
-          const file_data = get_files.map((file) => {
-            return {
-              name: file.name,
-              tree_index: file.tree_index,
-              folder_id: file.folder.id,
-              folder_name: file.folder.name,
-              size: formatBytes(file.size_bytes),
-            };
-          });
-          return {
-            findUser: find_user,
-            sub_folder_count: [...query1, ...file_data],
-            organizations: orgs,
-          };
-        }
+        return { findUser:find_user, organizations: orgs };
       }
       throw new UnauthorizedException('jwt token expired');
     } catch (error) {
@@ -603,7 +457,7 @@ export class UsersService {
 
   async findOne(where: any) {
     return await this.userRepository.findOne({
-      relations: ['organization_created', 'organizations_added_in'],
+      relations: ['organization_created', 'organizations_added_in', 'groups'],
       where: where,
     });
   }

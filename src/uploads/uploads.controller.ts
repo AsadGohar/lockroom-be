@@ -24,6 +24,6 @@ export class UploadController {
     @Body('folder_id') folder_id: string,
   ) {
     // console.log(files, 'files', organization_id, folder_id, user_id);
-    await this.uploadService.uploadMultiple(files, folder_id, user_id, organization_id);
+   return await this.uploadService.uploadMultiple(files, folder_id, user_id, organization_id);
   }
 }

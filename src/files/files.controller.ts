@@ -32,7 +32,7 @@ export class FilesController {
 
   @Post('organization/all')
   findAll(@Body('organization_id') organization_id: string, @Body('parent_folder_id') parent_folder_id: string) {
-    return this.filesService.getFoldersAndFilesByOrganizationId(organization_id, parent_folder_id);
+    return this.filesService.getAllFilesByOrg(organization_id, parent_folder_id);
   }
 
   @Get(':id')

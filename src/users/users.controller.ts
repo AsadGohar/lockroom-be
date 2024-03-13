@@ -29,9 +29,7 @@ export class UsersController {
     });
     console.log(data,'dsa')
     return {
-      folders: data.folders,
       access_token: data.access_token,
-      sub_folder_count: data.sub_folder_count,
       id: data.id,
       user: data.user,
       organizations: data.organizations,
