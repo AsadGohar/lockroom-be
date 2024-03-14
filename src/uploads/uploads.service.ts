@@ -45,6 +45,8 @@ export class UploadService {
     user_id: string,
     organization_id: string,
   ) {
+    console.log(files[0]);
+
     console.log(folder_id, user_id, organization_id);
     if (files.length > 0) {
       const file_names = [];
@@ -57,24 +59,28 @@ export class UploadService {
             Key: file_name,
             Body: file.buffer,
           }),
-        );
-      });
-
-      const response = await Promise.all(file_promises);
-      if (true) {
-        for (let index = 0; index < files.length; index++) {
-          await this.fileService.addFileToAFolder(
-            file_names[index],
-            folder_id,
-            user_id,
-            organization_id,
-            files[index].mimetype || 'image',
-            files[index].size || 30000000,
           );
+        });
+        
+        const response = await Promise.all(file_promises);
+        if (response) {
+          for (let index = 0; index < files.length; index++) {
+            const file_name_parts = file_names[index].split('.');
+            const file_extension = file_name_parts.length > 1 ? file_name_parts.pop() : '';
+            // console.log(file_extension,'d')
+            await this.fileService.addFileToAFolder(
+              file_names[index],
+              folder_id,
+              user_id,
+              organization_id,
+              files[index].mimetype || 'image',
+              files[index].size || 30000000,
+              file_extension
+            );
+          }
         }
+        console.log(response, 'uploads');
+        return response;
       }
-      console.log(response, 'uploads');
-      return response;
-    }
   }
 }

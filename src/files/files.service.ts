@@ -34,6 +34,7 @@ export class FilesService {
     organization_id: string,
     mime_type: string,
     size: number,
+    extension: string
   ) {
     try {
       const find_user = await this.userRepository.findOne({
@@ -85,6 +86,7 @@ export class FilesService {
         mime_type,
         bucket_url: 'https://lockroom.s3.amazonaws.com/' + name,
         size_bytes: size,
+        extension
       });
 
       // console.log(new_file)
@@ -168,7 +170,8 @@ export class FilesService {
           index: file.tree_index,
           mime_type:file.mime_type,
           file_id:file.id,
-          url:file.bucket_url
+          url:file.bucket_url,
+          extension: file.extension
         };
         folder_files.children.push(file_access);
       }

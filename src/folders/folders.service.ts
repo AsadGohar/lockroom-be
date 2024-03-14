@@ -157,7 +157,8 @@ export class FoldersService {
           size: formatBytes(file.size_bytes),
           mime_type: file.mime_type,
           url: file.bucket_url,
-          file_id:file.id
+          file_id:file.id,
+          extension: file.extension
         };
       });
       const query1 = await this.foldersRepository
