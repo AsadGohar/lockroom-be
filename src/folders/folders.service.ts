@@ -172,8 +172,11 @@ export class FoldersService {
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
+
+      const data = [...query1, ...file_data].sort((a,b) => a.folder_tree_index - b.folder_tree_index)
+
       return {
-        sub_folder_count: [...query1, ...file_data],
+        sub_folder_count: data,
       };
     }
     if (find_user.role == 'guest') {
