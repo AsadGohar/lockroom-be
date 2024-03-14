@@ -157,8 +157,8 @@ export class FoldersService {
           size: formatBytes(file.size_bytes),
           mime_type: file.mime_type,
           url: file.bucket_url,
-          file_id:file.id,
-          extension: file.extension
+          file_id: file.id,
+          extension: file.extension,
         };
       });
       const query1 = await this.foldersRepository
@@ -185,19 +185,23 @@ export class FoldersService {
         },
       });
       const group_files_permissions = await this.gfpRepository.find({
-        relations:['file_permission.permission', 'file_permission.file','file_permission.file.folder'],
+        relations: [
+          'file_permission.permission',
+          'file_permission.file',
+          'file_permission.file.folder',
+        ],
         where: {
-          group : {
-            id: In(find_group.map((item)=> item.id))
+          group: {
+            id: In(find_group.map((item) => item.id)),
           },
-          file_permission:{
-            permission:{
-              type:'view',
-              status:true
-            }
-          }
-        }
-      })
+          file_permission: {
+            permission: {
+              type: 'view',
+              status: true,
+            },
+          },
+        },
+      });
 
       const file_data = group_files_permissions.map((item) => {
         return {
@@ -207,7 +211,8 @@ export class FoldersService {
           folder_name: item.file_permission.file.folder.name,
           size: formatBytes(item.file_permission.file.size_bytes),
           mime_type: item.file_permission.file.mime_type,
-          url: item.file_permission.file.bucket_url
+          url: item.file_permission.file.bucket_url,
+          file_id: item.file_permission.id,
         };
       });
 
