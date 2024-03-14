@@ -212,7 +212,7 @@ export class FoldersService {
           size: formatBytes(item.file_permission.file.size_bytes),
           mime_type: item.file_permission.file.mime_type,
           url: item.file_permission.file.bucket_url,
-          file_id: item.file_permission.id,
+          file_id: item.file_permission.file.id,
         };
       });
 
