@@ -167,7 +167,7 @@ export class FilesService {
           has_download_access: file_permissions[1].permission.type == 'download' ? file_permissions[1].permission.status : file_permissions[0].permission.status,
           index: file.tree_index,
           mime_type:file.mime_type,
-          id:file.id,
+          file_id:file.id,
           url:file.bucket_url
         };
         folder_files.children.push(file_access);
