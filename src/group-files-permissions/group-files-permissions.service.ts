@@ -104,7 +104,7 @@ export class GroupFilesPermissionsService {
     type: string,
   ) {
     try {
-      console.log(group_id, file_ids, status,type)
+      console.log(group_id, file_ids, status, type);
       const find_group_files_permissions = await this.groupFilePermRepo.find({
         relations: ['group', 'file_permission.permission'],
         where: {
@@ -123,7 +123,7 @@ export class GroupFilesPermissionsService {
       });
 
       const permission_ids = [];
-      console.log(permission_ids, 'ids', find_group_files_permissions)
+      console.log(permission_ids, 'ids', find_group_files_permissions);
       find_group_files_permissions.map((gfp) => {
         permission_ids.push(gfp.file_permission.permission.id);
       });
@@ -136,7 +136,13 @@ export class GroupFilesPermissionsService {
         },
       );
       console.log(update_permissions);
-      return update_permissions
+      if (update_permissions.affected > 0) {
+        return {
+          update_permissions,
+          message: status ? 'enabled view on file' : 'disabled view on file',
+        };
+      }
+      return { message: 'failed to update permissions' };
     } catch (error) {
       console.log(error);
     }

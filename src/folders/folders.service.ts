@@ -159,6 +159,7 @@ export class FoldersService {
           url: file.bucket_url,
           file_id: file.id,
           extension: file.extension,
+          folder_createdAt: file.createdAt,
         };
       });
       const query1 = await this.foldersRepository
@@ -174,7 +175,7 @@ export class FoldersService {
         .getRawMany();
 
       const data = [...query1, ...file_data].sort(
-        (a, b) => Number(a.folder_tree_index) - Number(b.folder_tree_index),
+        (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
       );
 
       return {
@@ -218,6 +219,7 @@ export class FoldersService {
           mime_type: item.file_permission.file.mime_type,
           url: item.file_permission.file.bucket_url,
           file_id: item.file_permission.file.id,
+          folder_createdAt: item.file_permission.file.createdAt,
         };
       });
 
@@ -234,7 +236,7 @@ export class FoldersService {
         .getRawMany();
 
       const data = [...query1, ...file_data].sort(
-        (a, b) => Number(a.folder_tree_index) - Number(b.folder_tree_index),
+        (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
       );
 
       return {
