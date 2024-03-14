@@ -173,7 +173,9 @@ export class FoldersService {
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
-      const data = [...query1, ...file_data].sort((a,b) => a.folder_tree_index - b.folder_tree_index)
+      const data = [...query1, ...file_data].sort(
+        (a, b) => Number(a.folder_tree_index) - Number(b.folder_tree_index),
+      );
 
       return {
         sub_folder_count: data,
@@ -219,8 +221,6 @@ export class FoldersService {
         };
       });
 
-      
-
       const query1 = await this.foldersRepository
         .createQueryBuilder('folder')
         .leftJoinAndSelect('folder.users', 'user')
@@ -233,7 +233,9 @@ export class FoldersService {
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
-      const data = [...query1, ...file_data].sort((a,b) => a.folder_tree_index - b.folder_tree_index)
+      const data = [...query1, ...file_data].sort(
+        (a, b) => Number(a.folder_tree_index) - Number(b.folder_tree_index),
+      );
 
       return {
         sub_folder_count: data,
