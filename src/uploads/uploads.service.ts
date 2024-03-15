@@ -69,13 +69,14 @@ export class UploadService {
             const file_extension = file_name_parts.length > 1 ? file_name_parts.pop() : '';
             // console.log(file_extension,'d')
             await this.fileService.addFileToAFolder(
-              file_names[index],
+              files[index].originalname,
               folder_id,
               user_id,
               organization_id,
-              files[index].mimetype || 'image',
-              files[index].size || 30000000,
-              file_extension
+              files[index].mimetype || '',
+              files[index].size || 0,
+              file_extension,
+              file_names[index],
             );
           }
         }

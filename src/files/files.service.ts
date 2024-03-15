@@ -34,7 +34,8 @@ export class FilesService {
     organization_id: string,
     mime_type: string,
     size: number,
-    extension: string
+    extension: string,
+    file_uploaded_name: string,
   ) {
     try {
       const find_user = await this.userRepository.findOne({
@@ -45,6 +46,20 @@ export class FilesService {
         where: { id: folder_id },
       });
       if (!find_folder) throw new NotFoundException('folder not found');
+
+      const find_file_same_name = await this.fileRepository.find({
+        where: {
+          original_name:name,
+        },
+      });
+
+      const original_name = name // to be saved without copy indexing
+      if (find_file_same_name.length > 0) {
+        console.log(find_file_same_name.length,'length file same')
+        find_file_same_name.length == 1
+          ? (name = 'copy-' + name)
+          : (name = `copy-${find_file_same_name.length}-${name}`);
+      }
 
       const all_child_files = await this.fileRepository.find({
         where: {
@@ -67,14 +82,14 @@ export class FilesService {
         all_child_files.length + all_child_folders.length > 0
           ? `${all_child_files.length + all_child_folders.length + 1}`
           : 1;
-      console.log(
-        current_tree_index + next,
-        'treeee index',
-        current_tree_index,
-        next,
-        all_child_files.length,
-        all_child_folders.length,
-      );
+      // console.log(
+      //   current_tree_index + next,
+      //   'treeee index',
+      //   current_tree_index,
+      //   next,
+      //   all_child_files.length,
+      //   all_child_folders.length,
+      // );
       const organization = await this.orgService.findOne(organization_id);
 
       const new_file = this.fileRepository.create({
@@ -86,7 +101,9 @@ export class FilesService {
         mime_type,
         bucket_url: 'https://lockroom.s3.amazonaws.com/' + name,
         size_bytes: size,
-        extension
+        extension,
+        file_uploaded_name,
+        original_name
       });
 
       // console.log(new_file)
@@ -135,9 +152,9 @@ export class FilesService {
   async findOne(id: string) {
     return await this.fileRepository.findOne({
       where: {
-        id
-      }
-    })
+        id,
+      },
+    });
   }
 
   update(id: number, updateFileDto: UpdateFileDto) {
@@ -161,22 +178,33 @@ export class FilesService {
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
         );
-        console.log(file_permissions[0].permission.status, file_permissions[0].permission.type)
+        console.log(
+          file_permissions[0].permission.status,
+          file_permissions[0].permission.type,
+        );
         const file_access = {
           type: 'file',
           name: file.name,
-          has_view_access: file_permissions[0].permission.type == 'view' ? file_permissions[0].permission.status : file_permissions[1].permission.status,
-          has_download_access: file_permissions[1].permission.type == 'download' ? file_permissions[1].permission.status : file_permissions[0].permission.status,
+          has_view_access:
+            file_permissions[0].permission.type == 'view'
+              ? file_permissions[0].permission.status
+              : file_permissions[1].permission.status,
+          has_download_access:
+            file_permissions[1].permission.type == 'download'
+              ? file_permissions[1].permission.status
+              : file_permissions[0].permission.status,
           index: file.tree_index,
-          mime_type:file.mime_type,
-          file_id:file.id,
-          url:file.bucket_url,
-          extension: file.extension
+          mime_type: file.mime_type,
+          file_id: file.id,
+          url: file.bucket_url,
+          extension: file.extension,
         };
         folder_files.children.push(file_access);
       }
     }
-    folder_files.children = folder_files.children.sort((a, b) => Number(a.index) - Number(b.index));
+    folder_files.children = folder_files.children.sort(
+      (a, b) => Number(a.index) - Number(b.index),
+    );
     return folder_files;
   }
 
@@ -203,8 +231,8 @@ export class FilesService {
         folder_file_structures.push(folder_file_structure);
       }
       for (const sub of folder_file_structures) {
-        const folder_file_structure = 
-          await this.getFoldersAndFilesByOrganizationId(organizationId, sub.id)
+        const folder_file_structure =
+          await this.getFoldersAndFilesByOrganizationId(organizationId, sub.id);
         sub.children.push(...folder_file_structure);
       }
     }
@@ -233,7 +261,7 @@ export class FilesService {
     folder_file_structure.children = [
       ...folder_file_structure.children,
       ...result,
-    ].sort((a,b) => a.index - b.index);
+    ].sort((a, b) => a.index - b.index);
     // console.log(folder_file_structure,'struc', result)
     return folder_file_structure;
   }

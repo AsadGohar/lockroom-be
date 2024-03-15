@@ -23,6 +23,12 @@ export class File {
   @Column({ nullable: false })
   name: string;
 
+  @Column({ nullable: true })
+  file_uploaded_name: string;
+
+  @Column({ nullable: true })
+  original_name: string;
+
   @ManyToOne(() => Folder, folder => folder.files , { nullable: true, onDelete: 'CASCADE' })
   folder: Folder;
 
