@@ -99,7 +99,7 @@ export class FilesService {
         tree_index: current_tree_index + next,
         organization,
         mime_type,
-        bucket_url: 'https://lockroom.s3.amazonaws.com/' + name,
+        bucket_url: 'https://lockroom.s3.amazonaws.com/' + file_uploaded_name,
         size_bytes: size,
         extension,
         file_uploaded_name,
