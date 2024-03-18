@@ -26,6 +26,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { Organization } from './organizations/entities/organization.entity';
 import { GroupFilesPermissions } from './group-files-permissions/entities/group-files-permissions.entity';
 import { GroupFilesPermissionsModule } from './group-files-permissions/group-files-permissions.module';
+import { GroupFilesPermissionsController } from './group-files-permissions/group-files-permissions.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -49,10 +50,10 @@ import { GroupFilesPermissionsModule } from './group-files-permissions/group-fil
       ],
       synchronize: true,
       // logging:'all',
-      // ssl:{
-      //   rejectUnauthorized:false
-      // },
-      ssl: false,
+      ssl:{
+        rejectUnauthorized:false
+      },
+      // ssl: false,
     }),
     ThrottlerModule.forRoot({
       throttlers: [
@@ -73,7 +74,7 @@ import { GroupFilesPermissionsModule } from './group-files-permissions/group-fil
     OrganizationsModule,
     GroupFilesPermissionsModule
   ],
-  controllers: [AppController, MailController],
+  controllers: [AppController, MailController, GroupFilesPermissionsController],
   providers: [AppService, EmailService, JwtService],
 })
 export class AppModule {}

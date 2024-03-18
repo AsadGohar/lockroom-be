@@ -1,6 +1,4 @@
-import {
-  Injectable
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FilesPermissions } from './entities/files-permissions.entity';
@@ -24,22 +22,28 @@ export class FilesPermissionsService {
         };
       });
       // console.log(file_permissions,'file permiss')
-      const new_files_permissions = await this.filePermRepo.save(file_permissions)
+      const new_files_permissions =
+        await this.filePermRepo.save(file_permissions);
       // console.log(new_files_permissions)
-      return new_files_permissions
+      return new_files_permissions;
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 
-  async findFilePermissiosn(file_id:string){
+  async findFilePermissiosn(file_id: string) {
     return await this.filePermRepo.find({
-      relations:['permission', 'file'],
-      where:{
-        file:{
-          id:file_id
-        }
-      }
-    })
+      relations: ['permission', 'file'],
+      where: {
+        file: {
+          id: file_id,
+        },
+      },
+      order: {
+        file: {
+          tree_index: 'ASC',
+        },
+      },
+    });
   }
 }

@@ -9,10 +9,11 @@ import { GroupFilesPermissions } from 'src/group-files-permissions/entities/grou
 import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import { Group } from 'src/groups/entities/group.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Folder, User, GroupFilesPermissions, FilesPermissions, File, Organization]), UsersModule
+    TypeOrmModule.forFeature([Folder, User, GroupFilesPermissions, FilesPermissions, File, Organization, Group]), UsersModule
   ],
   controllers: [FoldersController],
   providers: [FoldersService],
