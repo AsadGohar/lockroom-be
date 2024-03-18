@@ -13,10 +13,19 @@ import { Group } from 'src/groups/entities/group.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Folder, User, GroupFilesPermissions, FilesPermissions, File, Organization, Group]), UsersModule
+    TypeOrmModule.forFeature([
+      Folder,
+      User,
+      GroupFilesPermissions,
+      FilesPermissions,
+      File,
+      Organization,
+      Group,
+    ]),
+    UsersModule,
   ],
   controllers: [FoldersController],
   providers: [FoldersService],
-  exports: [FoldersService]
+  exports: [FoldersService],
 })
 export class FoldersModule {}

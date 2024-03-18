@@ -31,7 +31,6 @@ name: string;
 creator: User;
 
 @ManyToMany(() => User, user => user.organizations_added_in)
-@JoinTable()
 users: User[];
 
 @OneToMany(() => Group, (group) => group.organization, { nullable: true , cascade:true})

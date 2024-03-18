@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, BeforeInsert, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  BeforeInsert,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Permission } from '../../permission/entities/permission.entity';
 import { File } from '../../files/entities/file.entity';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,8 +22,17 @@ export class FilesPermissions {
   @ManyToOne(() => Permission, (permission) => permission.FilesPermissions)
   permission: Permission;
 
-  @OneToMany(() => GroupFilesPermissions, (groupFilePermission) => groupFilePermission.file_permission)
+  @OneToMany(
+    () => GroupFilesPermissions,
+    (groupFilePermission) => groupFilePermission.file_permission,
+  )
   group_files_permissions: GroupFilesPermissions[];
+
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
 
   @BeforeInsert()
   addId() {
