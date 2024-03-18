@@ -6,6 +6,7 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Column
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { File } from 'src/files/entities/file.entity';
@@ -15,6 +16,9 @@ import { User } from 'src/users/entities/user.entity';
 export class AuditLogs {
   @PrimaryGeneratedColumn()
   id: string;
+
+  @Column({ nullable: false })
+  type: string;
 
   @ManyToOne(() => File, (file) => file.audit_log)
   @JoinColumn()
