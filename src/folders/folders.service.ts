@@ -369,7 +369,7 @@ export class FoldersService {
     } else {
       query.andWhere('folder.parent_folder_id IS NULL');
     }
-    const data = await query.getMany();
+    await query.getMany();
     // return { new_folder: new_folder_1, files_count: data.length };
 
     // Associate default permissions

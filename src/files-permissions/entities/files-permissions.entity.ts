@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
 @Entity()
 export class FilesPermissions {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
   @ManyToOne(() => File, (file) => file.FilesPermissions)

@@ -14,31 +14,6 @@ export class UploadService {
     private readonly fileService: FilesService,
   ) {}
 
-  // async upload(
-  //   file_name: string,
-  //   file: Buffer,
-  //   folder_id: string,
-  //   user_id: string,
-  //   organization_id: string,
-  // ) {
-  //   const file_upload = await this.s3Client.send(
-  //     new PutObjectCommand({
-  //       Bucket: 'lockroom',
-  //       Key: file_name,
-  //       Body: file,
-  //     }),
-  //   );
-  //   if (file_upload) {
-  //     const new_file = await this.fileService.addFileToAFolder(
-  //       file_name,
-  //       folder_id,
-  //       user_id,
-  //       organization_id,
-  //       file.mime_type
-  //     );
-  //   }
-  // }
-
   async uploadMultiple(
     files: any[],
     folder_id: string,
@@ -60,28 +35,42 @@ export class UploadService {
             Body: file.buffer,
           }),
           );
-        });
-        
-        const response = await Promise.all(file_promises);
-        if (response) {
-          for (let index = 0; index < files.length; index++) {
-            const file_name_parts = file_names[index].split('.');
-            const file_extension = file_name_parts.length > 1 ? file_name_parts.pop() : '';
-            // console.log(file_extension,'d')
-            await this.fileService.addFileToAFolder(
-              files[index].originalname,
-              folder_id,
-              user_id,
-              organization_id,
-              files[index].mimetype || '',
-              files[index].size || 0,
-              file_extension,
-              file_names[index],
-            );
-          }
+      });
+
+      const response = await Promise.all(file_promises);
+      if (true) {
+        for (let index = 0; index < files.length; index++) {
+          const file_name_parts = file_names[index].split('.');
+          const file_extension =
+            file_name_parts.length > 1 ? file_name_parts.pop() : '';
+          // console.log(file_extension,'d')
+          await this.fileService.addFileToAFolder(
+            files[index].originalname,
+            folder_id,
+            user_id,
+            organization_id,
+            files[index].mimetype || '',
+            files[index].size || 0,
+            file_extension,
+            file_names[index],
+          );
         }
-        console.log(response, 'uploads');
-        return response;
       }
+      // console.log(response, 'uploads');
+      return response;
+    }
+  }
+
+  async uploadFileToS3(file: Buffer, file_name: string) {
+    const params = {
+      Bucket: 'lockroom',
+      Key: file_name,
+      Body: file,
+      ContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    };
+
+    const upload = await this.s3Client.send(new PutObjectCommand(params))
+    
+   
   }
 }

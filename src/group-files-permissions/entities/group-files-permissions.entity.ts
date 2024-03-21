@@ -13,7 +13,7 @@ import { Group } from 'src/groups/entities/group.entity';
 
 @Entity()
 export class GroupFilesPermissions {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
   @ManyToOne(() => Group, (group) => group.group_files_permissions)

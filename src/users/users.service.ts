@@ -20,8 +20,7 @@ import { decodeJwtResponse } from 'src/utils/jwt.utils';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { getMetadataArgsStorage } from 'typeorm';
-import { File } from 'src/files/entities/file.entity';
-import { formatBytes } from 'src/utils/converts.utils';
+import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 // import { sendSMS } from 'src/utils/otp.utils';
 
 @Injectable()
@@ -30,6 +29,7 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
+    private readonly auditService: AuditLogsSerivce,
     @InjectRepository(Folder)
     private readonly folderRepository: Repository<Folder>,
     @InjectRepository(Group)
@@ -38,8 +38,6 @@ export class UsersService {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Invite)
     private readonly inviteRepository: Repository<Invite>,
-    @InjectRepository(File)
-    private readonly fileRepository: Repository<File>,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -98,31 +96,18 @@ export class UsersService {
         users: [],
         invites: [],
       });
-      console.log('here1', new_org);
+      // console.log('here1', new_org);
 
       const saveOrg = await this.orgRepository.save(new_org);
-      console.log('here2', saveOrg);
+      // console.log('here2', saveOrg);
 
-      const folder = await this.folderRepository.save({
+      await this.folderRepository.save({
         name: 'Home',
         parent_folder_id: null,
         tree_index: '1',
         users: [user],
         organization: saveOrg,
       });
-
-      const query1 = await this.folderRepository
-        .createQueryBuilder('folder')
-        .leftJoinAndSelect('folder.users', 'user')
-        .leftJoin('folder.sub_folders', 'sub_folder')
-        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-        .where('user.id = :userId', { userId: user.id })
-        .andWhere('folder.organization.id = :organizationId', {
-          organizationId: saveOrg.id,
-        })
-        .groupBy('folder.id, user.id')
-        .orderBy('folder.createdAt', 'ASC')
-        .getRawMany();
 
       const mail = {
         to: user.email,
@@ -167,7 +152,6 @@ export class UsersService {
       const orgs = [];
 
       if (!user) {
-        // console.log(user);
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
       if (user.sso_login && user.sso_type == 'google')
@@ -234,7 +218,10 @@ export class UsersService {
             id: In(orgs),
           },
         });
-
+        const new_audit = await this.auditService.create(
+          null,user.id, user.organizations_added_in[0].id,'login'
+        )
+        console.log(new_audit)
         return {
           access_token: accessToken,
           is_phone_number_verified: user.phone_number ? true : false,

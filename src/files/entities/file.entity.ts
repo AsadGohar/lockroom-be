@@ -67,7 +67,7 @@ export class File {
 
   @ManyToOne(() => AuditLogs, (auditLogs) => auditLogs.file)
   @JoinColumn()
-  audit_log: Organization;
+  audit_log: AuditLogs;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
