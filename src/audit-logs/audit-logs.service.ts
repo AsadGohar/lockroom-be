@@ -27,7 +27,7 @@ export class AuditLogsSerivce {
     organization_id: string,
     type: string,
   ) {
-    console.log(file_id,'fileee')
+    // console.log(file_id,'fileee')
     const find_user = await this.userRepository.findOne({
       relations: ['groups', 'createdGroups'],
       where: {
