@@ -227,6 +227,7 @@ export class FoldersService {
           url: item.file_permission.file.bucket_url,
           file_id: item.file_permission.file.id,
           folder_createdAt: item.file_permission.file.createdAt,
+          id: item.file_permission.file.id,
         };
       });
 
@@ -240,6 +241,8 @@ export class FoldersService {
         })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
+        .addSelect('folder.id', 'id') 
+        .addSelect('folder.id', 'folder_id') 
         .getRawMany();
 
       const data = [...query1, ...file_data].sort(
