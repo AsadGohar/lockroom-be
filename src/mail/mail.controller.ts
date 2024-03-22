@@ -72,6 +72,8 @@ export class MailController {
           const access_token = this.jwtService.sign(payload, {
             secret: process.env.JWT_INVITE_SECRET,
           });
+
+          console.log(access_token, "access_token")
           const link = `${process.env.FE_HOST}/authentication/signup?confirm=${access_token}`;
           const mail = {
             to: invite.sent_to,
