@@ -54,7 +54,7 @@ export class OrganizationsService {
         },
       });
       if (!find_org) throw new NotFoundException('organization not found');
-      console.log(find_invites.filter(item=> item.status == 'pending'),'invites')
+      // console.log(find_invites.filter(item=> item.status == 'pending'),'invites')
       return {
         organization: find_org,
         invites: find_invites.filter(item=> item.status == 'pending'),

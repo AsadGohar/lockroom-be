@@ -7,13 +7,14 @@ import {
   BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
-  JoinColumn
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 
 @Entity()
 export class File {
@@ -29,7 +30,10 @@ export class File {
   @Column({ nullable: true })
   original_name: string;
 
-  @ManyToOne(() => Folder, folder => folder.files , { nullable: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => Folder, (folder) => folder.files, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
   folder: Folder;
 
   @Column({ nullable: true, default: false })
@@ -40,7 +44,7 @@ export class File {
 
   @Column({ nullable: true })
   size_bytes: number;
-  
+
   @Column({ nullable: false })
   tree_index: string;
 
@@ -50,17 +54,21 @@ export class File {
   @Column({ nullable: true })
   extension: string;
 
-  @ManyToOne(() => User, user => user.files)
+  @ManyToOne(() => User, (user) => user.files)
   user: User;
 
-  @OneToMany(() => FilesPermissions, fp => fp.permission)
+  @OneToMany(() => FilesPermissions, (fp) => fp.permission)
   @JoinColumn()
   FilesPermissions: FilesPermissions[];
 
   @ManyToOne(() => Organization, (organization) => organization.files)
   @JoinColumn()
   organization: Organization;
-  
+
+  @ManyToOne(() => AuditLogs, (auditLogs) => auditLogs.file)
+  @JoinColumn()
+  audit_log: AuditLogs;
+
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 

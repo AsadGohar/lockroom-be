@@ -18,6 +18,7 @@ import { Invite } from '../../invites/entities/invite.entity';
 import { Group } from '../..//groups/entities/group.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 
 @Entity()
 export class User {
@@ -91,6 +92,9 @@ export class User {
 
   @OneToMany(() => File, (file) => file.user)
   files: File[];
+
+  @OneToMany(() => AuditLogs, auditLog => auditLog.user)
+  audit_log: AuditLogs[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

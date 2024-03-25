@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FilesController } from './files.controller';
 import { User } from '../users/entities/user.entity';
-// import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
 import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -17,7 +16,7 @@ import { Group } from 'src/groups/entities/group.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { Invite } from 'src/invites/entities/invite.entity';
-import { UploadService } from 'src/uploads/uploads.service';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([

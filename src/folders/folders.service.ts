@@ -37,6 +37,8 @@ export class FoldersService {
     organization_id: string,
     parent_folder_id?: string,
   ) {
+    if(!parent_folder_id) throw new NotFoundException('parent folder required');
+     
     //check if parent repo exists
     const parent_folder = await this.foldersRepository.findOne({
       relations: ['sub_folders'],
@@ -45,6 +47,7 @@ export class FoldersService {
       },
     });
     if (!parent_folder) throw new NotFoundException('parent folder found');
+    // console.log(parent_folder,'parent')
 
     //check if child repos have duplicate name
     const child_folders_with_same_name = await this.foldersRepository.find({
@@ -160,6 +163,7 @@ export class FoldersService {
           file_id: file.id,
           extension: file.extension,
           folder_createdAt: file.createdAt,
+          id: file.id,
         };
       });
       const query1 = await this.foldersRepository
@@ -172,12 +176,15 @@ export class FoldersService {
         })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
+        .addSelect('folder.id', 'id') 
+        .addSelect('folder.id', 'folder_id') 
         .getRawMany();
 
       const data = [...query1, ...file_data].sort(
         (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
       );
 
+      // console.log(data,'dasda')
       return {
         sub_folder_count: data,
       };
@@ -220,6 +227,7 @@ export class FoldersService {
           url: item.file_permission.file.bucket_url,
           file_id: item.file_permission.file.id,
           folder_createdAt: item.file_permission.file.createdAt,
+          id: item.file_permission.file.id,
         };
       });
 
@@ -233,6 +241,8 @@ export class FoldersService {
         })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
+        .addSelect('folder.id', 'id') 
+        .addSelect('folder.id', 'folder_id') 
         .getRawMany();
 
       const data = [...query1, ...file_data].sort(
@@ -369,7 +379,7 @@ export class FoldersService {
     } else {
       query.andWhere('folder.parent_folder_id IS NULL');
     }
-    const data = await query.getMany();
+    await query.getMany();
     // return { new_folder: new_folder_1, files_count: data.length };
 
     // Associate default permissions

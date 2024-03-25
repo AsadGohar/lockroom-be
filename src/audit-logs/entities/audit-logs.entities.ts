@@ -6,26 +6,37 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Column,
 } from 'typeorm';
-import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { File } from 'src/files/entities/file.entity';
+import { User } from 'src/users/entities/user.entity';
+import { Organization } from 'src/organizations/entities/organization.entity';
 import { Group } from 'src/groups/entities/group.entity';
 
 @Entity()
-export class GroupFilesPermissions {
+export class AuditLogs {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
-  @ManyToOne(() => Group, (group) => group.group_files_permissions)
+  @Column({ nullable: false })
+  type: string;
+
+  @ManyToOne(() => User, (user) => user.audit_log)
+  @JoinColumn()
+  user: User;
+
+  @ManyToOne(() => Group, (group) => group.audit_log)
   @JoinColumn()
   group: Group;
 
-  @ManyToOne(
-    () => FilesPermissions,
-    (filePermission) => filePermission.group_files_permissions,
-  )
+  @ManyToOne(() => Organization, (org) => org.audit_log)
   @JoinColumn()
-  file_permission: FilesPermissions;
+  organization: Organization;
+
+  @ManyToOne(() => File, { nullable: true })
+  @JoinColumn()
+  file: File;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

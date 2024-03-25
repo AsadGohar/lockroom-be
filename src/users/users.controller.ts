@@ -27,7 +27,7 @@ export class UsersController {
     res.cookie('sWTNNOCEN', data.access_token, {
       expires: new Date(Date.now() + 3600000),
     });
-    console.log(data,'dsa')
+    // console.log(data,'dsa')
     return {
       access_token: data.access_token,
       id: data.id,
@@ -54,7 +54,7 @@ export class UsersController {
   @Post('login-gmail')
   async loginWithGmail(@Body('jwt_token') jwt_token: string) {
     const data=  await this.usersService.loginWithGoogle(jwt_token);
-    console.log(data,'datas')
+    // console.log(data,'datas')
     return data
   }
 
