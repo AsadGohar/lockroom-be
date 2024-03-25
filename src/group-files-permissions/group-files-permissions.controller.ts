@@ -1,11 +1,14 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { GroupFilesPermissionsService } from './group-files-permissions.service';
+import { AuthGuard } from 'src/guards/auth.guard';
+
 @Controller('gfp')
 export class GroupFilesPermissionsController {
   constructor(
     private readonly grpupFilesPermissionsService: GroupFilesPermissionsService,
   ) {}
 
+  @UseGuards(AuthGuard)
   @Post('/update-permissions')
   create(
     @Body('file_ids') file_ids: string[],

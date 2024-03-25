@@ -8,15 +8,12 @@ const client = new Twilio(
 
 export const sendSMS = async (phoneNumber: string) => {
   try {
-    console.log(phoneNumber,'number')
     const otp =  generateOTP()
     const smsResponse = await client.messages.create({
       from:'+18145644955',
       to: '+923034697337',
       body: `Use this code ${otp}`,
     });
-    console.log('here')
-    console.log(smsResponse.sid);
   } catch (error) {
     error.statusCode = 400;
     throw error;

@@ -1,13 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLogs } from './entities/audit-logs.entities';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
-import { Group } from 'src/groups/entities/group.entity';
 import { User } from 'src/users/entities/user.entity';
 import { createExcelWorkbook } from 'src/utils/excel.utils';
-import { addMonths, subMonths, format, subDays, addDays } from 'date-fns';
+import { subMonths, format, subDays, addDays } from 'date-fns';
 @Injectable()
 export class AuditLogsSerivce {
   constructor(
@@ -27,41 +26,47 @@ export class AuditLogsSerivce {
     organization_id: string,
     type: string,
   ) {
-    // console.log(file_id,'fileee')
-    const find_user = await this.userRepository.findOne({
-      relations: ['groups', 'createdGroups'],
-      where: {
-        id: user_id,
-      },
-    });
-    const find_file = file_id
-      ? await this.fileRepository.findOne({
-          where: {
-            id: file_id,
-          },
-        })
-      : null;
-    const find_org = await this.orgRepository.findOne({
-      where: {
-        id: organization_id,
-      },
-    });
-    const groups = [...find_user.groups, ...find_user.createdGroups];
-    const audit_logs = groups.map((item) => {
-      return this.auditLogsRepository.create({
-        file: file_id ? find_file : null,
-        organization: find_org,
-        user: find_user,
-        group: item,
-        type,
+    try {
+      if (!file_id || !user_id || !organization_id || !type)
+        throw new NotFoundException('Missing Fields');
+      const find_user = await this.userRepository.findOne({
+        relations: ['groups', 'createdGroups'],
+        where: {
+          id: user_id,
+        },
       });
-    });
-    // console.log(audit_logs,'logss')
-    return await this.auditLogsRepository.save(audit_logs);
+      const find_file = file_id
+        ? await this.fileRepository.findOne({
+            where: {
+              id: file_id,
+            },
+          })
+        : null;
+      const find_org = await this.orgRepository.findOne({
+        where: {
+          id: organization_id,
+        },
+      });
+      const groups = [...find_user.groups, ...find_user.createdGroups];
+      const audit_logs = groups.map((item) => {
+        return this.auditLogsRepository.create({
+          file: file_id ? find_file : null,
+          organization: find_org,
+          user: find_user,
+          group: item,
+          type,
+        });
+      });
+      return await this.auditLogsRepository.save(audit_logs);
+    } catch (error) {
+      throw new Error(error);
+    }
   }
 
   async getStats(organization_id: string, date: any) {
     try {
+      if (!organization_id || !date)
+        throw new NotFoundException('Missing Fields');
       let startDate;
       if (date.type == 'days') {
         startDate = subDays(new Date(), date.value);
@@ -108,8 +113,6 @@ export class AuditLogsSerivce {
       }
       const user_rankings = await user_rankings_query.limit(4).getRawMany();
 
-      // console.log(user_rankings,'ranking')
-
       const document_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
         .select('group.name', 'group_name')
@@ -137,8 +140,6 @@ export class AuditLogsSerivce {
       const document_rankings = await document_rankings_query
         .limit(3)
         .getRawMany();
-
-        // console.log(document_rankings,'tand')
 
       const createObjs = (
         name: string,
@@ -179,6 +180,7 @@ export class AuditLogsSerivce {
       return { data };
     } catch (error) {
       console.log(error);
+      throw Error(error);
     }
   }
 
@@ -190,16 +192,20 @@ export class AuditLogsSerivce {
 
   async findOne(id: string) {
     try {
+      if (!id) throw new NotFoundException('Missing Fields');
       return await this.auditLogsRepository.findOne({
         where: {
           id,
         },
         relations: ['users'],
       });
-    } catch (error) {}
+    } catch (error) {
+      throw Error(error);
+    }
   }
 
   async exportDataToExcel(organization_id: string) {
+    if (!organization_id) throw new NotFoundException('Missing Fields');
     const audit_logs = await this.auditLogsRepository.find({
       relations: ['user'],
       where: {
@@ -216,13 +222,5 @@ export class AuditLogsSerivce {
     });
     console.log(await createExcelWorkbook(data));
     // return await createExcelWorkbook(data);
-  }
-
-  update(id: number) {
-    return `This action updates a #${id} group`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} group`;
   }
 }

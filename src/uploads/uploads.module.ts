@@ -19,6 +19,7 @@ import { Group } from 'src/groups/entities/group.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Permission } from 'src/permission/entities/permission.entity';
+import { JwtService } from '@nestjs/jwt';
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
@@ -55,7 +56,8 @@ import { Permission } from 'src/permission/entities/permission.entity';
     FilesPermissionsService,
     GroupFilesPermissionsService,
     OrganizationsService,
-    PermissionService
+    PermissionService,
+    JwtService
   ],
 })
 export class UploadsModule {}

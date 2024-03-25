@@ -1,48 +1,47 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Request, UseGuards } from '@nestjs/common';
 import { GroupsService } from './groups.service';
-import { UpdateGroupDto } from './dto/update-group.dto';
-
+import { AuthGuard } from 'src/guards/auth.guard';
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
+  @UseGuards(AuthGuard)
   @Post()
-  create(@Body('name') name:string, @Body('user_id') user_id: string, @Body('organization_id')  organization_id:string) {
-    return this.groupsService.create(name, user_id, organization_id);
+  create(
+    @Body('name') name: string,
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.groupsService.create(
+      name,
+      request.decoded_data.user_id,
+      organization_id,
+    );
   }
 
+  @UseGuards(AuthGuard)
   @Post('remove-user')
-  removeUserFromAGroup(@Body('groupId') groupId:string, @Body('userId') userId: string,) {
-    return this.groupsService.removeUserFromGroup(groupId, userId);
-  }
-
-  @Get()
-  findAll() {
-    return this.groupsService.findAll();
+  removeUserFromAGroup(@Body('groupId') groupId: string, @Request() request) {
+    return this.groupsService.removeUserFromGroup(
+      groupId,
+      request.decoded_data.user_id,
+    );
   }
 
   @Post('find-users')
-  findAllUsersInGroup(@Body('id') id:string,) {
+  findAllUsersInGroup(@Body('id') id: string) {
     return this.groupsService.findAllUsersInGroup(id);
   }
 
+  @UseGuards(AuthGuard)
   @Post('org-groups')
-  findGroupsByOrganizationAndUserId(@Body('organization_id') organization_id:string, @Body('user_id') user_id:string) {
-    return this.groupsService.getGroupsByOrganization(organization_id, user_id);
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.groupsService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateGroupDto: UpdateGroupDto) {
-    // return this.groupsService.update(+id, updateGroupDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.groupsService.remove(+id);
+  findGroupsByOrganizationAndUserId(
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.groupsService.getGroupsByOrganization(
+      organization_id,
+      request.decoded_data.user_id,
+    );
   }
 }

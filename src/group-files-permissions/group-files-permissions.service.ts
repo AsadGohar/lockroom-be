@@ -41,7 +41,6 @@ export class GroupFilesPermissionsService {
           });
         })
         .flat();
-      console.log(group_files_permissions);
       const new_group_files_permissions = await this.groupFilePermRepo.save(
         group_files_permissions,
       );
@@ -62,7 +61,6 @@ export class GroupFilesPermissionsService {
           file_permission: fp,
         };
       });
-      console.log(new_fp);
       const new_group_files_permissions =
         await this.groupFilePermRepo.save(new_fp);
       return new_group_files_permissions;
@@ -104,7 +102,6 @@ export class GroupFilesPermissionsService {
     type: string,
   ) {
     try {
-      console.log(group_id, file_ids, status, type);
       const find_group_files_permissions = await this.groupFilePermRepo.find({
         relations: ['group', 'file_permission.permission'],
         where: {
@@ -123,7 +120,6 @@ export class GroupFilesPermissionsService {
       });
 
       const permission_ids = [];
-      console.log(permission_ids, 'ids', find_group_files_permissions);
       find_group_files_permissions.map((gfp) => {
         permission_ids.push(gfp.file_permission.permission.id);
       });
@@ -135,7 +131,6 @@ export class GroupFilesPermissionsService {
           status: status,
         },
       );
-      console.log(update_permissions);
       if (update_permissions.affected > 0) {
         return {
           update_permissions,

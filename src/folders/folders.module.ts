@@ -10,7 +10,7 @@ import { FilesPermissions } from 'src/files-permissions/entities/files-permissio
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Group } from 'src/groups/entities/group.entity';
-
+import { JwtService } from '@nestjs/jwt';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -25,7 +25,7 @@ import { Group } from 'src/groups/entities/group.entity';
     UsersModule,
   ],
   controllers: [FoldersController],
-  providers: [FoldersService],
+  providers: [FoldersService, JwtService],
   exports: [FoldersService],
 })
 export class FoldersModule {}

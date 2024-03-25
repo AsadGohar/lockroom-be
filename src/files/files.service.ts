@@ -1,6 +1,4 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateFileDto } from './dto/create-file.dto';
-import { UpdateFileDto } from './dto/update-file.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { Folder } from 'src/folders/entities/folder.entity';
@@ -23,10 +21,6 @@ export class FilesService {
     private readonly orgService: OrganizationsService,
   ) {}
 
-  create(createFileDto: CreateFileDto) {
-    return 'This action adds a new file';
-  }
-
   async addFileToAFolder(
     name: string,
     folder_id: string,
@@ -38,6 +32,17 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     try {
+      if (
+        !name ||
+        !folder_id ||
+        !user_id ||
+        !organization_id ||
+        !mime_type ||
+        !size ||
+        !extension ||
+        !file_uploaded_name
+      )
+        throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         where: { id: user_id },
       });
@@ -49,13 +54,12 @@ export class FilesService {
 
       const find_file_same_name = await this.fileRepository.find({
         where: {
-          original_name:name,
+          original_name: name,
         },
       });
 
-      const original_name = name // to be saved without copy indexing
+      const original_name = name; // to be saved without copy indexing
       if (find_file_same_name.length > 0) {
-        console.log(find_file_same_name.length,'length file same')
         find_file_same_name.length == 1
           ? (name = 'copy-' + name)
           : (name = `copy-${find_file_same_name.length}-${name}`);
@@ -75,21 +79,11 @@ export class FilesService {
         },
       });
 
-      console.log(all_child_folders, 'folders');
-
       const current_tree_index = `${find_folder.tree_index}.`;
       const next =
         all_child_files.length + all_child_folders.length > 0
           ? `${all_child_files.length + all_child_folders.length + 1}`
           : 1;
-      // console.log(
-      //   current_tree_index + next,
-      //   'treeee index',
-      //   current_tree_index,
-      //   next,
-      //   all_child_files.length,
-      //   all_child_folders.length,
-      // );
       const organization = await this.orgService.findOne(organization_id);
 
       const new_file = this.fileRepository.create({
@@ -103,10 +97,9 @@ export class FilesService {
         size_bytes: size,
         extension,
         file_uploaded_name,
-        original_name
+        original_name,
       });
 
-      // console.log(new_file)
       const saved_file = await this.fileRepository.save(new_file);
 
       const file_permissions =
@@ -119,50 +112,49 @@ export class FilesService {
       return { file_permissions, saved_file, new_group_files_permissions };
     } catch (error) {
       console.log(error);
+      throw Error(error);
     }
   }
 
   async getAllFilesByOrganization(organization_id: string) {
-    return this.fileRepository.find({
-      relations: ['folder'],
-      where: {
-        organization: {
-          id: organization_id,
+    try {
+      if (!organization_id) throw new NotFoundException('Missing Fields');
+      return this.fileRepository.find({
+        relations: ['folder'],
+        where: {
+          organization: {
+            id: organization_id,
+          },
         },
-      },
-    });
+      });
+    } catch (error) {
+      throw Error(error);
+    }
   }
 
   async getFilesWithGroupPermissions(organization_id: string) {
     try {
+      if (!organization_id) throw new NotFoundException('Missing Fields');
       const find_files = await this.getAllFilesByOrganization(organization_id);
       const file_ids = find_files.map((file) => file.id);
-      const find_group_files_permissions =
-        this.gfpService.getGroupFilesPermissiosnByFileIds(file_ids);
-      console.log(find_group_files_permissions);
+      await this.gfpService.getGroupFilesPermissiosnByFileIds(file_ids);
     } catch (error) {
       console.log(error);
+      throw Error(error);
     }
   }
 
-  findAll() {
-    return `This action returns all files`;
-  }
-
   async findOne(id: string) {
-    return await this.fileRepository.findOne({
-      where: {
-        id,
-      },
-    });
-  }
-
-  update(id: number, updateFileDto: UpdateFileDto) {
-    return `This action updates a #${id} file`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} file`;
+    try {
+      if (!id) throw new NotFoundException('Missing Fields');
+      return await this.fileRepository.findOne({
+        where: {
+          id,
+        },
+      });
+    } catch (error) {
+      throw Error(error);
+    }
   }
 
   async buildFolderFileStructure(folder: Folder) {
@@ -209,12 +201,12 @@ export class FilesService {
   }
 
   async getFoldersAndFilesByOrganizationId(
-    organizationId: string,
+    organization_id: string,
     parent_folder_id: string,
   ) {
     const root_folders = await this.foldersRepository.find({
       where: {
-        organization: { id: organizationId },
+        organization: { id: organization_id },
         parent_folder_id: parent_folder_id,
       },
       relations: ['sub_folders', 'files.organization'],
@@ -232,7 +224,10 @@ export class FilesService {
       }
       for (const sub of folder_file_structures) {
         const folder_file_structure =
-          await this.getFoldersAndFilesByOrganizationId(organizationId, sub.id);
+          await this.getFoldersAndFilesByOrganizationId(
+            organization_id,
+            sub.id,
+          );
         sub.children.push(...folder_file_structure);
       }
     }
@@ -240,29 +235,33 @@ export class FilesService {
     return folder_file_structures;
   }
 
-  async getAllFilesByOrg(organizationId: string, parent_folder_id: string) {
-    const result = await this.getFoldersAndFilesByOrganizationId(
-      organizationId,
-      parent_folder_id,
-    );
-    const home_folder = JSON.parse(
-      JSON.stringify(
-        await this.foldersRepository.findOne({
-          where: {
-            organization: { id: organizationId },
-            id: parent_folder_id,
-          },
-          relations: ['sub_folders', 'files.organization'],
-        }),
-      ),
-    );
-    const folder_file_structure =
-      await this.buildFolderFileStructure(home_folder);
-    folder_file_structure.children = [
-      ...folder_file_structure.children,
-      ...result,
-    ].sort((a, b) => a.index - b.index);
-    // console.log(folder_file_structure,'struc', result)
-    return folder_file_structure;
+  async getAllFilesByOrg(organization_id: string, parent_folder_id: string) {
+    try {
+      if (!organization_id) throw new NotFoundException('Missing Fields');
+      const result = await this.getFoldersAndFilesByOrganizationId(
+        organization_id,
+        parent_folder_id,
+      );
+      const home_folder = JSON.parse(
+        JSON.stringify(
+          await this.foldersRepository.findOne({
+            where: {
+              organization: { id: organization_id },
+              id: parent_folder_id,
+            },
+            relations: ['sub_folders', 'files.organization'],
+          }),
+        ),
+      );
+      const folder_file_structure =
+        await this.buildFolderFileStructure(home_folder);
+      folder_file_structure.children = [
+        ...folder_file_structure.children,
+        ...result,
+      ].sort((a, b) => a.index - b.index);
+      return folder_file_structure;
+    } catch (error) {
+      throw Error(error);
+    }
   }
 }
