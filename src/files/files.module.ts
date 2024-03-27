@@ -16,6 +16,7 @@ import { Group } from 'src/groups/entities/group.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { Invite } from 'src/invites/entities/invite.entity';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { Invite } from 'src/invites/entities/invite.entity';
     GroupFilesPermissionsService,
     GroupsService,
     OrganizationsService,
+    JwtService
   ],
 })
 export class FilesModule {}

@@ -1,59 +1,49 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { FoldersService } from './folders.service';
-import { UpdateRepositoryDto } from './dto/update-repository.dto';
+import { AuthGuard } from 'src/guards/auth.guard';
 
 @Controller('folders')
 export class FoldersController {
   constructor(private readonly foldersService: FoldersService) {}
 
+  @UseGuards(AuthGuard)
   @Post('/create')
   create(
     @Body('name') name: string,
-    @Body('user_id') user_id: string,
     @Body('parent_folder_id') parent_folder_id: string,
-    @Body('organization_id')  organization_id:string,
+    @Body('organization_id') organization_id: string,
+    @Request() request,
   ) {
     try {
-      return this.foldersService.create(name, user_id, organization_id,parent_folder_id)
+      return this.foldersService.create(
+        name,
+        request.decoded_data.user_id,
+        organization_id,
+        parent_folder_id,
+      );
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 
-  @Get()
-  findAll() {
-    return this.foldersService.findAll();
-  }
-
+  @UseGuards(AuthGuard)
   @Post('/organization')
-  findAllByOrganization(@Body('organization_id')  organization_id:string, @Body('user_id')  user_id:string) {
-    return this.foldersService.findAllByOrganization(organization_id, user_id);
-  }
-
-  @Get(':id')
-  findAllByUserId(@Param('id') id: string) {
-    return this.foldersService.findAllByUserId(id);
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.foldersService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateRepositoryDto: UpdateRepositoryDto,
+  findAllByOrganization(
+    @Body('organization_id') organization_id: string,
+    @Request() request,
   ) {
-    // return this.foldersService.update(id, updateRepositoryDto);
+    return this.foldersService.findAllByOrganization(
+      organization_id,
+      request.decoded_data.user_id,
+    );
   }
 
   @Delete(':id')

@@ -1,28 +1,14 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { InvitesService } from './invites.service';
-import { CreateInviteDto } from './dto/create-invite.dto';
-import { UpdateInviteDto } from './dto/update-invite.dto';
-
+import { AuthGuard } from 'src/guards/auth.guard';
 @Controller('invites')
 export class InvitesController {
   constructor(private readonly invitesService: InvitesService) {}
 
-  @Post()
-  create(@Body() createInviteDto: CreateInviteDto) {
-    return this.invitesService.create(createInviteDto);
-  }
-
+  @UseGuards(AuthGuard)
   @Post('sender')
-  findInvitesBySenderId(@Body('sender_id') sender_id: string) {
-    return this.invitesService.findBySenderId(sender_id);
+  findInvitesBySenderId(@Request() request) {
+    return this.invitesService.findBySenderId(request.decoded_data.user_id);
   }
 
   @Post('email-invite')
@@ -47,10 +33,5 @@ export class InvitesController {
       phone_number,
       jwt_token,
     );
-  }
-
-  @Get()
-  findAll() {
-    return this.invitesService.findAll();
   }
 }

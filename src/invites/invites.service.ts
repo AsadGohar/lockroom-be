@@ -31,10 +31,6 @@ export class InvitesService {
     private readonly groupService: GroupsService,
   ) {}
 
-  create(createInviteDto) {
-    return 'This action adds a new invite';
-  }
-
   async findAll() {
     await this.inviteRepository.find();
   }
@@ -43,7 +39,7 @@ export class InvitesService {
     return this.inviteRepository
       .createQueryBuilder('invite')
       .leftJoinAndSelect('invite.sender', 'sender')
-      .where('sender.id = :userId', { userId: sender_id })
+      .where('sender.id = :user_id', { user_id: sender_id })
       .getMany();
   }
 
@@ -53,6 +49,14 @@ export class InvitesService {
     group_id: string,
     organization_id: string,
   ) {
+    if (
+      !sender_id ||
+      emails.length == 0 ||
+      !group_id ||
+      !organization_id ||
+      !emails
+    )
+      throw new NotFoundException('Missing Fields');
     const findUser = await this.userRepository.findOne({
       where: {
         id: sender_id,
@@ -69,7 +73,6 @@ export class InvitesService {
         id: organization_id,
       },
     });
-    // console.log(findUser, 'user', findOrg);
     const invites = emails.map((email) => {
       return {
         sender: findUser,
@@ -79,7 +82,6 @@ export class InvitesService {
         status: 'pending',
       };
     });
-    // console.log(invites, 'invites');
     const invitesDB = await this.inviteRepository.save(invites);
     return { user: findUser, invites: invitesDB };
   }
@@ -105,6 +107,7 @@ export class InvitesService {
       }
     } catch (error) {
       console.log(error);
+      throw Error(error)
     }
   }
 
@@ -117,6 +120,15 @@ export class InvitesService {
     jwt_token: string,
   ) {
     try {
+      if (
+        !email ||
+        !password ||
+        !first_name ||
+        !last_name ||
+        !phone_number ||
+        !jwt_token
+      )
+        throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in'],
         where: {
@@ -124,9 +136,9 @@ export class InvitesService {
         },
       });
       if (find_user) {
-        throw new ConflictException('User Already Exists')
+        throw new ConflictException('User Already Exists');
         // const resp = await this.jwtService.verify(jwt_token, {
-        //   secret: process.env.JWT_INVITE_SECRET,
+        //   secret: process.env.JWT_SECRET,
         // });
         // const invite = await this.inviteRepository.findOne({
         //   relations: ['organization', 'group'],
@@ -168,7 +180,7 @@ export class InvitesService {
       const full_name = `${first_name} ${last_name}`;
 
       const resp = await this.jwtService.verify(jwt_token, {
-        secret: process.env.JWT_INVITE_SECRET,
+        secret: process.env.JWT_SECRET,
       });
       const invite = await this.inviteRepository.findOne({
         relations: ['organization', 'group'],
@@ -176,7 +188,6 @@ export class InvitesService {
           id: resp.invite_id,
         },
       });
-      // console.log(invite, 'invite');
       const find_org = await this.orgRepository.findOne({
         relations: ['users'],
         where: {
@@ -205,8 +216,7 @@ export class InvitesService {
         groups: [find_group],
       });
       await this.groupRepository.save(find_group);
-      const saved_user = await this.userRepository.save(new_user);
-      console.log('saved users', saved_user);
+      await this.userRepository.save(new_user);
       return {
         status: true,
       };
@@ -242,14 +252,12 @@ export class InvitesService {
           where: { email },
         });
         if (invitedUserAlreadyExists) {
-          console.log('in user already exists');
           return await this.groupService.addUserToAGroup(
             group_id,
             invitedUserAlreadyExists.id,
-            senderUser.first_name + ' ' + senderUser.last_name
+            senderUser.first_name + ' ' + senderUser.last_name,
           );
         }
-        console.log('out user already exists');
         new_users.push(email);
       });
 
@@ -263,9 +271,8 @@ export class InvitesService {
       if (invites.length > 0) {
         const sendEmails = invites.map(async (invite) => {
           const payload = { invite_id: invite.id };
-          // console.log('here in x');
           const access_token = this.jwtService.sign(payload, {
-            secret: process.env.JWT_INVITE_SECRET,
+            secret: process.env.JWT_SECRET,
           });
           const link = `${process.env.FE_HOST}/authentication/signup?confirm=${access_token}`;
           const mail = {
@@ -277,11 +284,12 @@ export class InvitesService {
             text: 'Hello',
             html: inviteTemplate(senderUser.first_name, link, 'Create Account'),
           };
-          return await sendEmailUtil(mail)
+          return await sendEmailUtil(mail);
         });
 
         const result = await Promise.all(sendEmails);
-        const group_users = await this.groupService.findAllUsersInGroup(group_id);
+        const group_users =
+          await this.groupService.findAllUsersInGroup(group_id);
         if (result.length > 0) {
           return {
             data: result,
@@ -292,11 +300,13 @@ export class InvitesService {
         }
       }
       if (new_users.length == 0) {
-        const group_users = await this.groupService.findAllUsersInGroup(group_id);
+        const group_users =
+          await this.groupService.findAllUsersInGroup(group_id);
         return { group_users };
       }
     } catch (error) {
       console.log(error);
+      throw Error(error)
     }
   }
 }

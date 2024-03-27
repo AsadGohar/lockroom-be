@@ -20,9 +20,6 @@ export class UploadService {
     user_id: string,
     organization_id: string,
   ) {
-    console.log(files[0]);
-
-    console.log(folder_id, user_id, organization_id);
     if (files.length > 0) {
       const file_names = [];
       const file_promises = files.map((file: any) => {
@@ -43,7 +40,7 @@ export class UploadService {
           const file_name_parts = file_names[index].split('.');
           const file_extension =
             file_name_parts.length > 1 ? file_name_parts.pop() : '';
-          // console.log(file_extension,'d')
+
           await this.fileService.addFileToAFolder(
             files[index].originalname,
             folder_id,
@@ -56,7 +53,6 @@ export class UploadService {
           );
         }
       }
-      // console.log(response, 'uploads');
       return response;
     }
   }

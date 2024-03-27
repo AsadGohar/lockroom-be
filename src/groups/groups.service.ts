@@ -11,7 +11,6 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { sendEmailUtil } from 'src/utils/email.utils';
 import { inviteTemplate } from 'src/utils/email.templates';
 import { FilesService } from 'src/files/files.service';
-import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { In } from 'typeorm';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
@@ -35,6 +34,8 @@ export class GroupsService {
 
   async create(name: string, user_id: string, organization_id: string) {
     try {
+      if (!name || !user_id || !organization_id)
+        throw new NotFoundException('Missing Fields');
       const group = await this.groupsRepository.findOne({
         where: {
           name: name,
@@ -69,24 +70,29 @@ export class GroupsService {
         },
       });
       const saved_group = await this.groupsRepository.save(new_group);
-      const new_group_file_permissions =
-        await this.gfpService.createGroupFilePermissionsForOneGroup(
-          saved_group,
-          find_file_permissions,
-        );
-      console.log(new_group_file_permissions);
-      return saved_group
+      await this.gfpService.createGroupFilePermissionsForOneGroup(
+        saved_group,
+        find_file_permissions,
+      );
+      return saved_group;
     } catch (error) {
       console.log(error, 'err');
+      throw Error(error)
     }
   }
 
-  async addUserToAGroup(groupId: string, user_id: string, sender_name: string) {
+  async addUserToAGroup(
+    group_id: string,
+    user_id: string,
+    sender_name: string,
+  ) {
     try {
+      if (!group_id || !user_id || !sender_name)
+        throw new NotFoundException('Missing Fields');
       const find_group = await this.groupsRepository.findOne({
         relations: ['users'],
         where: {
-          id: groupId,
+          id: group_id,
         },
       });
 
@@ -94,7 +100,7 @@ export class GroupsService {
         relations: ['users'],
         where: {
           groups: {
-            id: groupId,
+            id: group_id,
           },
         },
       });
@@ -106,15 +112,12 @@ export class GroupsService {
           id: user_id,
         },
       });
-      // console.log('find user in grp', find_user)
       if (!find_user) throw new NotFoundException('user not found');
       const userExistsInGroup = find_group.users.some(
         (existingUser) => existingUser.id === find_user.id,
       );
-      // console.log('gere', find_group.name, find_org.name )
       if (userExistsInGroup) return;
       const link = `${process.env.FE_HOST}/dashboard/${find_org.id}`;
-      // console.log('should not reach this');
       const mail = {
         to: find_user.email,
         subject: 'Invited to LockRoom',
@@ -131,14 +134,15 @@ export class GroupsService {
       return await this.groupsRepository.save(find_group);
     } catch (error) {
       console.log(error);
+      throw error
     }
   }
 
-  async removeUserFromGroup(groupId: string, user_id: string) {
+  async removeUserFromGroup(group_id: string, user_id: string) {
     const group = await this.groupsRepository.findOne({
       relations: ['users'],
       where: {
-        id: groupId,
+        id: group_id,
       },
     });
     const user = await this.userRepository.findOne({
@@ -182,30 +186,8 @@ export class GroupsService {
 
   async getGroupsByOrganization(organization_id: string, user_id: string) {
     try {
-      // console.log('hello');
-      //   const groups = await this.groupsRepository.createQueryBuilder("group")
-      // .leftJoinAndSelect("group.organization", "organization")
-      // .leftJoinAndSelect("group.users", "user")
-      // .where("organization.creator.id = :id", { id: user_id })
-      // .where("users.id = :id", { id: user_id })
-      // .getManyAndCount()
-
-      // console.log(groups,'grouuuup')
-
+      if(!organization_id || !user_id) throw new NotFoundException('Missing Fields');
       const groups_result = [];
-
-      // const query = this.groupsRepository
-      //   .createQueryBuilder('group')
-      //   .leftJoinAndSelect('group.organization', 'organization')
-      //   .leftJoinAndSelect('group.createdBy', 'createdBy')
-      //   .leftJoinAndSelect('group.users', 'users');
-
-      // const find_user = await this.userRepository.findOne({
-      //   where: {
-      //     id: user_id,
-      //   },
-      // });
-
       const find_groups = await this.groupsRepository.find({
         relations: ['users', 'organization.creator'],
         where: {
@@ -215,37 +197,20 @@ export class GroupsService {
         },
       });
 
-      // console.log(find_groups,'finnn')
       find_groups.map((group) => {
-        // console.log(group.users, 'user');
         if (
           group.organization.creator &&
           group.organization.creator.id == user_id
         ) {
-          // console.log('now');
           groups_result.push(group);
         } else if (group.users.find((user) => user.id == user_id)) {
           groups_result.push(group);
         }
-        // console.log(group.users.find((user) => user.id == user_id),'hehe', group.name)
       });
 
-      return groups_result.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-
-      // if (find_group.o === 'admin') {
-      //   // Case 1: If the user is an admin (organization creator)
-      //   query.where('organization.creator = :userId', { userId: user.id });
-      // } else {
-      //   // Case 2: If the user is not an admin
-      //   query
-      //     .andWhere(
-      //       '(organization.creator != :userId OR organization.creator IS NULL)',
-      //       { userId: user.id },
-      //     )
-      //     .orWhere('users.id = :userId', { userId: user.id });
-      // }
-
-      // const groups = await query.getMany();
+      return groups_result.sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+      );
     } catch (error) {
       console.log(error, 'in group org');
     }
@@ -259,13 +224,5 @@ export class GroupsService {
         },
       },
     });
-  }
-
-  update(id: number) {
-    return `This action updates a #${id} group`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} group`;
   }
 }

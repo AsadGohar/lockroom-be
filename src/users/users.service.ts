@@ -9,7 +9,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { Group } from 'src/groups/entities/group.entity';
@@ -19,10 +18,8 @@ import { verificationTemplate } from 'src/utils/email.templates';
 import { decodeJwtResponse } from 'src/utils/jwt.utils';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
-import { getMetadataArgsStorage } from 'typeorm';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 // import { sendSMS } from 'src/utils/otp.utils';
-
 @Injectable()
 export class UsersService {
   constructor(
@@ -41,8 +38,6 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    // console.log('here,in ceeate');
-    // await sendSMS(createUserDto.phone_number)
     try {
       const existingUser = await this.userRepository.findOne({
         where: { email: createUserDto.email },
@@ -96,10 +91,8 @@ export class UsersService {
         users: [],
         invites: [],
       });
-      // console.log('here1', new_org);
 
       const saveOrg = await this.orgRepository.save(new_org);
-      // console.log('here2', saveOrg);
 
       await this.folderRepository.save({
         name: 'Home',
@@ -140,7 +133,6 @@ export class UsersService {
 
   async loginUser(email: string, password: string) {
     try {
-      // console.log("in user login");
       const user = await this.userRepository.findOne({
         relations: [
           'organizations_added_in.groups',
@@ -210,7 +202,6 @@ export class UsersService {
         user.organizations_added_in.map((org) => {
           orgs.push(org.id);
         });
-        console.log(orgs,'useree')
 
         const organizations = await this.orgRepository.find({
           relations: ['users', 'creator'],
@@ -219,9 +210,12 @@ export class UsersService {
           },
         });
         const new_audit = await this.auditService.create(
-          null,user.id, user.organizations_added_in[0].id,'login'
-        )
-        console.log(new_audit)
+          null,
+          user.id,
+          user.organizations_added_in[0].id,
+          'login',
+        );
+
         return {
           access_token: accessToken,
           is_phone_number_verified: user.phone_number ? true : false,
@@ -250,7 +244,6 @@ export class UsersService {
       });
 
       if (findUser) {
-        // console.log('google sign finduser', findUser);
         const orgs = [];
         orgs.push(findUser?.organization_created?.id);
         findUser.organizations_added_in.map((org) => {
@@ -262,18 +255,17 @@ export class UsersService {
             id: In(orgs),
           },
         });
-        // console.log(orgs, 'dsa');
         const query = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
-          .where('user.id = :userId', { userId: findUser.id })
+          .where('user.id = :user_id', { user_id: findUser.id })
           .getMany();
         const query1 = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
           .leftJoin('folder.sub_folders', 'sub_folder')
           .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-          .where('user.id = :userId', { userId: findUser.id })
+          .where('user.id = :user_id', { user_id: findUser.id })
           .groupBy('folder.id, user.id')
           .orderBy('folder.createdAt', 'ASC')
           .getRawMany();
@@ -297,7 +289,6 @@ export class UsersService {
           organizations,
         };
       }
-      // console.log('1')
       const find_invites = await this.inviteRepository.find({
         where: {
           sent_to: user?.email,
@@ -324,7 +315,7 @@ export class UsersService {
         .leftJoinAndSelect('folder.users', 'user')
         .leftJoin('folder.sub_folders', 'sub_folder')
         .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-        .where('user.id = :userId', { userId: new_user.id })
+        .where('user.id = :user_id', { user_id: new_user.id })
         // .andWhere('folder.organization.id = :organizationId', {
         //   organizationId: organization_id,
         // })
@@ -346,7 +337,7 @@ export class UsersService {
         invites: [],
       });
       const saveOrg = await this.orgRepository.save(new_org);
-      // console.log(saveOrg, 'oorg');
+
       const payload = { user_id: new_user.id, email: new_user.email };
       const access_token = this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET,
@@ -360,12 +351,6 @@ export class UsersService {
         users: [new_user],
         organization: saveOrg,
       });
-      // const find_created_user = await this.userRepository.find({
-      //   relations:['organization_created'],
-      //   where: {
-      //     id: new_user.id
-      //   }
-      // })
       return {
         access_token,
         folders: [folder],
@@ -383,15 +368,12 @@ export class UsersService {
     }
   }
 
-  async verifyEmail(jwt_token: string) {
+  async verifyEmail(user_id: string) {
     try {
-      const resp = await this.jwtService.verify(jwt_token, {
-        secret: process.env.JWT_VERIFY_SECRET,
-      });
-      if (resp) {
+      if (user_id) {
         const findUser = await this.userRepository.findOne({
           where: {
-            id: resp.user_id,
+            id: user_id,
           },
         });
         if (!findUser) throw new NotFoundException('user not found');
@@ -401,44 +383,29 @@ export class UsersService {
     } catch (error) {}
   }
 
-  async getUserByToken(jwt_token: string) {
-    // console.log('in user byb token', jwt_token);
+  async getUserByToken(user_id: string) {
     try {
-      const resp = await this.jwtService.verify(jwt_token, {
-        secret: process.env.JWT_SECRET,
+      if (!user_id) throw new NotFoundException('Missing Fields');
+      const find_user = await this.userRepository.findOne({
+        relations: ['organizations_added_in', 'organization_created'],
+        where: {
+          id: user_id,
+        },
       });
-      // console.log(resp, 'reesps');
-      if (resp) {
-        const find_user = await this.userRepository.findOne({
-          relations: ['organizations_added_in', 'organization_created'],
-          where: {
-            id: resp.user_id,
-          },
-        });
 
-        if (!find_user) {
-          throw new NotFoundException('user not found');
-        }
-        const orgs = [];
-        if(find_user.role=='admin') orgs.push(find_user.organization_created);
-        find_user.organizations_added_in.map((org) => {
-          orgs.push(org);
-        });
-
-        return { findUser:find_user, organizations: orgs };
+      if (!find_user) {
+        throw new NotFoundException('user not found');
       }
-      throw new UnauthorizedException('jwt token expired');
+      const orgs = [];
+      if (find_user.role == 'admin') orgs.push(find_user.organization_created);
+      find_user.organizations_added_in.map((org) => {
+        orgs.push(org);
+      });
+
+      return { findUser: find_user, organizations: orgs };
     } catch (error) {
       console.log(error, 'err');
       throw error;
-    }
-  }
-
-  findAll() {
-    try {
-      return this.userRepository.find();
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to fetch users');
     }
   }
 
@@ -451,6 +418,7 @@ export class UsersService {
 
   async getAllGroups(user_id: string) {
     try {
+      if(!user_id) throw new NotFoundException("Missing Fields")
       const findUser = await this.userRepository.findOne({
         relations: ['groups'],
         where: {
@@ -470,52 +438,16 @@ export class UsersService {
       return findUser.groups;
     } catch (error) {
       console.log(error, 'in err lol');
+      throw Error(error);
     }
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
-  }
-
-  async clearDB() {
+  async findAll() {
     try {
-      const remove = await this.userRepository.clear();
-      console.log(remove, 'in rmeoooood');
-      return remove;
+      return await this.userRepository.find();
     } catch (error) {
-      console.log(error);
+      throw new InternalServerErrorException('Failed to fetch users');
     }
-  }
-
-  async removeAllRecords() {
-    console.log('here');
-    const entityManager = new DataSource({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT, 10),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
-    }).manager;
-    const entityMetadatas = getMetadataArgsStorage().tables.map(
-      (table) => table.target,
-    );
-    console.log('meta', entityMetadatas);
-    await entityManager.query('SET FOREIGN_KEY_CHECKS = 0');
-    for (const entityMetadata of entityMetadatas) {
-      try {
-        // Clear the table using the entity manager
-        await entityManager.clear(entityMetadata);
-        console.log(`Table ${entityMetadata} cleared successfully.`);
-      } catch (error) {
-        console.error(`Error clearing table ${entityMetadata}:`, error);
-      }
-    }
-    await entityManager.query('SET FOREIGN_KEY_CHECKS = 1');
   }
 
   async truncateUserTable() {
@@ -529,14 +461,14 @@ export class UsersService {
     }).initialize();
 
     try {
-      // Use createNativeQuery to execute a raw SQL query
       await (
         await entityManager
       ).manager.query('TRUNCATE TABLE "user" CASCADE');
-
       console.log('User table truncated successfully.');
+      return { success: true };
     } catch (error) {
       console.error('Error truncating user table:', error);
+      throw Error(error);
     }
   }
 }
