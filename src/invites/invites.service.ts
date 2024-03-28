@@ -49,6 +49,7 @@ export class InvitesService {
     group_id: string,
     organization_id: string,
   ) {
+      console.log(organization_id, group_id)
     if (
       !sender_id ||
       emails.length == 0 ||

@@ -100,6 +100,7 @@ export class UsersService {
         tree_index: '1',
         users: [user],
         organization: saveOrg,
+        absolute_path: '/Home'
       });
 
       const mail = {
@@ -236,17 +237,17 @@ export class UsersService {
 
       if (!user) throw new UnauthorizedException('token invalid');
 
-      const findUser = await this.userRepository.findOne({
+      const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in', 'organization_created'],
         where: {
           email: user.email,
         },
       });
 
-      if (findUser) {
+      if (find_user) {
         const orgs = [];
-        orgs.push(findUser?.organization_created?.id);
-        findUser.organizations_added_in.map((org) => {
+        orgs.push(find_user?.organization_created?.id);
+        find_user.organizations_added_in.map((org) => {
           orgs.push(org.id);
         });
         const organizations = await this.orgRepository.find({
@@ -258,21 +259,21 @@ export class UsersService {
         const query = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
-          .where('user.id = :user_id', { user_id: findUser.id })
+          .where('user.id = :user_id', { user_id: find_user.id })
           .getMany();
         const query1 = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
           .leftJoin('folder.sub_folders', 'sub_folder')
           .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-          .where('user.id = :user_id', { user_id: findUser.id })
+          .where('user.id = :user_id', { user_id: find_user.id })
           .groupBy('folder.id, user.id')
           .orderBy('folder.createdAt', 'ASC')
           .getRawMany();
         const payload = {
-          user_id: findUser.id,
-          email: findUser.email,
-          role: findUser.role,
+          user_id: find_user.id,
+          email: find_user.email,
+          role: find_user.role,
         };
         const accessToken = this.jwtService.sign(payload, {
           secret: process.env.JWT_SECRET,
@@ -280,12 +281,12 @@ export class UsersService {
         });
         return {
           access_token: accessToken,
-          is_phone_number_verified: findUser.phone_number ? true : false,
+          is_phone_number_verified: find_user.phone_number ? true : false,
           folders: query,
           files_count: query.length,
           sub_folder_count: query1,
-          id: findUser.id,
-          user: findUser,
+          id: find_user.id,
+          user: find_user,
           organizations,
         };
       }
@@ -350,6 +351,7 @@ export class UsersService {
         tree_index: '1',
         users: [new_user],
         organization: saveOrg,
+        absolute_path:'/Home'
       });
       return {
         access_token,
@@ -371,14 +373,14 @@ export class UsersService {
   async verifyEmail(user_id: string) {
     try {
       if (user_id) {
-        const findUser = await this.userRepository.findOne({
+        const find_user = await this.userRepository.findOne({
           where: {
             id: user_id,
           },
         });
-        if (!findUser) throw new NotFoundException('user not found');
-        findUser.is_email_verified = true;
-        return await this.userRepository.save(findUser);
+        if (!find_user) throw new NotFoundException('user not found');
+        find_user.is_email_verified = true;
+        return await this.userRepository.save(find_user);
       }
     } catch (error) {}
   }
@@ -419,23 +421,23 @@ export class UsersService {
   async getAllGroups(user_id: string) {
     try {
       if(!user_id) throw new NotFoundException("Missing Fields")
-      const findUser = await this.userRepository.findOne({
+      const find_user = await this.userRepository.findOne({
         relations: ['groups'],
         where: {
           id: user_id,
         },
       });
-      if (!findUser)
+      if (!find_user)
         throw new NotFoundException({
           status: 404,
           message: 'user not found',
         });
-      if (findUser.role == 'admin') {
+      if (find_user.role == 'admin') {
         return await this.groupsRepository.find({
           where: { createdBy: { id: user_id } },
         });
       }
-      return findUser.groups;
+      return find_user.groups;
     } catch (error) {
       console.log(error, 'in err lol');
       throw Error(error);

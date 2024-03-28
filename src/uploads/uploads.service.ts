@@ -31,11 +31,11 @@ export class UploadService {
             Key: file_name,
             Body: file.buffer,
           }),
-          );
+        );
       });
 
       const response = await Promise.all(file_promises);
-      if (true) {
+      if (response) {
         for (let index = 0; index < files.length; index++) {
           const file_name_parts = file_names[index].split('.');
           const file_extension =
@@ -46,8 +46,8 @@ export class UploadService {
             folder_id,
             user_id,
             organization_id,
-            files[index].mimetype || '',
-            files[index].size || 0,
+            files[index].mimetype || 'x',
+            files[index].size || 1,
             file_extension,
             file_names[index],
           );
@@ -57,16 +57,36 @@ export class UploadService {
     }
   }
 
-  async uploadFileToS3(file: Buffer, file_name: string) {
+  async uploadEcelFileToS3(file: Buffer, file_name: string) {
     const params = {
       Bucket: 'lockroom',
       Key: file_name,
       Body: file,
-      ContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ContentType:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     };
+    return await this.s3Client.send(new PutObjectCommand(params));
+  }
 
-    const upload = await this.s3Client.send(new PutObjectCommand(params))
-    
-   
+  async dragAndDrop(files: any[], file_ids: string[]) {
+    const  file_data = []
+    for (let index = 0; index < files.length; index++) {
+      let file_name = uuidv4() + '-' + files[index].originalname;
+     let upload =  await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: 'lockroom',
+          Key: file_name,
+          Body: files[index].buffer,
+        }),
+      );
+      if(upload){
+       const updated_file= await this.fileService.updateFileNameAndBucketUrlDragAndDrop(
+          file_ids[index],
+          file_name,
+        );
+        file_data.push(updated_file)
+      }
+    }
+    return file_data
   }
 }

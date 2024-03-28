@@ -34,6 +34,9 @@ export class Folder {
   @Column({ nullable: false })
   tree_index: string;
 
+  @Column({ nullable: false })
+  absolute_path: string;
+
   @OneToMany(() => Folder, (Folder) => Folder.parentFolder)
   sub_folders: Folder[];
 

@@ -97,6 +97,7 @@ export class FoldersService {
       tree_index: current_tree_index + next,
       users: [user],
       organization: find_org,
+      absolute_path: parent_folder.absolute_path + '/' + name,
     });
 
     const new_folder_1 = {
