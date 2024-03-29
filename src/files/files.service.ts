@@ -50,7 +50,6 @@ export class FilesService {
         !user_id ||
         !organization_id ||
         !mime_type ||
-        !size ||
         !extension ||
         !file_uploaded_name
       )
@@ -288,29 +287,6 @@ export class FilesService {
     files_data:any[]
   ) {
 
-
-    console.log(files_data,'dataaa')
-
-    const f_d = [
-      {
-        name: 'Vector.svg',
-        file_path: '/LockRoom (2.0)/LockRoom (1)/UX',
-        mime_type: 'image/svg+xml',
-        size: 322
-      },
-      {
-        name: 'information-fill.svg',
-        file_path: '/LockRoom (2.0)/LockRoom (1)/LockRoom/UX',
-        mime_type: 'image/svg+xml',
-        size: 519
-      },
-      {
-        name: 'powerpoint-2.svg',
-        file_path: '/LockRoom (2.0)/UX',
-        mime_type: 'image/svg+xml',
-        size: 3820
-      }
-    ]
     const folderIdToPathMap = new Map();
     const fileIdToPathMap = new Map();
 
