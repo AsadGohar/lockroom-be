@@ -34,16 +34,16 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     try {
-      // console.log(
-      //   name,
-      //   folder_id,
-      //   user_id,
-      //   organization_id,
-      //   mime_type,
-      //   size,
-      //   extension,
-      //   file_uploaded_name,
-      // );
+      console.log(
+        name,
+        folder_id,
+        user_id,
+        organization_id,
+        mime_type,
+        size,
+        extension,
+        file_uploaded_name, 'in add files'
+      );
       if (
         !name ||
         !folder_id ||
