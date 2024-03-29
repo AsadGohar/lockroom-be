@@ -34,6 +34,16 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     try {
+      // console.log(
+      //   name,
+      //   folder_id,
+      //   user_id,
+      //   organization_id,
+      //   mime_type,
+      //   size,
+      //   extension,
+      //   file_uploaded_name,
+      // );
       if (
         !name ||
         !folder_id ||
@@ -57,7 +67,7 @@ export class FilesService {
       const find_file_same_name = await this.fileRepository.find({
         where: {
           folder: {
-            id: find_folder.id
+            id: find_folder.id,
           },
           original_name: name,
         },
@@ -213,6 +223,7 @@ export class FilesService {
       where: {
         organization: { id: organization_id },
         parent_folder_id: parent_folder_id,
+        is_deleted: false
       },
       relations: ['sub_folders', 'files.organization'],
       order: {
@@ -252,7 +263,7 @@ export class FilesService {
           await this.foldersRepository.findOne({
             where: {
               organization: { id: organization_id },
-              id: parent_folder_id,
+              id: parent_folder_id
             },
             relations: ['sub_folders', 'files.organization'],
           }),
@@ -274,30 +285,36 @@ export class FilesService {
     organization_id: string,
     parent_folder_id: string,
     user_id: string,
+    files_data:any[]
   ) {
-    let files_data = [
-      {
-        name: 'lockroom-main.zip',
-        file_path: '/Documents/new folder',
-        mime_type: '',
-        size: 0,
-      },
-      {
-        name: 'snooker.jpeg',
-        file_path: '/Documents/new folder',
-        mime_type: '',
-        size: 0,
-      },
-      {
-        name: 'user.js',
-        file_path: '/Documents/new folder',
-        mime_type: '',
-        size: 0,
-      },
-    ];
 
+
+    console.log(files_data,'dataaa')
+
+    const f_d = [
+      {
+        name: 'Vector.svg',
+        file_path: '/LockRoom (2.0)/LockRoom (1)/UX',
+        mime_type: 'image/svg+xml',
+        size: 322
+      },
+      {
+        name: 'information-fill.svg',
+        file_path: '/LockRoom (2.0)/LockRoom (1)/LockRoom/UX',
+        mime_type: 'image/svg+xml',
+        size: 519
+      },
+      {
+        name: 'powerpoint-2.svg',
+        file_path: '/LockRoom (2.0)/UX',
+        mime_type: 'image/svg+xml',
+        size: 3820
+      }
+    ]
     const folderIdToPathMap = new Map();
     const fileIdToPathMap = new Map();
+
+    const data_to_return = []
 
     const parent_folder = await this.foldersRepository.findOne({
       where: {
@@ -305,20 +322,17 @@ export class FilesService {
       },
     });
 
-    files_data.map(async (file) => {
-      const path = file.file_path;
-      const separated = await this.generatePaths(file.file_path);
-
+    for (let index = 0; index < files_data.length; index++) {
+      const file = files_data[index];
+      const path = files_data[index].file_path;
       const find_folder = await this.foldersRepository.findOne({
-        where: {
-          absolute_path: parent_folder.absolute_path + path,
-        },
+        where: { absolute_path: parent_folder.absolute_path + path },
       });
       const file_name_parts = file.name.split('.');
       const file_extension =
         file_name_parts.length > 1 ? file_name_parts.pop() : '';
       if (find_folder) {
-        console.log('in find folder');
+        console.log('folder found');
         folderIdToPathMap.set(find_folder.id, path);
         const add_file_data = await this.addFileToAFolder(
           file.name,
@@ -328,42 +342,50 @@ export class FilesService {
           file.mime_type,
           file.size,
           file_extension,
-          'haha',
+          'placeholder',
         );
         if (add_file_data) {
-          console.log('created file', add_file_data.saved_file.name);
           fileIdToPathMap.set(add_file_data.saved_file.id, file.file_path);
+          data_to_return.push({
+            id: add_file_data.saved_file.id,
+            file_path:path,
+          });
         }
       } else {
-        // console.log('in not find folder');
-        const new_folder_id = await this.createFolderFromPaths(
-          separated,
-          parent_folder.absolute_path,
+        console.log('folder not found', 'parent', parent_folder.name, path );
+
+        const new_folder_id = await this.ensureFolderPathExists(
+          path,
           parent_folder.id,
           user_id,
           organization_id,
         );
         console.log(new_folder_id, 'id');
-        // folderIdToPathMap.set(new_folder_id, file.file_path);
-        // const add_file_data = await this.addFileToAFolder(
-        //   file.name,
-        //   find_folder?.id,
-        //   user_id,
-        //   organization_id,
-        //   file.mime_type,
-        //   file.size,
-        //   file_extension,
-        //   'haha',
-        // );
-        // if (add_file_data) {
-        //   console.log('created file', add_file_data.saved_file.name);
-        //   fileIdToPathMap.set(add_file_data.saved_file.id, file.file_path);
-        // }
+        folderIdToPathMap.set(new_folder_id, file.file_path);
+        const add_file_data = await this.addFileToAFolder(
+          file.name,
+          new_folder_id,
+          user_id,
+          organization_id,
+          file.mime_type,
+          file.size,
+          file_extension,
+          'placeholder',
+        );
+        if (add_file_data) {
+          fileIdToPathMap.set(add_file_data.saved_file.id, file.file_path);
+          data_to_return.push({
+            id: add_file_data.saved_file.id,
+            file_path:path,
+          });
+        }
       }
-    });
+    }
+
+    return data_to_return
   }
 
-  async dragAndDropFilesOneLeve(
+  async dragAndDropFilesOneLevel(
     organization_id: string,
     parent_folder_id: string,
     folder_name: string,
@@ -379,7 +401,6 @@ export class FilesService {
     });
 
     if (find_folder) {
-      // console.log(find_folder.id,'folder')
       for (let index = 0; index < files.length; index++) {
         const file = files[index];
         const file_name_parts = files[index].name.split('.');
@@ -393,9 +414,8 @@ export class FilesService {
           file.mime_type,
           file.size,
           file_extension,
-          'hehe',
+          'placeholder',
         );
-        // console.log('created file', create_file.saved_file.name);
         file_data.push({
           id: create_file.saved_file.id,
           name: create_file.saved_file.name,
@@ -403,14 +423,12 @@ export class FilesService {
       }
       return file_data;
     } else {
-      // console.log('in not find folder');
       const create_folder = await this.folderService.create(
         folder_name,
         user_id,
         organization_id,
         parent_folder_id,
       );
-      // console.log('created folder', create_folder.new_folder.name);
 
       for (let index = 0; index < files.length; index++) {
         const file = files[index];
@@ -425,9 +443,8 @@ export class FilesService {
           file.mime_type,
           file.size,
           file_extension,
-          'hehe',
+          'placeholder',
         );
-        // console.log('created file', create_file.saved_file.name);
         file_data.push({
           id: create_file.saved_file.id,
           name: create_file.saved_file.name,
@@ -450,69 +467,57 @@ export class FilesService {
     return paths;
   }
 
-  private async createFolderFromPaths(
-    separated,
-    parent_absolute_path: string,
+  private async ensureFolderPathExists(
+    filePath: string,
     parent_folder_id: string,
     user_id: string,
     organization_id: string,
   ) {
-    console.log(separated, 'array');
-    // console.log('in create folder from path');
-    let created_folder_id = '';
-    for (let index = 0; index < separated.length; index++) {
-      console.log(
-        'check path',
-        parent_absolute_path + separated[index].absolute,
-        index,
-      );
-      const find_folder = await this.foldersRepository.findOne({
-        where: {
-          absolute_path: parent_absolute_path + separated[index].absolute,
-        },
-      });
-      if (!find_folder) {
-        console.log('folder not found', separated[index].current);
+    const folderNames = filePath
+      .split('/')
+      .filter((folder) => folder.trim() !== '');
 
+    let currentFolderId = parent_folder_id;
+    console.log('path--------here')
+    for (const folderName of folderNames) {
+      console.log(folderName, 'name');
+      const folder = await this.foldersRepository.findOne({
+        where: { name: folderName, parent_folder_id: currentFolderId },
+      });
+      if (!folder) {
+        console.log('nested not found', folderName)
         const create_folder = await this.folderService.create(
-          separated[index].current,
+          folderName,
           user_id,
           organization_id,
-          parent_folder_id,
+          currentFolderId,
         );
-        if (create_folder.new_folder) {
-          // console.log('folder created');
+        console.log('CREATED FOLDER', create_folder.new_folder.name, create_folder.parent_folder.name);
+        currentFolderId = create_folder.new_folder.id;
+      }
+      else {
+        currentFolderId = folder.id;
+        console.log('nested found', folderName)
 
-          console.log('created folder: ' + create_folder.new_folder.name);
-          if (index == separated.length) {
-            console.log('here 4');
-
-            created_folder_id = create_folder.new_folder.id;
-            break;
-          }
-        }
-      } else {
-        console.log('here 5');
-
-        parent_folder_id = find_folder.id;
-        created_folder_id = find_folder.id;
       }
     }
-    return created_folder_id;
+    return currentFolderId
   }
 
-  async updateFileNameAndBucketUrlDragAndDrop(file_id:string, file_uploaded_name:string ) {
+  async updateFileNameAndBucketUrlDragAndDrop(
+    file_id: string,
+    file_uploaded_name: string,
+  ) {
     try {
       const find_file = await this.fileRepository.findOne({
         where: {
-          id:file_id
-        }
-      })
-      find_file.file_uploaded_name = file_uploaded_name
-      find_file.bucket_url = 'https://lockroom.s3.amazonaws.com/' + file_uploaded_name
-      return await this.fileRepository.save(find_file)
-    } catch (error) {
-      
-    }
+          id: file_id,
+        },
+      });
+      find_file.file_uploaded_name = file_uploaded_name;
+      find_file.bucket_url =
+        'https://lockroom.s3.amazonaws.com/' + file_uploaded_name;
+      return await this.fileRepository.save(find_file);
+    } catch (error) {}
   }
 }

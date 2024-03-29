@@ -31,10 +31,13 @@ export class FilesPermissionsService {
 
   async findFilePermissiosn(file_id: string) {
     return await this.filePermRepo.find({
-      relations: ['permission', 'file'],
+      relations: ['permission', 'file', 'file.folder'],
       where: {
         file: {
           id: file_id,
+          folder: {
+            is_deleted: false,
+          },
         },
       },
       order: {
