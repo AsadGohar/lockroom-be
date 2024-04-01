@@ -3,7 +3,7 @@ import {
   Post,
   Body,
   Param,
-  Delete,
+  Get,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -46,8 +46,17 @@ export class FoldersController {
     );
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.foldersService.remove(id);
+  @Post('rename')
+  rename(
+    @Body('folder_id') folder_id: string,
+    @Body('new_name') new_name: string,
+    @Body('parent_folder_id') parent_folder_id: string,
+  ) {
+    return this.foldersService.rename(folder_id, new_name, parent_folder_id);
+  }
+
+  @Post('delete')
+  remove(@Body('folder_id') folder_id: string) {
+    return this.foldersService.soft_delete(folder_id);
   }
 }

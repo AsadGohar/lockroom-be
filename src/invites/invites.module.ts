@@ -17,6 +17,10 @@ import { FilesPermissionsService } from 'src/files-permissions/file-permissions.
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { PermissionService } from 'src/permission/permission.service';
 import { Permission } from 'src/permission/entities/permission.entity';
+import { FoldersService } from 'src/folders/folders.service';
+import { UsersService } from 'src/users/users.service';
+import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
+import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -28,7 +32,8 @@ import { Permission } from 'src/permission/entities/permission.entity';
       Folder,
       File,
       GroupFilesPermissions,
-      Permission
+      Permission,
+      AuditLogs
     ]),
   ],
   controllers: [InvitesController],
@@ -41,6 +46,9 @@ import { Permission } from 'src/permission/entities/permission.entity';
     FilesPermissionsService,
     OrganizationsService,
     PermissionService,
+    FoldersService,
+    UsersService,
+    AuditLogsSerivce
   ],
   exports: [InvitesService],
 })

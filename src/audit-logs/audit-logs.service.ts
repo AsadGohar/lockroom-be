@@ -27,7 +27,7 @@ export class AuditLogsSerivce {
     type: string,
   ) {
     try {
-      if (!file_id || !user_id || !organization_id || !type)
+      if (!user_id || !organization_id || !type)
         throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['groups', 'createdGroups'],

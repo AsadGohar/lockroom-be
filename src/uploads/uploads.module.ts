@@ -20,6 +20,10 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Permission } from 'src/permission/entities/permission.entity';
 import { JwtService } from '@nestjs/jwt';
+import { FoldersService } from 'src/folders/folders.service';
+import { UsersService } from 'src/users/users.service';
+import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
+import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
@@ -42,7 +46,8 @@ import { JwtService } from '@nestjs/jwt';
       Group,
       Organization,
       Invite,
-      Permission
+      Permission,
+      AuditLogs
     ]),
   ],
   controllers: [UploadController],
@@ -57,7 +62,10 @@ import { JwtService } from '@nestjs/jwt';
     GroupFilesPermissionsService,
     OrganizationsService,
     PermissionService,
-    JwtService
+    JwtService,
+    FoldersService,
+    UsersService,
+    AuditLogsSerivce
   ],
 })
 export class UploadsModule {}

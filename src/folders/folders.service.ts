@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -54,6 +55,7 @@ export class FoldersService {
       where: {
         parent_folder_id,
         name: name,
+        is_deleted:false
       },
     });
     if (child_folders_with_same_name.length > 0)
@@ -97,6 +99,7 @@ export class FoldersService {
       tree_index: current_tree_index + next,
       users: [user],
       organization: find_org,
+      absolute_path: parent_folder.absolute_path + '/' + name,
     });
 
     const new_folder_1 = {
@@ -138,6 +141,7 @@ export class FoldersService {
   async findAllByOrganization(organization_id: string, user_id: string) {
     if (!organization_id || !user_id)
       throw new NotFoundException('Missing Fields');
+
     const find_user = await this.userService.findOne({
       id: user_id,
     });
@@ -148,6 +152,9 @@ export class FoldersService {
         where: {
           organization: {
             id: find_user.organization_created.id,
+          },
+          folder: {
+            is_deleted: false,
           },
         },
       });
@@ -175,6 +182,7 @@ export class FoldersService {
         .where('folder.organization.id = :organizationId', {
           organizationId: organization_id,
         })
+        .andWhere('folder.is_deleted = :isDeleted', { isDeleted: false })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .addSelect('folder.id', 'id')
@@ -212,6 +220,11 @@ export class FoldersService {
               type: 'view',
               status: true,
             },
+            file: {
+              folder: {
+                is_deleted: false,
+              },
+            },
           },
         },
       });
@@ -239,6 +252,7 @@ export class FoldersService {
         .where('folder.organization.id = :organizationId', {
           organizationId: organization_id,
         })
+        .andWhere('folder.is_deleted = :isDeleted', { isDeleted: false })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .addSelect('folder.id', 'id')
@@ -299,14 +313,47 @@ export class FoldersService {
     );
   }
 
-  async remove(id: string) {
-    return await this.foldersRepository.update(
-      {
-        id: id,
-      },
-      {
-        is_deleted: true,
-      },
-    );
+  async soft_delete(id: string) {
+    try {
+      return await this.foldersRepository.update(
+        {
+          id: id,
+        },
+        {
+          is_deleted: true,
+        },
+      );
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message 
+      );
+    }
+  }
+
+  async rename(folder_id: string, new_name: string, parent_folder_id: string) {
+    try {
+      const check_same_name_folder = await this.foldersRepository.find({
+        where: {
+          parent_folder_id,
+          name: new_name,
+          is_deleted:false
+        },
+      });
+      if (check_same_name_folder.length > 0)
+        return new ConflictException('folder with same already exists');
+      return await this.foldersRepository.update(
+        {
+          id: folder_id,
+        },
+        {
+          name: new_name,
+        },
+      );
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException(
+        error.message 
+      );
+    }
   }
 }

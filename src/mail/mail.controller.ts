@@ -5,6 +5,7 @@ import {
   UseGuards,
   UnauthorizedException,
   Request,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from 'src/email/email.service';
@@ -44,27 +45,38 @@ export class MailController {
       const senderUser = await this.userService.findOne({
         id: request.decoded_data.user_id,
       });
-      emails.map(async (email: string) => {
-        const invitedUserAlreadyExists = await this.userService.findOne({
-          email,
-        });
-        if (invitedUserAlreadyExists) {
-          if (invitedUserAlreadyExists.role == 'admin') return;
-          if (
-            invitedUserAlreadyExists?.organization_created?.id ==
-            organization_id
-          )
-            return;
-          return await this.groupService.addUserToAGroup(
-            group_id,
-            invitedUserAlreadyExists.id,
-            senderUser.first_name + ' ' + senderUser.last_name,
-          );
-        }
-
-        new_users.push(email);
-      });
-
+      await Promise.all(
+        emails.map(async (email: string) => {
+          const invitedUserAlreadyExists = await this.userService.findOne({
+            email,
+          });
+          if (invitedUserAlreadyExists) {
+            console.log('invited user exists', invitedUserAlreadyExists);
+            if (invitedUserAlreadyExists.role == 'admin') return;
+            if (
+              invitedUserAlreadyExists?.organization_created?.id ==
+              organization_id
+            )
+              return;
+            return await this.groupService.addUserToAGroup(
+              group_id,
+              invitedUserAlreadyExists.id,
+              senderUser.first_name + ' ' + senderUser.last_name,
+            );
+          }
+          // console.log('ghere', email)
+          new_users.push(email);
+          // console.log(new_users, 'in emails');
+        }),
+      );
+      // console.log(group_id, organization_id)
+      // console.log('before', request.decoded_data.user_id,
+      // new_users,
+      // group_id,
+      // organization_id,)
+      if (new_users.length == 0) {
+        throw new NotFoundException('no user found to invite');
+      }
       const { invites } = await this.inviteService.sendInvitesBySenderId(
         request.decoded_data.user_id,
         new_users,
@@ -109,6 +121,7 @@ export class MailController {
       }
     } catch (error) {
       console.log(error);
+      throw Error(error)
     }
   }
 }

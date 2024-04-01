@@ -31,4 +31,15 @@ export class UploadController {
       organization_id,
     );
   }
+
+  @Post('drag-and-drop')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(AnyFilesInterceptor())
+  async dragAndDrop(
+    @UploadedFiles()
+    files: Array<Express.Multer.File>,
+    @Body('file_ids') file_ids: string[],
+  ) {
+    return await this.uploadService.dragAndDrop(files, file_ids);
+  }
 }

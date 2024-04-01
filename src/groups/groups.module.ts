@@ -17,6 +17,10 @@ import { PermissionService } from 'src/permission/permission.service';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Permission } from 'src/permission/entities/permission.entity';
 import { JwtService } from '@nestjs/jwt';
+import { FoldersService } from 'src/folders/folders.service';
+import { UsersService } from 'src/users/users.service';
+import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
+import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -29,6 +33,7 @@ import { JwtService } from '@nestjs/jwt';
       GroupFilesPermissions,
       Invite,
       Permission,
+      AuditLogs
     ]),
   ],
   controllers: [GroupsController],
@@ -40,6 +45,9 @@ import { JwtService } from '@nestjs/jwt';
     PermissionService,
     GroupFilesPermissionsService,
     JwtService,
+    FoldersService,
+    UsersService,
+    AuditLogsSerivce
   ],
   exports: [GroupsService],
 })

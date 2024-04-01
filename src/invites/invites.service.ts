@@ -49,9 +49,15 @@ export class InvitesService {
     group_id: string,
     organization_id: string,
   ) {
+      // console.log(organization_id, group_id)
+
+    // console.log( sender_id,
+    //   emails.length,
+    //   group_id,
+    //   organization_id,
+    //   emails, 'in servoce')
     if (
       !sender_id ||
-      emails.length == 0 ||
       !group_id ||
       !organization_id ||
       !emails
@@ -234,79 +240,4 @@ export class InvitesService {
     }
   }
 
-  async sendInvitesNew(
-    sender_id: string,
-    emails: string[],
-    group_id: string,
-    organization_id: string,
-  ) {
-    try {
-      console.log('SEND INVITES TO', emails, 'BY', sender_id);
-      if (!sender_id) throw new UnauthorizedException('Sender Id is Missing');
-      let new_users = [];
-      const senderUser = await this.userRepository.findOne({
-        where: { id: sender_id },
-      });
-      emails.map(async (email: string) => {
-        const invitedUserAlreadyExists = await this.userRepository.findOne({
-          where: { email },
-        });
-        if (invitedUserAlreadyExists) {
-          return await this.groupService.addUserToAGroup(
-            group_id,
-            invitedUserAlreadyExists.id,
-            senderUser.first_name + ' ' + senderUser.last_name,
-          );
-        }
-        new_users.push(email);
-      });
-
-      const { invites } = await this.sendInvitesBySenderId(
-        sender_id,
-        new_users,
-        group_id,
-        organization_id,
-      );
-
-      if (invites.length > 0) {
-        const sendEmails = invites.map(async (invite) => {
-          const payload = { invite_id: invite.id };
-          const access_token = this.jwtService.sign(payload, {
-            secret: process.env.JWT_SECRET,
-          });
-          const link = `${process.env.FE_HOST}/authentication/signup?confirm=${access_token}`;
-          const mail = {
-            to: invite.sent_to,
-            subject: 'Invited to LockRoom',
-            from:
-              String(process.env.VERIFIED_SENDER_EMAIL) ||
-              'waleed@lockroom.com',
-            text: 'Hello',
-            html: inviteTemplate(senderUser.first_name, link, 'Create Account'),
-          };
-          return await sendEmailUtil(mail);
-        });
-
-        const result = await Promise.all(sendEmails);
-        const group_users =
-          await this.groupService.findAllUsersInGroup(group_id);
-        if (result.length > 0) {
-          return {
-            data: result,
-            message: 'Emails Sent Successfully',
-            invites,
-            group_users,
-          };
-        }
-      }
-      if (new_users.length == 0) {
-        const group_users =
-          await this.groupService.findAllUsersInGroup(group_id);
-        return { group_users };
-      }
-    } catch (error) {
-      console.log(error);
-      throw Error(error)
-    }
-  }
 }

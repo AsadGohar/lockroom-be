@@ -56,7 +56,7 @@ export class UsersController {
     return this.usersService.getUserByToken(request?.decoded_data?.user_id);
   }
 
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @Post('clear')
   deleteDB() {
     return this.usersService.truncateUserTable();

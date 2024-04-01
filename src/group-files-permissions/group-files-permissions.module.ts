@@ -16,6 +16,10 @@ import { Permission } from 'src/permission/entities/permission.entity';
 import { PermissionService } from 'src/permission/permission.service';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { JwtService } from '@nestjs/jwt';
+import { FoldersService } from 'src/folders/folders.service';
+import { UsersService } from 'src/users/users.service';
+import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
+import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 
 @Module({
   imports: [
@@ -29,6 +33,7 @@ import { JwtService } from '@nestjs/jwt';
       Invite,
       GroupFilesPermissions,
       Permission,
+      AuditLogs
     ]),
   ],
   providers: [
@@ -38,7 +43,10 @@ import { JwtService } from '@nestjs/jwt';
     FilesPermissionsService,
     OrganizationsService,
     PermissionService,
-    JwtService
+    JwtService,
+    FoldersService,
+    UsersService,
+    AuditLogsSerivce
   ],
   exports: [GroupFilesPermissionsService],
 })

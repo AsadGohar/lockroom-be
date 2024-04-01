@@ -16,7 +16,7 @@ export class FilesPermissions {
   @PrimaryGeneratedColumn('uuid')
   id: number;
 
-  @ManyToOne(() => File, (file) => file.FilesPermissions)
+  @ManyToOne(() => File, (file) => file.FilesPermissions, { onDelete: 'CASCADE' })
   file: File;
 
   @ManyToOne(() => Permission, (permission) => permission.FilesPermissions)
@@ -24,7 +24,7 @@ export class FilesPermissions {
 
   @OneToMany(
     () => GroupFilesPermissions,
-    (groupFilePermission) => groupFilePermission.file_permission,
+    (groupFilePermission) => groupFilePermission.file_permission, { onDelete: 'CASCADE' }
   )
   group_files_permissions: GroupFilesPermissions[];
 
