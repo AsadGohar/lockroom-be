@@ -5,6 +5,7 @@ import {
   UseGuards,
   UnauthorizedException,
   Request,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from 'src/email/email.service';
@@ -68,7 +69,14 @@ export class MailController {
           // console.log(new_users, 'in emails');
         }),
       );
-        // console.log(group_id, organization_id)
+      // console.log(group_id, organization_id)
+      // console.log('before', request.decoded_data.user_id,
+      // new_users,
+      // group_id,
+      // organization_id,)
+      if (new_users.length == 0) {
+        throw new NotFoundException('no user found to invite');
+      }
       const { invites } = await this.inviteService.sendInvitesBySenderId(
         request.decoded_data.user_id,
         new_users,
@@ -113,6 +121,7 @@ export class MailController {
       }
     } catch (error) {
       console.log(error);
+      throw Error(error)
     }
   }
 }

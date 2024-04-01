@@ -34,22 +34,21 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     try {
-      console.log(
-        name,
-        folder_id,
-        user_id,
-        organization_id,
-        mime_type,
-        size,
-        extension,
-        file_uploaded_name, 'in add files'
-      );
+      // console.log(
+      //   name,
+      //   folder_id,
+      //   user_id,
+      //   organization_id,
+      //   mime_type,
+      //   size,
+      //   extension,
+      //   file_uploaded_name, 'in add files'
+      // );
       if (
         !name ||
         !folder_id ||
         !user_id ||
         !organization_id ||
-        !mime_type ||
         !extension ||
         !file_uploaded_name
       )
@@ -106,7 +105,7 @@ export class FilesService {
         folder: find_folder,
         tree_index: current_tree_index + next,
         organization,
-        mime_type,
+        mime_type : mime_type || '',
         bucket_url: 'https://lockroom.s3.amazonaws.com/' + file_uploaded_name,
         size_bytes: size,
         extension,
@@ -308,7 +307,7 @@ export class FilesService {
       const file_extension =
         file_name_parts.length > 1 ? file_name_parts.pop() : '';
       if (find_folder) {
-        console.log('folder found');
+        // console.log('folder found');
         folderIdToPathMap.set(find_folder.id, path);
         const add_file_data = await this.addFileToAFolder(
           file.name,
