@@ -3,6 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Organization } from './entities/organization.entity';
 import { Invite } from 'src/invites/entities/invite.entity';
+import { PartialOrganizationDto } from './dto/partial-organization.dto';
 
 @Injectable()
 export class OrganizationsService {
@@ -22,8 +23,9 @@ export class OrganizationsService {
     });
   }
 
-  async getUsersByOrganization(organization_id: string) {
+  async getUsersByOrganization(dto:PartialOrganizationDto) {
     try {
+      const { organization_id } = dto
       const find_org = await this.orgRepository.findOne({
         relations: ['creator', 'users', 'groups.users'],
         where: [
@@ -33,18 +35,18 @@ export class OrganizationsService {
         ],
       });
       const find_invites = await this.inviteRepository.find({
-        relations:['sender'],
+        relations: ['sender'],
         where: {
           organization: {
             id: organization_id,
           },
-          status:'pending'
+          status: 'pending',
         },
       });
       if (!find_org) throw new NotFoundException('organization not found');
       return {
         organization: find_org,
-        invites: find_invites.filter(item=> item.status == 'pending'),
+        invites: find_invites.filter((item) => item.status == 'pending'),
       };
     } catch (error) {
       console.log(error);
@@ -52,11 +54,9 @@ export class OrganizationsService {
     }
   }
 
-  async getUsersByOrganizationAndGroup(
-    organization_id: string,
-    group_id: string,
-  ) {
+  async getUsersByOrganizationAndGroup(dto: PartialOrganizationDto) {
     try {
+      const { organization_id, group_id } = dto;
       const find_org = await this.orgRepository.findOne({
         relations: ['creator', 'groups.users'],
         where: {
@@ -68,21 +68,21 @@ export class OrganizationsService {
       });
       if (!find_org) throw new NotFoundException('organization not found');
       const find_invites = await this.inviteRepository.find({
-        relations:['sender'],
+        relations: ['sender'],
         where: {
           organization: {
             id: organization_id,
           },
           group: {
-            id: group_id
+            id: group_id,
           },
-          status:'pending'
+          status: 'pending',
         },
       });
 
       return {
-        organization: {...find_org, group_name:find_org.groups[0].name},
-        invites:  find_invites,
+        organization: { ...find_org, group_name: find_org.groups[0].name },
+        invites: find_invites,
       };
     } catch (error) {
       console.log(error);

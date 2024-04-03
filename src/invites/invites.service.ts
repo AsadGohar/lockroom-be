@@ -16,6 +16,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { inviteTemplate } from 'src/utils/email.templates';
 import { sendEmailUtil } from 'src/utils/email.utils';
 import { GroupsService } from 'src/groups/groups.service';
+import { PartialInviteDto } from './dto/partial-invite.dto';
 @Injectable()
 export class InvitesService {
   constructor(
@@ -49,19 +50,14 @@ export class InvitesService {
     group_id: string,
     organization_id: string,
   ) {
-      // console.log(organization_id, group_id)
+    // console.log(organization_id, group_id)
 
     // console.log( sender_id,
     //   emails.length,
     //   group_id,
     //   organization_id,
     //   emails, 'in servoce')
-    if (
-      !sender_id ||
-      !group_id ||
-      !organization_id ||
-      !emails
-    )
+    if (!sender_id || !group_id || !organization_id || !emails)
       throw new NotFoundException('Missing Fields');
     const findUser = await this.userRepository.findOne({
       where: {
@@ -92,8 +88,9 @@ export class InvitesService {
     return { user: findUser, invites: invitesDB };
   }
 
-  async getEmailByToken(jwt_token: string) {
+  async getEmailByToken(dto: PartialInviteDto) {
     try {
+      const { jwt_token } = dto;
       const resp = await this.jwtService.verify(jwt_token, {
         secret: process.env.JWT_SECRET,
       });
@@ -113,28 +110,14 @@ export class InvitesService {
       }
     } catch (error) {
       console.log(error);
-      throw Error(error)
+      throw Error(error);
     }
   }
 
-  async addInvitedUser(
-    email: string,
-    password: string,
-    first_name: string,
-    last_name: string,
-    phone_number: string,
-    jwt_token: string,
-  ) {
+  async addInvitedUser(dto: PartialInviteDto) {
     try {
-      if (
-        !email ||
-        !password ||
-        !first_name ||
-        !last_name ||
-        !phone_number ||
-        !jwt_token
-      )
-        throw new NotFoundException('Missing Fields');
+      let { email, password, first_name, last_name, phone_number, jwt_token } =
+        dto;
       const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in'],
         where: {
@@ -239,5 +222,4 @@ export class InvitesService {
       );
     }
   }
-
 }

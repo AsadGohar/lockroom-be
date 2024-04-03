@@ -8,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './dto/user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { Group } from 'src/groups/entities/group.entity';
@@ -19,6 +19,7 @@ import { decodeJwtResponse } from 'src/utils/jwt.utils';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
+import { PartialUserDto } from './dto/partial-user.dto';
 // import { sendSMS } from 'src/utils/otp.utils';
 @Injectable()
 export class UsersService {
@@ -100,7 +101,7 @@ export class UsersService {
         tree_index: '1',
         users: [user],
         organization: saveOrg,
-        absolute_path: '/Home'
+        absolute_path: '/Home',
       });
 
       const mail = {
@@ -132,8 +133,9 @@ export class UsersService {
     }
   }
 
-  async loginUser(email: string, password: string) {
+  async loginUser(dto: PartialUserDto) {
     try {
+      const { email, password } = dto;
       const user = await this.userRepository.findOne({
         relations: [
           'organizations_added_in.groups',
@@ -210,13 +212,12 @@ export class UsersService {
             id: In(orgs),
           },
         });
-        const new_audit = await this.auditService.create(
-          null,
-          user.id,
-          user.organizations_added_in[0].id,
-          'login',
-        );
-
+        await this.auditService.create({
+          file_id: null,
+          user_id: user.id,
+          organization_id: user.organizations_added_in[0].id,
+          type: 'login',
+        });
         return {
           access_token: accessToken,
           is_phone_number_verified: user.phone_number ? true : false,
@@ -351,7 +352,7 @@ export class UsersService {
         tree_index: '1',
         users: [new_user],
         organization: saveOrg,
-        absolute_path:'/Home'
+        absolute_path: '/Home',
       });
       return {
         access_token,
@@ -420,7 +421,7 @@ export class UsersService {
 
   async getAllGroups(user_id: string) {
     try {
-      if(!user_id) throw new NotFoundException("Missing Fields")
+      if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['groups'],
         where: {

@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
   Request,
   NotFoundException,
+  ValidationPipe,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from 'src/email/email.service';
@@ -14,6 +15,7 @@ import { AuthGuard } from 'src/guards/auth.guard';
 import { InvitesService } from 'src/invites/invites.service';
 import { UsersService } from 'src/users/users.service';
 import { inviteTemplate } from 'src/utils/email.templates';
+import { MailDto } from './dto/mail.dto';
 @Controller('mail')
 export class MailController {
   constructor(
@@ -26,13 +28,9 @@ export class MailController {
 
   @UseGuards(AuthGuard)
   @Post('send-invites')
-  async sendEmail(
-    @Body('emails') emails: string[],
-    @Body('group_id') group_id: string,
-    @Body('organization_id') organization_id: string,
-    @Request() request,
-  ) {
+  async sendEmail(@Body(ValidationPipe) dto: MailDto, @Request() request) {
     try {
+      let { emails, group_id, organization_id } = dto;
       console.log(
         'SEND INVITES TO',
         emails,
@@ -103,8 +101,9 @@ export class MailController {
           return this.emailService.send(mail);
         });
         const result = await Promise.all(sendEmails);
-        const group_users =
-          await this.groupService.findAllUsersInGroup(group_id);
+        const group_users = await this.groupService.findAllUsersInGroup({
+          id: group_id,
+        });
         if (result.length > 0) {
           return {
             data: result,
@@ -115,13 +114,14 @@ export class MailController {
         }
       }
       if (new_users.length == 0) {
-        const group_users =
-          await this.groupService.findAllUsersInGroup(group_id);
+        const group_users = await this.groupService.findAllUsersInGroup({
+          id: group_id,
+        });
         return { group_users };
       }
     } catch (error) {
       console.log(error);
-      throw Error(error)
+      throw Error(error);
     }
   }
 }

@@ -36,4 +36,13 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
   phone_number: string;
+
+  @IsNotEmpty()
+  @IsString()
+  jwt_token: string;
+
+  @IsNotEmpty()
+  @IsString()
+  user_id: string;
+
 }

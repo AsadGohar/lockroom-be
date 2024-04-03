@@ -14,6 +14,7 @@ import { FilesService } from 'src/files/files.service';
 import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { In } from 'typeorm';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
+import { PartialGroupDto } from './dto/partial-group.dto';
 @Injectable()
 export class GroupsService {
   constructor(
@@ -32,8 +33,9 @@ export class GroupsService {
     private readonly gfpService: GroupFilesPermissionsService,
   ) {}
 
-  async create(name: string, user_id: string, organization_id: string) {
+  async create(dto: PartialGroupDto, user_id: string) {
     try {
+      const { name, organization_id } = dto;
       if (!name || !user_id || !organization_id)
         throw new NotFoundException('Missing Fields');
       const group = await this.groupsRepository.findOne({
@@ -77,7 +79,7 @@ export class GroupsService {
       return saved_group;
     } catch (error) {
       console.log(error, 'err');
-      throw Error(error)
+      throw Error(error);
     }
   }
 
@@ -134,7 +136,7 @@ export class GroupsService {
       return await this.groupsRepository.save(find_group);
     } catch (error) {
       console.log(error);
-      throw error
+      throw error;
     }
   }
 
@@ -162,8 +164,9 @@ export class GroupsService {
     return await this.groupsRepository.find();
   }
 
-  async findAllUsersInGroup(id: string) {
+  async findAllUsersInGroup(dto: PartialGroupDto) {
     try {
+      const { id } = dto;
       return await this.groupsRepository.findOne({
         relations: ['users'],
         where: {
@@ -184,9 +187,11 @@ export class GroupsService {
     } catch (error) {}
   }
 
-  async getGroupsByOrganization(organization_id: string, user_id: string) {
+  async getGroupsByOrganization(dto: PartialGroupDto, user_id: string) {
     try {
-      if(!organization_id || !user_id) throw new NotFoundException('Missing Fields');
+      const { organization_id } = dto;
+      if (!organization_id || !user_id)
+        throw new NotFoundException('Missing Fields');
       const groups_result = [];
       const find_groups = await this.groupsRepository.find({
         relations: ['users', 'organization.creator'],

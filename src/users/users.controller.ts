@@ -5,12 +5,13 @@ import {
   Res,
   UseGuards,
   Request,
+  ValidationPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './dto/user.dto';
 import { SkipThrottle } from '@nestjs/throttler';
 import { AuthGuard } from 'src/guards/auth.guard';
-
+import { PartialUserDto } from './dto/partial-user.dto';
 @Controller('users')
 @SkipThrottle()
 export class UsersController {
@@ -34,8 +35,8 @@ export class UsersController {
   }
 
   @Post('login')
-  login(@Body('email') email: string, @Body('password') password: string) {
-    return this.usersService.loginUser(email, password);
+  login(@Body(ValidationPipe) dto:PartialUserDto) {
+    return this.usersService.loginUser(dto);
   }
 
   @UseGuards(AuthGuard)

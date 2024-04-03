@@ -14,6 +14,7 @@ import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
+import { PartialFolderDto } from './dto/partial-folder.dto';
 @Injectable()
 export class FoldersService {
   constructor(
@@ -25,21 +26,13 @@ export class FoldersService {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Group)
     private readonly groupsRepository: Repository<Group>,
-    @InjectRepository(FilesPermissions)
-    private readonly fpRepository: Repository<FilesPermissions>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
     private readonly userService: UsersService,
   ) {}
 
-  async create(
-    name: string,
-    user_id: string,
-    organization_id: string,
-    parent_folder_id?: string,
-  ) {
-    if (!parent_folder_id)
-      throw new NotFoundException('parent folder required');
+  async create(dto: PartialFolderDto, user_id: string) {
+    const { name, organization_id, parent_folder_id } = dto;
 
     //check if parent repo exists
     const parent_folder = await this.foldersRepository.findOne({
@@ -55,7 +48,7 @@ export class FoldersService {
       where: {
         parent_folder_id,
         name: name,
-        is_deleted:false
+        is_deleted: false,
       },
     });
     if (child_folders_with_same_name.length > 0)
@@ -138,7 +131,8 @@ export class FoldersService {
     const repos = await this.foldersRepository.find();
   }
 
-  async findAllByOrganization(organization_id: string, user_id: string) {
+  async findAllByOrganization(dto: PartialFolderDto, user_id: string) {
+    const { organization_id } = dto;
     if (!organization_id || !user_id)
       throw new NotFoundException('Missing Fields');
 
@@ -313,30 +307,30 @@ export class FoldersService {
     );
   }
 
-  async soft_delete(id: string) {
+  async soft_delete(dto: PartialFolderDto) {
+    const { folder_id } = dto;
     try {
       return await this.foldersRepository.update(
         {
-          id: id,
+          id: folder_id,
         },
         {
           is_deleted: true,
         },
       );
     } catch (error) {
-      throw new InternalServerErrorException(
-        error.message 
-      );
+      throw new InternalServerErrorException(error.message);
     }
   }
 
-  async rename(folder_id: string, new_name: string, parent_folder_id: string) {
+  async rename(dto: PartialFolderDto) {
+    const { parent_folder_id, new_name, folder_id } = dto;
     try {
       const check_same_name_folder = await this.foldersRepository.find({
         where: {
           parent_folder_id,
           name: new_name,
-          is_deleted:false
+          is_deleted: false,
         },
       });
       if (check_same_name_folder.length > 0)
@@ -351,9 +345,7 @@ export class FoldersService {
       );
     } catch (error) {
       console.log(error);
-      throw new InternalServerErrorException(
-        error.message 
-      );
+      throw new InternalServerErrorException(error.message);
     }
   }
 }

@@ -7,6 +7,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { User } from 'src/users/entities/user.entity';
 import { createExcelWorkbook } from 'src/utils/excel.utils';
 import { subMonths, format, subDays, addDays } from 'date-fns';
+import { PartialDto } from './dto/partial-audit.dto';
 @Injectable()
 export class AuditLogsSerivce {
   constructor(
@@ -20,15 +21,10 @@ export class AuditLogsSerivce {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(
-    file_id: string | null,
-    user_id: string,
-    organization_id: string,
-    type: string,
-  ) {
+  async create(dto: PartialDto) {
     try {
-      if (!user_id || !organization_id || !type)
-        throw new NotFoundException('Missing Fields');
+      let { user_id, organization_id, file_id, type } = dto;
+      // if(type == 'login') file_id = null
       const find_user = await this.userRepository.findOne({
         relations: ['groups', 'createdGroups'],
         where: {
@@ -63,12 +59,12 @@ export class AuditLogsSerivce {
     }
   }
 
-  async getStats(organization_id: string, date: any) {
+  async getStats(dto: PartialDto) {
     try {
-      if (!organization_id || !date)
-        throw new NotFoundException('Missing Fields');
+      let { organization_id, date } = dto;
+
       let startDate;
-      if (date.type == 'days') {
+      if (date?.type == 'days') {
         startDate = subDays(new Date(), date.value);
       } else if (date.type == 'months') {
         startDate = subMonths(new Date(), date.value);
