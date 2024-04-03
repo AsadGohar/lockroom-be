@@ -10,7 +10,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './dto/user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { Group } from 'src/groups/entities/group.entity';
@@ -25,7 +25,8 @@ import { toDataURL } from 'qrcode';
 import { OTPService } from 'src/otp/otp.service';
 import { UserRoleEnum } from 'src/types/enums';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
-
+import { PartialUserDto } from './dto/partial-user.dto';
+// import { sendSMS } from 'src/utils/otp.utils';
 @Injectable()
 export class UsersService {
   constructor(
@@ -151,8 +152,9 @@ export class UsersService {
     }
   }
 
-  async loginUser(email: string, password: string) {
+  async loginUser(dto: PartialUserDto) {
     try {
+      const { email, password } = dto;
       const user = await this.userRepository.findOne({
         relations: [
           'organizations_added_in.groups',
@@ -266,10 +268,12 @@ export class UsersService {
         const orgs = [];
         if (find_user.role == UserRoleEnum.GUEST) {
           await this.auditService.create(
-            null,
-            find_user.id,
-            find_user.organizations_added_in[0].id,
-            'login',
+           {
+            file_id:null,
+            user_id: find_user.id,
+            organization_id: find_user.organizations_added_in[0].id,
+            type: 'login',
+           }
           );
         }
         orgs.push(find_user?.organization_created?.id);

@@ -1,7 +1,13 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  ValidationPipe,
+} from '@nestjs/common';
 import { OrganizationsService } from './organizations.service';
 import { AuthGuard } from 'src/guards/auth.guard';
-
+import { PartialOrganizationDto } from './dto/partial-organization.dto';
 @Controller('organizations')
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
@@ -9,18 +15,14 @@ export class OrganizationsController {
   @UseGuards(AuthGuard)
   @Post('org-group-users')
   getUserByOrganizationAndGroup(
-    @Body('organization_id') organization_id: string,
-    @Body('group_id') group_id: string,
+    @Body(ValidationPipe) dto: PartialOrganizationDto,
   ) {
-    return this.organizationsService.getUsersByOrganizationAndGroup(
-      organization_id,
-      group_id,
-    );
+    return this.organizationsService.getUsersByOrganizationAndGroup(dto);
   }
 
   @UseGuards(AuthGuard)
   @Post('org-users')
-  getUserByOrganization(@Body('organization_id') organization_id: string) {
-    return this.organizationsService.getUsersByOrganization(organization_id);
+  getUserByOrganization(@Body(ValidationPipe) dto: PartialOrganizationDto) {
+    return this.organizationsService.getUsersByOrganization(dto);
   }
 }

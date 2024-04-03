@@ -3,6 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Organization } from './entities/organization.entity';
 import { Invite } from 'src/invites/entities/invite.entity';
+import { PartialOrganizationDto } from './dto/partial-organization.dto';
 
 @Injectable()
 export class OrganizationsService {
@@ -22,8 +23,9 @@ export class OrganizationsService {
     });
   }
 
-  async getUsersByOrganization(organization_id: string) {
+  async getUsersByOrganization(dto:PartialOrganizationDto) {
     try {
+      const { organization_id } = dto
       const find_org = await this.orgRepository.findOne({
         relations: [
           'creator',
@@ -57,11 +59,9 @@ export class OrganizationsService {
     }
   }
 
-  async getUsersByOrganizationAndGroup(
-    organization_id: string,
-    group_id: string,
-  ) {
+  async getUsersByOrganizationAndGroup(dto: PartialOrganizationDto) {
     try {
+      const { organization_id, group_id } = dto;
       const find_org = await this.orgRepository.findOne({
         relations: ['creator', 'groups.users'],
         where: {

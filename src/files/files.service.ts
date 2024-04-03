@@ -18,6 +18,7 @@ import { FilePermissionEnum, UserRoleEnum } from 'src/types/enums';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 
+import { PartialFileDto } from './dto/partial-file.dto';
 @Injectable()
 export class FilesService {
   constructor(
@@ -366,12 +367,9 @@ export class FilesService {
     return folder_file_structures;
   }
 
-  async getAllFilesByOrg(
-    organization_id: string,
-    parent_folder_id: string,
-    group_id: string,
-  ) {
+  async getAllFilesByOrg(dto: PartialFileDto) {
     try {
+      const { organization_id, parent_folder_id, group_id } = dto;
       if (!organization_id) throw new NotFoundException('Missing Fields');
       const file_ids_in_org = [];
       const result = await this.getFoldersAndFilesByOrganizationId(
@@ -406,12 +404,8 @@ export class FilesService {
     }
   }
 
-  async dragAndDropFiles(
-    organization_id: string,
-    parent_folder_id: string,
-    user_id: string,
-    files_data: any[],
-  ) {
+  async dragAndDropFiles(dto: PartialFileDto, user_id: string) {
+    const { parent_folder_id, files, organization_id } = dto;
     const folderIdToPathMap = new Map();
     const fileIdToPathMap = new Map();
 
@@ -421,9 +415,9 @@ export class FilesService {
       where: { id: parent_folder_id },
     });
 
-    for (let index = 0; index < files_data.length; index++) {
-      const file = files_data[index];
-      const path = files_data[index].file_path;
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
+      const path = files[index].file_path;
       const find_folder = await this.foldersRepository.findOne({
         where: { absolute_path: parent_folder.absolute_path + path },
       });
@@ -519,10 +513,8 @@ export class FilesService {
       return file_data;
     } else {
       const create_folder = await this.folderService.create(
-        folder_name,
+        { name: folder_name, organization_id, parent_folder_id },
         user_id,
-        organization_id,
-        parent_folder_id,
       );
 
       for (let index = 0; index < files.length; index++) {
@@ -568,10 +560,12 @@ export class FilesService {
       if (!folder) {
         console.log('nested not found', folderName);
         const create_folder = await this.folderService.create(
-          folderName,
+          {
+            name: folderName,
+            organization_id,
+            parent_folder_id: currentFolderId,
+          },
           user_id,
-          organization_id,
-          currentFolderId,
         );
         console.log(
           'CREATED FOLDER',
@@ -617,11 +611,11 @@ export class FilesService {
     type: string,
     status: boolean,
   ) {
-    const result = await this.getAllFilesByOrg(
+    const result = await this.getAllFilesByOrg({
       organization_id,
       parent_folder_id,
       group_id,
-    );
+    });
     const update_files_permissions =
       await this.gfpService.newUpdateGroupFilePermissions(
         group_id,

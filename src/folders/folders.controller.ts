@@ -5,9 +5,11 @@ import {
   UseGuards,
   Request,
   Patch,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { PartialFolderDto } from './dto/partial-folder.dto';
 
 @Controller('folders')
 export class FoldersController {
@@ -15,19 +17,9 @@ export class FoldersController {
 
   @UseGuards(AuthGuard)
   @Post('/create')
-  create(
-    @Body('name') name: string,
-    @Body('parent_folder_id') parent_folder_id: string,
-    @Body('organization_id') organization_id: string,
-    @Request() request,
-  ) {
+  create(@Body(ValidationPipe) dto: PartialFolderDto, @Request() request) {
     try {
-      return this.foldersService.create(
-        name,
-        request.decoded_data.user_id,
-        organization_id,
-        parent_folder_id,
-      );
+      return this.foldersService.create(dto, request.decoded_data.user_id);
     } catch (error) {
       console.log(error);
     }
@@ -36,11 +28,11 @@ export class FoldersController {
   @UseGuards(AuthGuard)
   @Post('/organization')
   findAllByOrganization(
-    @Body('organization_id') organization_id: string,
+    @Body(ValidationPipe) dto: PartialFolderDto,
     @Request() request,
   ) {
     return this.foldersService.findAllByOrganization(
-      organization_id,
+      dto,
       request.decoded_data.user_id,
     );
   }
@@ -48,23 +40,18 @@ export class FoldersController {
   @UseGuards(AuthGuard)
   @Post('/deleted-items')
   findAllDeletedByOrganization(
-    @Body('organization_id') organization_id: string,
+    @Body(ValidationPipe) dto: PartialFolderDto,
     @Request() request,
   ) {
     return this.foldersService.findAllByOrganization(
-      organization_id,
+      dto,
       request.decoded_data.user_id,
-      true,
     );
   }
 
   @Post('rename')
-  rename(
-    @Body('folder_id') folder_id: string,
-    @Body('new_name') new_name: string,
-    @Body('parent_folder_id') parent_folder_id: string,
-  ) {
-    return this.foldersService.rename(folder_id, new_name, parent_folder_id);
+  rename(@Body(ValidationPipe) dto: PartialFolderDto) {
+    return this.foldersService.rename(dto);
   }
 
   @UseGuards(AuthGuard)

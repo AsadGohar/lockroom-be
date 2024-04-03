@@ -6,11 +6,13 @@ import {
   Param,
   UseGuards,
   Request,
+  ValidationPipe,
 } from '@nestjs/common';
 
 import { AuditLogsSerivce } from './audit-logs.service';
 import { UploadService } from 'src/uploads/uploads.service';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { PartialDto } from './dto/partial-audit.dto';
 
 @Controller('audit')
 export class AuditLogsController {
@@ -21,42 +23,22 @@ export class AuditLogsController {
 
   @UseGuards(AuthGuard)
   @Post('login')
-  createLoginLog(
-    @Body('organization_id') organization_id: string,
-    @Body('type') type: string,
-    @Request() request,
-  ) {
-    return this.auditLogsService.create(
-      null,
-      request.decoded_data.user_id,
-      organization_id,
-      type,
-    );
+  createLoginLog(@Body(ValidationPipe) dto: PartialDto) {
+    return this.auditLogsService.create(dto);
   }
 
   @UseGuards(AuthGuard)
   @Post('document')
-  createDocumentLog(
-    @Body('file_id') file_id: string,
-    @Body('organization_id') organization_id: string,
-    @Body('type') type: string,
-    @Request() request,
-  ) {
-    return this.auditLogsService.create(
-      file_id,
-      request.decoded_data.user_id,
-      organization_id,
-      type,
-    );
+  createDocumentLog(@Body(ValidationPipe) dto: PartialDto) {
+    return this.auditLogsService.create(dto);
   }
 
   @UseGuards(AuthGuard)
   @Post('stats')
   stats(
-    @Body('organization_id') organization_id: string,
-    @Body('date') date: any,
+    @Body(ValidationPipe) dto: PartialDto
   ) {
-    return this.auditLogsService.getStats(organization_id, date);
+    return this.auditLogsService.getStats(dto);
   }
 
   @Get('report/:organization_id')

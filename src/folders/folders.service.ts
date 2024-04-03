@@ -14,6 +14,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
 import { UserRoleEnum, FilePermissionEnum } from 'src/types/enums';
+import { PartialFolderDto } from './dto/partial-folder.dto';
 @Injectable()
 export class FoldersService {
   constructor(
@@ -29,14 +30,10 @@ export class FoldersService {
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
     private readonly userService: UsersService,
   ) {}
-  async create(
-    name: string,
-    user_id: string,
-    organization_id: string,
-    parent_folder_id?: string,
-  ) {
-    if (!parent_folder_id)
-      throw new NotFoundException('parent folder required');
+
+  async create(dto: PartialFolderDto, user_id: string) {
+    const { name, organization_id, parent_folder_id } = dto;
+
     //check if parent repo exists
     const parent_folder = await this.foldersRepository.findOne({
       relations: ['sub_folders'],
@@ -45,7 +42,11 @@ export class FoldersService {
     if (!parent_folder) throw new NotFoundException('parent folder found');
     //check if child repos have duplicate name
     const child_folders_with_same_name = await this.foldersRepository.find({
-      where: { parent_folder_id, name: name, is_deleted: false },
+      where: {
+        parent_folder_id,
+        name: name,
+        is_deleted: false,
+      },
     });
     const folderwithSamedisplay_name = child_folders_with_same_name?.find(
       (folder) => folder?.display_name === name,
@@ -99,14 +100,13 @@ export class FoldersService {
       await this.foldersRepository.save(parent_folder);
     return { new_folder: new_folder_1, parent_folder: update_parent_folder };
   }
+
   async findAll() {
     return await this.foldersRepository.find();
   }
-  async findAllByOrganization(
-    organization_id: string,
-    user_id: string,
-    isDeleted?: boolean,
-  ) {
+
+  async findAllByOrganization(dto: PartialFolderDto, user_id: string) {
+    const { organization_id, is_deleted } = dto;
     if (!organization_id || !user_id)
       throw new NotFoundException('Missing Fields');
     const find_user = await this.userService.findOne({ id: user_id });
@@ -119,7 +119,7 @@ export class FoldersService {
           ? find_user.organization_created.id
           : find_user.organizations_added_in[0].id;
       let get_files: File[];
-      if (isDeleted) {
+      if (is_deleted) {
         get_files = await this.fileRepository?.find({
           relations: ['folder', 'versions'],
           where: { this_deleted: true, organization: { id: org } },
@@ -151,7 +151,7 @@ export class FoldersService {
 
       let query1;
 
-      if (isDeleted) {
+      if (is_deleted) {
         query1 = await this.foldersRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
@@ -161,10 +161,10 @@ export class FoldersService {
             organizationId: organization_id,
           })
           .andWhere(`folder.is_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+            isDeleted: is_deleted || false,
           })
           .andWhere(`folder.this_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+            isDeleted: is_deleted || false,
           })
           .orWhere('folder.is_partial_restored IS NULL')
           .groupBy('folder.id, user.id')
@@ -182,10 +182,10 @@ export class FoldersService {
             organizationId: organization_id,
           })
           .andWhere(`folder.is_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+            isDeleted: is_deleted || false,
           })
           .andWhere(`folder.this_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+            isDeleted: is_deleted || false,
           })
           .orWhere('folder.is_partial_restored = :isPartialRestored', {
             isPartialRestored: true,
@@ -223,8 +223,8 @@ export class FoldersService {
               status: true,
             },
             file: {
-              is_deleted: isDeleted || false,
-              folder: { is_deleted: isDeleted || false },
+              is_deleted: is_deleted || false,
+              folder: { is_deleted: is_deleted || false },
             },
           },
         },
@@ -257,7 +257,7 @@ export class FoldersService {
           organizationId: organization_id,
         })
         .andWhere('folder.is_deleted = :isDeleted', {
-          isDeleted: isDeleted || false,
+          isDeleted: is_deleted || false,
         })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
@@ -268,12 +268,14 @@ export class FoldersService {
       return { sub_folder_count: data };
     }
   }
+
   async findAllByUserId(user_id: string) {
     if (!user_id) throw new NotFoundException('Missing Fields');
     return await this.foldersRepository.find({
       where: { users: { id: user_id } },
     });
   }
+
   async update(prev_name: string, new_name: string, parent_folder_id?: string) {
     const findRepo = await this.foldersRepository.find({
       where: { parent_folder_id, name: prev_name },
@@ -291,6 +293,7 @@ export class FoldersService {
       { name: new_name },
     );
   }
+
   private async buildFolderFileStructure(folder: Folder) {
     const folder_files = {
       name: folder.name,
@@ -453,8 +456,9 @@ export class FoldersService {
       throw new InternalServerErrorException(error.message);
     }
   }
-  async rename(folder_id: string, new_name: string, parent_folder_id: string) {
+  async rename(dto: PartialFolderDto) {
     try {
+      const { folder_id, new_name, parent_folder_id } = dto;
       const check_same_name_folder = await this.foldersRepository.find({
         where: { parent_folder_id, name: new_name, is_deleted: false },
       });
@@ -487,7 +491,6 @@ export class FoldersService {
     });
     return data;
   }
-
   private async updateDisplayTreeIndex(
     parentId: string,
     parentDisplayTreeIndex: string,
@@ -520,7 +523,6 @@ export class FoldersService {
       });
     }
   }
-
   async rearrangeFolderAndFiles(
     data: any[],
     organization_id: string,
@@ -544,7 +546,7 @@ export class FoldersService {
 
     return {
       success: true,
-      new_data: await this.findAllByOrganization(organization_id, user_id),
+      new_data: await this.findAllByOrganization({ organization_id }, user_id),
     };
   }
 }

@@ -5,10 +5,10 @@ import { AuditLogs } from './entities/audit-logs.entities';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { User } from 'src/users/entities/user.entity';
-// import { createExcelWorkbook } from 'src/utils/excel.utils';
 import { subMonths, format, subDays } from 'date-fns';
 import { ConfigService } from '@nestjs/config';
 import { S3Client } from '@aws-sdk/client-s3';
+import { PartialDto } from './dto/partial-audit.dto';
 @Injectable()
 export class AuditLogsSerivce {
   constructor(
@@ -22,18 +22,11 @@ export class AuditLogsSerivce {
     private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService,
   ) {}
-  private readonly s3Client = new S3Client({
-    region: this.configService.getOrThrow('AWS_S3_REGION'),
-  });
-  async create(
-    file_id: string | null,
-    user_id: string,
-    organization_id: string,
-    type: string,
-  ) {
+
+  async create(dto: PartialDto) {
     try {
-      if (!user_id || !organization_id || !type)
-        throw new NotFoundException('Missing Fields');
+      let { user_id, organization_id, file_id, type } = dto;
+      // if(type == 'login') file_id = null
       const find_user = await this.userRepository.findOne({
         relations: ['groups', 'created_groups'],
         where: { id: user_id },
@@ -62,15 +55,14 @@ export class AuditLogsSerivce {
     }
   }
 
-  async getStats(organization_id: string, date: any) {
+  async getStats(dto: PartialDto) {
     try {
-      if (!organization_id || !date)
-        throw new NotFoundException('Missing Fields');
-      let startDate;
-      if (date.type == 'days') startDate = subDays(new Date(), date.value);
+      let { organization_id, date } = dto;
+      let start_date;
+      if (date.type == 'days') start_date = subDays(new Date(), date.value);
       else if (date.type == 'months')
-        startDate = subMonths(new Date(), date.value);
-      const formattedStartDate = startDate && format(startDate, 'yyyy-MM-dd');
+      start_date = subMonths(new Date(), date.value);
+      const formattedStartDate = start_date && format(start_date, 'yyyy-MM-dd');
       const group_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
         .select('group.name', 'group_name')

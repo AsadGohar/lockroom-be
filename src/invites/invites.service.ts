@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { UserRoleEnum } from 'src/types/enums';
+import { PartialInviteDto } from './dto/partial-invite.dto';
 @Injectable()
 export class InvitesService {
   constructor(
@@ -66,8 +67,10 @@ export class InvitesService {
     const invitesDB = await this.inviteRepository.save(invites);
     return { user: findUser, invites: invitesDB };
   }
-  async getEmailByToken(jwt_token: string) {
+
+  async getEmailByToken(dto: PartialInviteDto) {
     try {
+      const { jwt_token } = dto;
       const resp = await this.jwtService.verify(jwt_token, {
         secret: process.env.JWT_SECRET,
       });
@@ -88,24 +91,11 @@ export class InvitesService {
       throw Error(error);
     }
   }
-  async addInvitedUser(
-    email: string,
-    password: string,
-    first_name: string,
-    last_name: string,
-    phone_number: string,
-    jwt_token: string,
-  ) {
+
+  async addInvitedUser(dto: PartialInviteDto) {
     try {
-      if (
-        !email ||
-        !password ||
-        !first_name ||
-        !last_name ||
-        !phone_number ||
-        !jwt_token
-      )
-        throw new NotFoundException('Missing Fields');
+      let { email, password, first_name, last_name, phone_number, jwt_token } =
+        dto;
       const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in'],
         where: { email: email },

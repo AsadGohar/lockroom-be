@@ -8,27 +8,19 @@ import {
   Request,
   Patch,
   Delete,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { PartialFileDto } from './dto/partial-file.dto';
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @UseGuards(AuthGuard)
   @Post('organization/all')
-  async findAll(
-    @Body('organization_id') organization_id: string,
-    @Body('parent_folder_id') parent_folder_id: string,
-    @Body('group_id') group_id: string,
-  ) {
-    const result = await this.filesService.getAllFilesByOrg(
-      organization_id,
-      parent_folder_id,
-      group_id,
-    );
-
-    return result.folder_file_structure;
+  findAll(@Body(ValidationPipe) dto: PartialFileDto) {
+    return this.filesService.getAllFilesByOrg(dto);
   }
 
   @UseGuards(AuthGuard)
@@ -57,17 +49,13 @@ export class FilesController {
 
   @UseGuards(AuthGuard)
   @Post('nested-drag-and-drop')
-  async addDragAndDropTwo(
-    @Body('organization_id') organization_id: string,
-    @Body('parent_folder_id') parent_folder_id: string,
-    @Body('files') files: [],
+  addDragAndDropTwo(
+    @Body(ValidationPipe) dto: PartialFileDto,
     @Request() request,
   ) {
-    return await this.filesService.dragAndDropFiles(
-      organization_id,
-      parent_folder_id,
+    return this.filesService.dragAndDropFiles(
+      dto,
       request.decoded_data.user_id,
-      files,
     );
   }
 
