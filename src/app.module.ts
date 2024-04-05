@@ -53,10 +53,10 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
       ],
       synchronize: true,
       // logging:'all',
-      // ssl:{
-      //   rejectUnauthorized:false
-      // },
-      ssl: false,
+      ssl:{
+        rejectUnauthorized:false
+      },
+      // ssl: false,
     }),
     ThrottlerModule.forRoot({
       throttlers: [
