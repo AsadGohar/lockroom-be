@@ -10,7 +10,7 @@ export const sendSMS = async (phone_number: string, otp: string) => {
   try {
     const smsResponse = await client.messages.create({
       messagingServiceSid: 'MG22d25910963d7e4276229a7c07423124',
-      to: '+923034697337',
+      to: phone_number,
       body: `Use this code ${otp}`,
     });
     // console.log(smsResponse)
