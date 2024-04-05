@@ -19,7 +19,11 @@ import { decodeJwtResponse } from 'src/utils/jwt.utils';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
-// import { sendSMS } from 'src/utils/otp.utils';
+import { generateOTP, sendSMS } from 'src/utils/otp.utils';
+import { authenticator } from 'otplib';
+import { toDataURL } from 'qrcode';
+
+const secret = authenticator.generateSecret(20);
 @Injectable()
 export class UsersService {
   constructor(
@@ -60,6 +64,8 @@ export class UsersService {
       createUserDto.full_name = `${createUserDto.first_name} ${createUserDto.last_name}`;
       createUserDto.role = 'admin';
 
+      const otp = String(generateOTP());
+
       const create_user = this.userRepository.create({
         email: createUserDto.email,
         password: createUserDto.password,
@@ -68,7 +74,10 @@ export class UsersService {
         role: createUserDto.role,
         phone_number: createUserDto.phone_number,
         full_name: createUserDto.full_name,
+        generated_otp: otp,
       });
+
+      await sendSMS(createUserDto.phone_number, otp);
 
       const user = await this.userRepository.save(create_user);
 
@@ -100,7 +109,7 @@ export class UsersService {
         tree_index: '1',
         users: [user],
         organization: saveOrg,
-        absolute_path: '/Home'
+        absolute_path: '/Home',
       });
 
       const mail = {
@@ -182,9 +191,17 @@ export class UsersService {
           },
         });
 
+        if (user.two_fa_type == 'sms') {
+          const otp = generateOTP();
+          user.generated_otp = String(otp);
+          await sendSMS(user.phone_number, String(otp));
+        }
+
+        await this.userRepository.save(user);
+
         return {
           access_token: accessToken,
-          is_phone_number_verified: user.phone_number ? true : false,
+          is_phone_number_verified: user.is_phone_number_verified,
           id: user.id,
           user,
           organizations,
@@ -210,16 +227,25 @@ export class UsersService {
             id: In(orgs),
           },
         });
-        const new_audit = await this.auditService.create(
+
+        await this.auditService.create(
           null,
           user.id,
           user.organizations_added_in[0].id,
           'login',
         );
 
+        if (user.two_fa_type == 'sms') {
+          const otp = generateOTP();
+          user.generated_otp = String(otp);
+          await sendSMS(user.phone_number, String(otp));
+        }
+
+        await this.userRepository.save(user);
+
         return {
           access_token: accessToken,
-          is_phone_number_verified: user.phone_number ? true : false,
+          is_phone_number_verified: user.is_phone_number_verified,
           id: user.id,
           user,
           organizations,
@@ -281,7 +307,7 @@ export class UsersService {
         });
         return {
           access_token: accessToken,
-          is_phone_number_verified: find_user.phone_number ? true : false,
+          is_phone_number_verified: find_user.is_phone_number_verified,
           folders: query,
           files_count: query.length,
           sub_folder_count: query1,
@@ -351,7 +377,7 @@ export class UsersService {
         tree_index: '1',
         users: [new_user],
         organization: saveOrg,
-        absolute_path:'/Home'
+        absolute_path: '/Home',
       });
       return {
         access_token,
@@ -420,7 +446,7 @@ export class UsersService {
 
   async getAllGroups(user_id: string) {
     try {
-      if(!user_id) throw new NotFoundException("Missing Fields")
+      if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['groups'],
         where: {
@@ -449,6 +475,114 @@ export class UsersService {
       return await this.userRepository.find();
     } catch (error) {
       throw new InternalServerErrorException('Failed to fetch users');
+    }
+  }
+
+  async verifyOTP(otp: string, user_id: string) {
+    const find_user = await this.userRepository.findOne({
+      where: {
+        id: user_id,
+      },
+    });
+    if (find_user && find_user.generated_otp.length > 0) {
+      if (find_user.generated_otp == otp) {
+        return {
+          success: true,
+        };
+      }
+      return new UnauthorizedException('OTP is invalid');
+    } else {
+      return new NotFoundException('user not found');
+    }
+  }
+
+  async verifyPhone(otp: string, user_id: string) {
+    const find_user = await this.userRepository.findOne({
+      where: {
+        id: user_id,
+      },
+    });
+    if (find_user && find_user.generated_otp.length > 0) {
+      if (find_user.generated_otp == otp) {
+        console.log('here');
+        find_user.is_phone_number_verified = true;
+        await this.userRepository.save(find_user);
+        console.log(find_user);
+        return {
+          success: true,
+        };
+      }
+      return new UnauthorizedException('OTP is invalid');
+    } else {
+      return new NotFoundException('user not found');
+    }
+  }
+
+  async resendOTP(user_id: string) {
+    const find_user = await this.userRepository.findOne({
+      where: {
+        id: user_id,
+      },
+    });
+    if (find_user) {
+      const otp = String(generateOTP());
+      find_user.generated_otp = otp;
+      await this.userRepository.save(find_user);
+      await sendSMS(find_user.phone_number, otp);
+    } else {
+      return new NotFoundException('user not found');
+    }
+  }
+
+  async generateQRcode(user_id: string) {
+    const secret = authenticator.generateSecret(20);
+    const find_user = await this.userRepository.findOne({
+      where: {
+        id: user_id,
+      },
+    });
+    const otpAuthURL = authenticator.keyuri(
+      find_user.email,
+      'LockRoom',
+      secret,
+    );
+    const qrcode = await toDataURL(otpAuthURL);
+    find_user.qr_code_secret = secret;
+    await this.userRepository.save(find_user);
+    return qrcode;
+  }
+
+  async verifyAuthenticatorCode(code: string, user_id: string) {
+    // console.log(code, 'code');
+    const find_user = await this.userRepository.findOne({
+      where: {
+        id: user_id,
+      },
+    });
+    // console.log(find_user.qr_code_secret, secret);
+    const verify = authenticator.verify({
+      token: code,
+      secret: find_user.qr_code_secret,
+    });
+    // console.log(verify, 'ver');
+    if (verify) {
+      find_user.two_fa_type = 'authenticator';
+      await this.userRepository.save(find_user);
+      return { success: verify };
+    }
+    return { success: false };
+  }
+
+  async setAuthenticator(two_fa_type: string, user_id: string) {
+    const find_user = await this.userRepository.findOne({
+      where: {
+        id: user_id,
+      },
+    });
+    if (find_user) {
+      find_user.two_fa_type = two_fa_type;
+      const saved_user = await this.userRepository.save(find_user);
+      return { user: saved_user };
     }
   }
 

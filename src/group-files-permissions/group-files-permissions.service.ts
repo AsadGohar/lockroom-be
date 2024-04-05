@@ -31,18 +31,53 @@ export class GroupFilesPermissionsService {
           },
         },
       });
-      const group_files_permissions = groups
-        .map((group) => {
-          return files_permissions.map((fp) => {
-            return {
-              group,
-              file_permission: fp,
-            };
-          });
-        })
-        .flat();
+
+      let gfp = [];
+
+      for (let index = 0; index < groups.length; index++) {
+        const find_perm = files_permissions.find(
+          (p) => p.group_name == groups[index].name,
+        );
+        gfp.push(find_perm.file_permissions.map((fp) => {
+          return {
+            group: groups[index],
+            file_permission: fp,
+          };
+        }))
+      }
+      // const group_files_permissions = groups
+      //   .map((group) => {
+      //     return files_permissions.map((fp) => {
+      //       return {
+      //         group,
+      //         file_permission: fp,
+      //       };
+      //     });
+      //   })
+      //   .flat();
+      // const group_files_permissions = groups.flatMap((group) => {
+      //   return files_permissions.map((fp) => {
+      //     return {
+      //       group,
+      //       file_permission: fp,
+      //     };
+      //   });
+      // });
+      // console.log(files_permissions, 'fpmm');
+      // console.log(gfp.flat(),'ggggg')
+      // const group_files_permissions_test = groups.map((group) => {
+      //   return
+      // }).flat();
+
+      // console.log(group_files_permissions_test, 'fpp');
+      // console.log(group_files_permissions_test.map(gfp=>{
+      //   return { group_name: gfp.group?.name,
+      //     file: gfp.file_permission.file?.name,
+      //     perm: gfp.file_permission.permission?.type
+      //   }
+      // }), 'testssst');
       const new_group_files_permissions = await this.groupFilePermRepo.save(
-        group_files_permissions,
+        gfp.flat(),
       );
       return new_group_files_permissions;
     } catch (error) {
@@ -118,6 +153,8 @@ export class GroupFilesPermissionsService {
           },
         },
       });
+
+      console.log(find_group_files_permissions, 'data');
 
       const permission_ids = [];
       find_group_files_permissions.map((gfp) => {

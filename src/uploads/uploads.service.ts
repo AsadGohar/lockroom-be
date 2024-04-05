@@ -20,6 +20,7 @@ export class UploadService {
     user_id: string,
     organization_id: string,
   ) {
+    console.log('here')
     if (files.length > 0) {
       const file_names = [];
       const file_promises = files.map((file: any) => {
@@ -34,8 +35,8 @@ export class UploadService {
         );
       });
 
-      const response = await Promise.all(file_promises);
-      if (response) {
+      // const response = await Promise.all(file_promises);
+      if (true) {
         for (let index = 0; index < files.length; index++) {
           const file_name_parts = file_names[index].split('.');
           const file_extension =
@@ -53,7 +54,7 @@ export class UploadService {
           );
         }
       }
-      return response;
+      // return response;
     }
   }
 

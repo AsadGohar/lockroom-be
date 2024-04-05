@@ -1,6 +1,8 @@
 import {
   Controller,
   Post,
+  Get,
+  Patch,
   Body,
   Res,
   UseGuards,
@@ -54,6 +56,48 @@ export class UsersController {
   @Post('user-token')
   getUserByToken(@Request() request) {
     return this.usersService.getUserByToken(request?.decoded_data?.user_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('verify-otp')
+  verifyOtp(@Body('otp') otp: string, @Request() request) {
+    return this.usersService.verifyOTP(otp, request?.decoded_data?.user_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('verify-phone')
+  verifyPhone(@Body('otp') otp: string, @Request() request) {
+    return this.usersService.verifyPhone(otp, request?.decoded_data?.user_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('resend-otp')
+  resend(@Request() request) {
+    return this.usersService.resendOTP(request?.decoded_data?.user_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('generate-qrcode')
+  generateQRcode(@Request() request) {
+    return this.usersService.generateQRcode(request?.decoded_data?.user_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('verify-authenticator-code')
+  verifyAuthenticatorCode(@Body('code') code: string, @Request() request) {
+    return this.usersService.verifyAuthenticatorCode(
+      code,
+      request?.decoded_data?.user_id,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('update-auth-type')
+  setAuthType(@Body('two_fa_type') two_fa_type: string, @Request() request) {
+    return this.usersService.setAuthenticator(
+      two_fa_type,
+      request?.decoded_data?.user_id,
+    );
   }
 
   // @UseGuards(AuthGuard)

@@ -8,6 +8,8 @@ import { FilesPermissionsService } from 'src/files-permissions/file-permissions.
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { FoldersService } from 'src/folders/folders.service';
+import { Group } from 'src/groups/entities/group.entity';
+import { group } from 'console';
 @Injectable()
 export class FilesService {
   constructor(
@@ -17,6 +19,8 @@ export class FilesService {
     private readonly fileRepository: Repository<File>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Group)
+    private readonly groupRepository: Repository<Group>,
     private readonly fpService: FilesPermissionsService,
     private readonly folderService: FoldersService,
     private readonly gfpService: GroupFilesPermissionsService,
@@ -34,22 +38,13 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     try {
-      // console.log(
-      //   name,
-      //   folder_id,
-      //   user_id,
-      //   organization_id,
-      //   mime_type,
-      //   size,
-      //   extension,
-      //   file_uploaded_name, 'in add files'
-      // );
+      console.log(extension, 'in add files');
       if (
         !name ||
         !folder_id ||
         !user_id ||
         !organization_id ||
-        !extension ||
+        // !extension ||
         !file_uploaded_name
       )
         throw new NotFoundException('Missing Fields');
@@ -105,7 +100,7 @@ export class FilesService {
         folder: find_folder,
         tree_index: current_tree_index + next,
         organization,
-        mime_type : mime_type || '',
+        mime_type: mime_type || '',
         bucket_url: 'https://lockroom.s3.amazonaws.com/' + file_uploaded_name,
         size_bytes: size,
         extension,
@@ -115,8 +110,34 @@ export class FilesService {
 
       const saved_file = await this.fileRepository.save(new_file);
 
-      const file_permissions =
-        await this.fpService.createFilePermissions(saved_file);
+      const find_groups = await this.groupRepository.find({
+        where: {
+          organization: {
+            id: organization_id,
+          },
+        },
+      });
+
+      const file_permissions = [];
+
+      for (let index = 0; index < find_groups.length; index++) {
+        const fp = await this.fpService.createFilePermissions(saved_file);
+        file_permissions.push({
+          file_permissions: fp,
+          group_name: find_groups[index].name,
+        });
+      }
+
+      // find_groups.map(async (group) => {
+      // });
+
+      // console.log(file_permissions.map(fp=> {
+      // return { group_name: fp.group?.name,
+      //   file: fp.file_permission.file?.name,
+      //   perm: fp.file_permission.permission?.type
+      // }
+      // }),'fppp')
+
       const new_group_files_permissions =
         await this.gfpService.createGroupFilePermissionsFoAllGroups(
           organization_id,
@@ -221,7 +242,7 @@ export class FilesService {
       where: {
         organization: { id: organization_id },
         parent_folder_id: parent_folder_id,
-        is_deleted: false
+        is_deleted: false,
       },
       relations: ['sub_folders', 'files.organization'],
       order: {
@@ -261,7 +282,7 @@ export class FilesService {
           await this.foldersRepository.findOne({
             where: {
               organization: { id: organization_id },
-              id: parent_folder_id
+              id: parent_folder_id,
             },
             relations: ['sub_folders', 'files.organization'],
           }),
@@ -283,13 +304,12 @@ export class FilesService {
     organization_id: string,
     parent_folder_id: string,
     user_id: string,
-    files_data:any[]
+    files_data: any[],
   ) {
-
     const folderIdToPathMap = new Map();
     const fileIdToPathMap = new Map();
 
-    const data_to_return = []
+    const data_to_return = [];
 
     const parent_folder = await this.foldersRepository.findOne({
       where: {
@@ -323,11 +343,11 @@ export class FilesService {
           fileIdToPathMap.set(add_file_data.saved_file.id, file.file_path);
           data_to_return.push({
             id: add_file_data.saved_file.id,
-            file_path:path,
+            file_path: path,
           });
         }
       } else {
-        console.log('folder not found', 'parent', parent_folder.name, path );
+        console.log('folder not found', 'parent', parent_folder.name, path);
 
         const new_folder_id = await this.ensureFolderPathExists(
           path,
@@ -351,13 +371,13 @@ export class FilesService {
           fileIdToPathMap.set(add_file_data.saved_file.id, file.file_path);
           data_to_return.push({
             id: add_file_data.saved_file.id,
-            file_path:path,
+            file_path: path,
           });
         }
       }
     }
 
-    return data_to_return
+    return data_to_return;
   }
 
   async dragAndDropFilesOneLevel(
@@ -453,30 +473,32 @@ export class FilesService {
       .filter((folder) => folder.trim() !== '');
 
     let currentFolderId = parent_folder_id;
-    console.log('path--------here')
+    console.log('path--------here');
     for (const folderName of folderNames) {
       console.log(folderName, 'name');
       const folder = await this.foldersRepository.findOne({
         where: { name: folderName, parent_folder_id: currentFolderId },
       });
       if (!folder) {
-        console.log('nested not found', folderName)
+        console.log('nested not found', folderName);
         const create_folder = await this.folderService.create(
           folderName,
           user_id,
           organization_id,
           currentFolderId,
         );
-        console.log('CREATED FOLDER', create_folder.new_folder.name, create_folder.parent_folder.name);
+        console.log(
+          'CREATED FOLDER',
+          create_folder.new_folder.name,
+          create_folder.parent_folder.name,
+        );
         currentFolderId = create_folder.new_folder.id;
-      }
-      else {
+      } else {
         currentFolderId = folder.id;
-        console.log('nested found', folderName)
-
+        console.log('nested found', folderName);
       }
     }
-    return currentFolderId
+    return currentFolderId;
   }
 
   async updateFileNameAndBucketUrlDragAndDrop(

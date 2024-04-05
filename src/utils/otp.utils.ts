@@ -2,18 +2,19 @@ import { randomInt } from 'crypto';
 import { Twilio } from 'twilio';
 
 const client = new Twilio(
-  'AC1d469411ed7fa7883eb5baa21604d6d5',
-  '97cd323c36963ccccc26ea2b81f5c63a',
+  'ACdca86537aafcab1394824f747e307cb4',
+  '6901a150b80c0167a9982516ed4dc7f4',
 );
 
-export const sendSMS = async (phoneNumber: string) => {
+export const sendSMS = async (phone_number: string, otp: string) => {
   try {
-    const otp =  generateOTP()
     const smsResponse = await client.messages.create({
-      from:'+18145644955',
+      messagingServiceSid: 'MG22d25910963d7e4276229a7c07423124',
       to: '+923034697337',
       body: `Use this code ${otp}`,
     });
+    // console.log(smsResponse)
+    return smsResponse;
   } catch (error) {
     error.statusCode = 400;
     throw error;
@@ -23,4 +24,3 @@ export const sendSMS = async (phoneNumber: string) => {
 export const generateOTP = () => {
   return randomInt(100000, 1000000);
 };
-

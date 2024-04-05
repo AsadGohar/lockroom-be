@@ -82,12 +82,15 @@ export class AuditLogsSerivce {
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'view')`, 'views')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'login')`, 'login')
         .leftJoin('audit_logs.group', 'group')
-        .groupBy('group.name');
+        .groupBy('group.name')
 
       if (date.type == 'days' || date.type == 'months') {
         group_rankings_query.where('audit_logs.createdAt >= :startDate', {
           startDate: formattedStartDate,
-        });
+        })
+        .andWhere('audit_logs.organizationId = :organization_id', {
+          organization_id,
+        })
       }
       const group_rankings = await group_rankings_query.getRawMany();
 

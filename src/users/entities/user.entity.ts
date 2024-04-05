@@ -41,6 +41,9 @@ export class User {
   is_email_verified: boolean;
 
   @Column({ default: false })
+  is_phone_number_verified: boolean;
+
+  @Column({ default: false })
   is_session_active: boolean;
 
   @Column({ default: 'admin' })
@@ -49,11 +52,17 @@ export class User {
   @Column({ default: false })
   sso_login: boolean;
 
+  @Column({ default: '' })
+  qr_code_secret: string;
+
   @Column({ default: false })
   sso_type: string;
 
   @Column({ default: '' })
   display_picture_url: string;
+
+  @Column({ default: 'sms' })
+  two_fa_type: string;
 
   @Column({ default: '' })
   password: string;
@@ -83,6 +92,7 @@ export class User {
   @ManyToMany(() => Group, (group) => group.users, {
     onDelete: 'CASCADE',
   })
+  
   @JoinTable()
   groups: Group[];
 
