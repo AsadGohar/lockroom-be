@@ -38,7 +38,7 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     try {
-      console.log(extension, 'in add files');
+      // console.log(extension, 'in add files');
       if (
         !name ||
         !folder_id ||
@@ -191,7 +191,7 @@ export class FilesService {
     }
   }
 
-  async buildFolderFileStructure(folder: Folder) {
+  async buildFolderFileStructure(folder: Folder, group_id:string) {
     const folder_files = {
       name: folder.name,
       id: folder.id,
@@ -203,6 +203,7 @@ export class FilesService {
       for (const file of folder.files) {
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
+          group_id
         );
         console.log(
           file_permissions[0].permission.status,
@@ -237,6 +238,7 @@ export class FilesService {
   async getFoldersAndFilesByOrganizationId(
     organization_id: string,
     parent_folder_id: string,
+    group_id: string
   ) {
     const root_folders = await this.foldersRepository.find({
       where: {
@@ -254,7 +256,7 @@ export class FilesService {
     if (root_folders.length > 0) {
       for (const root_folder of root_folders) {
         const folder_file_structure =
-          await this.buildFolderFileStructure(root_folder);
+          await this.buildFolderFileStructure(root_folder, group_id);
         folder_file_structures.push(folder_file_structure);
       }
       for (const sub of folder_file_structures) {
@@ -262,6 +264,7 @@ export class FilesService {
           await this.getFoldersAndFilesByOrganizationId(
             organization_id,
             sub.id,
+            group_id
           );
         sub.children.push(...folder_file_structure);
       }
@@ -270,12 +273,13 @@ export class FilesService {
     return folder_file_structures;
   }
 
-  async getAllFilesByOrg(organization_id: string, parent_folder_id: string) {
+  async getAllFilesByOrg(organization_id: string, parent_folder_id: string, group_id:string) {
     try {
       if (!organization_id) throw new NotFoundException('Missing Fields');
       const result = await this.getFoldersAndFilesByOrganizationId(
         organization_id,
         parent_folder_id,
+        group_id
       );
       const home_folder = JSON.parse(
         JSON.stringify(
@@ -289,7 +293,7 @@ export class FilesService {
         ),
       );
       const folder_file_structure =
-        await this.buildFolderFileStructure(home_folder);
+        await this.buildFolderFileStructure(home_folder, group_id);
       folder_file_structure.children = [
         ...folder_file_structure.children,
         ...result,
