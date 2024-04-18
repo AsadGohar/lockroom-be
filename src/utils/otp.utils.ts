@@ -13,7 +13,7 @@ export const sendSMS = async (phone_number: string, otp: string) => {
       to: phone_number,
       body: `Use this code ${otp}`,
     });
-    // console.log(smsResponse)
+    console.log(smsResponse)
     return smsResponse;
   } catch (error) {
     error.statusCode = 400;

@@ -6,11 +6,9 @@ import {
   ManyToMany,
   JoinTable,
   CreateDateColumn,
-  ManyToOne,
   OneToMany,
   UpdateDateColumn,
   OneToOne,
-  JoinColumn
 } from 'typeorm';
 import { Folder } from '../../folders/entities/folder.entity';
 import { v4 as uuidv4 } from 'uuid';

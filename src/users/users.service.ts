@@ -23,7 +23,6 @@ import { generateOTP, sendSMS } from 'src/utils/otp.utils';
 import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
 
-const secret = authenticator.generateSecret(20);
 @Injectable()
 export class UsersService {
   constructor(
@@ -48,6 +47,12 @@ export class UsersService {
       });
 
       if (existingUser) throw new ConflictException('user already exists');
+
+      const existingNumber = await this.userRepository.findOne({
+        where: { phone_number: createUserDto.phone_number },
+      });
+
+      if (existingNumber) throw new ConflictException('phone number already taken');
 
       const find_invites = await this.inviteRepository.find({
         where: {
