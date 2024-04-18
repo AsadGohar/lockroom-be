@@ -191,7 +191,7 @@ export class FilesService {
     }
   }
 
-  async buildFolderFileStructure(folder: Folder, group_id:string) {
+  async buildFolderFileStructure(folder: Folder, group_id: string) {
     const folder_files = {
       name: folder.name,
       id: folder.id,
@@ -203,7 +203,7 @@ export class FilesService {
       for (const file of folder.files) {
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
-          group_id
+          group_id,
         );
         console.log(
           file_permissions[0].permission.status,
@@ -238,7 +238,7 @@ export class FilesService {
   async getFoldersAndFilesByOrganizationId(
     organization_id: string,
     parent_folder_id: string,
-    group_id: string
+    group_id: string,
   ) {
     const root_folders = await this.foldersRepository.find({
       where: {
@@ -255,8 +255,10 @@ export class FilesService {
     const folder_file_structures = [];
     if (root_folders.length > 0) {
       for (const root_folder of root_folders) {
-        const folder_file_structure =
-          await this.buildFolderFileStructure(root_folder, group_id);
+        const folder_file_structure = await this.buildFolderFileStructure(
+          root_folder,
+          group_id,
+        );
         folder_file_structures.push(folder_file_structure);
       }
       for (const sub of folder_file_structures) {
@@ -264,7 +266,7 @@ export class FilesService {
           await this.getFoldersAndFilesByOrganizationId(
             organization_id,
             sub.id,
-            group_id
+            group_id,
           );
         sub.children.push(...folder_file_structure);
       }
@@ -273,13 +275,17 @@ export class FilesService {
     return folder_file_structures;
   }
 
-  async getAllFilesByOrg(organization_id: string, parent_folder_id: string, group_id:string) {
+  async getAllFilesByOrg(
+    organization_id: string,
+    parent_folder_id: string,
+    group_id: string,
+  ) {
     try {
       if (!organization_id) throw new NotFoundException('Missing Fields');
       const result = await this.getFoldersAndFilesByOrganizationId(
         organization_id,
         parent_folder_id,
-        group_id
+        group_id,
       );
       const home_folder = JSON.parse(
         JSON.stringify(
@@ -292,8 +298,10 @@ export class FilesService {
           }),
         ),
       );
-      const folder_file_structure =
-        await this.buildFolderFileStructure(home_folder, group_id);
+      const folder_file_structure = await this.buildFolderFileStructure(
+        home_folder,
+        group_id,
+      );
       folder_file_structure.children = [
         ...folder_file_structure.children,
         ...result,
@@ -347,7 +355,7 @@ export class FilesService {
           fileIdToPathMap.set(add_file_data.saved_file.id, file.file_path);
           data_to_return.push({
             id: add_file_data.saved_file.id,
-            file_path: path,
+            file_path: path + '/' + add_file_data.saved_file.name,
           });
         }
       } else {
@@ -375,7 +383,7 @@ export class FilesService {
           fileIdToPathMap.set(add_file_data.saved_file.id, file.file_path);
           data_to_return.push({
             id: add_file_data.saved_file.id,
-            file_path: path,
+            file_path: path + '/' + add_file_data.saved_file.name,
           });
         }
       }
@@ -453,19 +461,6 @@ export class FilesService {
     }
   }
 
-  private async generatePaths(path: string) {
-    const parts = path.split('/').filter((part) => part !== ''); // Split the path and remove empty parts
-    const paths = [];
-
-    let currentPath = '';
-    for (const part of parts) {
-      currentPath += `/${part}`; // Add the current part to the current path
-      paths.push({ absolute: currentPath, current: part }); // Add an object with absolute and current folder name
-    }
-
-    return paths;
-  }
-
   private async ensureFolderPathExists(
     filePath: string,
     parent_folder_id: string,
@@ -510,15 +505,26 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     try {
-      const find_file = await this.fileRepository.findOne({
-        where: {
+      // console.log('here', file_id)
+      const update_file = await this.fileRepository.update(
+        {
           id: file_id,
         },
-      });
-      find_file.file_uploaded_name = file_uploaded_name;
-      find_file.bucket_url =
-        'https://lockroom.s3.amazonaws.com/' + file_uploaded_name;
-      return await this.fileRepository.save(find_file);
+        {
+          file_uploaded_name,
+          bucket_url: 'https://lockroom.s3.amazonaws.com/' + file_uploaded_name,
+        },
+      );
+      // console.log(update_file,'result')
+      if (update_file.affected > 0) {
+        const file = await this.fileRepository.findOne({
+          where: {
+            id: file_id,
+          },
+        });
+        // console.log(file.bucket_url, 'file url')
+        return file
+      }
     } catch (error) {}
   }
 }

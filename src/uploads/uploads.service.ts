@@ -70,24 +70,28 @@ export class UploadService {
   }
 
   async dragAndDrop(files: any[], file_ids: string[]) {
-    const  file_data = []
+    const file_data = [];
+    // console.log(file_ids,'idsss')
     for (let index = 0; index < files.length; index++) {
       let file_name = uuidv4() + '-' + files[index].originalname;
-     let upload =  await this.s3Client.send(
+      let upload = await this.s3Client.send(
         new PutObjectCommand({
           Bucket: 'lockroom',
           Key: file_name,
           Body: files[index].buffer,
         }),
       );
-      if(upload){
-       const updated_file= await this.fileService.updateFileNameAndBucketUrlDragAndDrop(
-          file_ids[index],
-          file_name,
-        );
-        file_data.push(updated_file)
+      if (upload) {
+        // console.log(file_name,'uploadeddd yesss')
+        const updated_file =
+          await this.fileService.updateFileNameAndBucketUrlDragAndDrop(
+            file_ids[index],
+            file_name,
+          );
+        file_data.push(updated_file);
       }
+      // console.log(file_name,'uploadeddd lol')
     }
-    return file_data
+    return file_data;
   }
 }
