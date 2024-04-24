@@ -34,7 +34,7 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
       Group,
       Organization,
       Invite,
-      AuditLogs
+      AuditLogs,
     ]),
   ],
   controllers: [FilesController],
@@ -48,7 +48,8 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
     JwtService,
     FoldersService,
     UsersService,
-    AuditLogsSerivce
+    AuditLogsSerivce,
   ],
+  exports: [FilesService],
 })
 export class FilesModule {}
