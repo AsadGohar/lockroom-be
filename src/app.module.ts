@@ -56,7 +56,7 @@ import { FilesService } from './files/files.service';
       // logging:'all',
       ssl:{
         rejectUnauthorized:false,
-      },
+      }
       // ssl: false,
     }),
     ThrottlerModule.forRoot({
