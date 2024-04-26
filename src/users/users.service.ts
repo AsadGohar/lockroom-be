@@ -93,7 +93,7 @@ export class UsersService {
       });
 
       const new_group = this.groupsRepository.create({
-        name: 'Admin',
+        name: 'Associates',
         createdBy: user,
       });
 
@@ -356,7 +356,7 @@ export class UsersService {
         .getRawMany();
 
       const new_group = this.groupsRepository.create({
-        name: 'Admin',
+        name: 'Associates',
         createdBy: new_user,
       });
       const saved_group = await this.groupsRepository.save(new_group);

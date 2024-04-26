@@ -6,6 +6,7 @@ import { GroupsService } from 'src/groups/groups.service';
 import { Group } from 'src/groups/entities/group.entity';
 import { In } from 'typeorm';
 import { Permission } from 'src/permission/entities/permission.entity';
+import { FilesService } from 'src/files/files.service';
 
 @Injectable()
 export class GroupFilesPermissionsService {
@@ -16,7 +17,6 @@ export class GroupFilesPermissionsService {
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
-    // private readonly groupService: GroupsService,
   ) {}
 
   async createGroupFilePermissionsFoAllGroups(
@@ -154,7 +154,7 @@ export class GroupFilesPermissionsService {
         },
       });
 
-      console.log(find_group_files_permissions, 'data');
+      // console.log(find_group_files_permissions, 'data');
 
       const permission_ids = [];
       find_group_files_permissions.map((gfp) => {

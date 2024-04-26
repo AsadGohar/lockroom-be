@@ -6,6 +6,7 @@ import {
   Body,
   UseGuards,
   Request,
+  Patch
 } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './uploads.service';
@@ -29,6 +30,20 @@ export class UploadController {
       folder_id,
       request.decoded_data.user_id,
       organization_id,
+    );
+  }
+
+  @Patch()
+  @UseGuards(AuthGuard)
+  @UseInterceptors(AnyFilesInterceptor())
+  async updateSingle(
+    @UploadedFiles()
+    file: Express.Multer.File,
+    @Body('file_id') file_id: string,
+  ) {
+    return await this.uploadService.uploadFileAndUpdateUrl(
+      file,
+      file_id
     );
   }
 
