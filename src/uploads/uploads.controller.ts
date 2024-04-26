@@ -1,30 +1,60 @@
 import {
   Controller,
-  ParseFilePipe,
   Post,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
+  Body,
+  UseGuards,
+  Request,
+  Patch
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './uploads.service';
-
+import { AuthGuard } from 'src/guards/auth.guard';
 @Controller('upload')
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(AuthGuard)
+  @UseInterceptors(AnyFilesInterceptor())
   async uploadFile(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          // new MaxFileSizeValidator({ maxSize: 1000 }),
-          // new FileTypeValidator({ fileType: 'image/jpeg' }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
+    @UploadedFiles()
+    files: Array<Express.Multer.File>,
+    @Body('organization_id') organization_id: string,
+    @Body('folder_id') folder_id: string,
+    @Request() request,
   ) {
-    await this.uploadService.upload(file.originalname, file.buffer);
+    return await this.uploadService.uploadMultiple(
+      files,
+      folder_id,
+      request.decoded_data.user_id,
+      organization_id,
+    );
+  }
+
+  @Patch()
+  @UseGuards(AuthGuard)
+  @UseInterceptors(AnyFilesInterceptor())
+  async updateSingle(
+    @UploadedFiles()
+    file: Express.Multer.File,
+    @Body('file_id') file_id: string,
+  ) {
+    return await this.uploadService.uploadFileAndUpdateUrl(
+      file,
+      file_id
+    );
+  }
+
+  @Post('drag-and-drop')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(AnyFilesInterceptor())
+  async dragAndDrop(
+    @UploadedFiles()
+    files: Array<Express.Multer.File>,
+    @Body('file_ids') file_ids: string[],
+  ) {
+    return await this.uploadService.dragAndDrop(files, file_ids);
   }
 }

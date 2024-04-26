@@ -1,110 +1,289 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Folder } from './entities/folder.entity';
 import { UsersService } from '../users/users.service';
-
+import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
+import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
+import { File } from 'src/files/entities/file.entity';
+import { Organization } from 'src/organizations/entities/organization.entity';
+import { formatBytes } from 'src/utils/converts.utils';
+import { Group } from 'src/groups/entities/group.entity';
 @Injectable()
 export class FoldersService {
   constructor(
     @InjectRepository(Folder)
     private readonly foldersRepository: Repository<Folder>,
+    @InjectRepository(File)
+    private readonly fileRepository: Repository<File>,
+    @InjectRepository(Organization)
+    private readonly orgRepository: Repository<Organization>,
+    @InjectRepository(Group)
+    private readonly groupsRepository: Repository<Group>,
+    @InjectRepository(FilesPermissions)
+    private readonly fpRepository: Repository<FilesPermissions>,
+    @InjectRepository(GroupFilesPermissions)
+    private readonly gfpRepository: Repository<GroupFilesPermissions>,
     private readonly userService: UsersService,
   ) {}
 
-  async create(name: string, sub: string, parentFolderId?: string) {
+  async create(
+    name: string,
+    user_id: string,
+    organization_id: string,
+    parent_folder_id?: string,
+  ) {
+    if (!parent_folder_id)
+      throw new NotFoundException('parent folder required');
+
     //check if parent repo exists
-    const parentFolder = await this.foldersRepository.findOne({
+    const parent_folder = await this.foldersRepository.findOne({
+      relations: ['sub_folders'],
       where: {
-        id: parentFolderId,
+        id: parent_folder_id,
       },
     });
-    if (!parentFolder) throw new NotFoundException('parent folder found');
+    if (!parent_folder) throw new NotFoundException('parent folder found');
 
     //check if child repos have duplicate name
-    const childFoldersWithSameName = await this.foldersRepository.find({
+    const child_folders_with_same_name = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
         name: name,
+        is_deleted:false
       },
     });
-    if (childFoldersWithSameName.length > 0)
+    if (child_folders_with_same_name.length > 0)
       throw new ConflictException('folder already exists with same name');
 
     const user = await this.userService.findOne({
-      sub,
+      id: user_id,
     });
 
-    const allChildFolders = await this.foldersRepository.find({
+    const all_child_folders = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
       },
     });
 
-    const treeIndex = `${parentFolder.tree_index}.`;
+    const all_child_files = await this.fileRepository.find({
+      where: {
+        folder: {
+          id: parent_folder_id,
+        },
+      },
+    });
+
+    const current_tree_index = `${parent_folder.tree_index}.`;
     const next =
-      allChildFolders.length > 0 ? `${allChildFolders.length + 1}` : 1;
+      all_child_folders.length + all_child_files.length > 0
+        ? `${all_child_folders.length + all_child_files.length + 1}`
+        : 1;
 
     if (!user) throw new NotFoundException('user not found');
+
+    const find_org = await this.orgRepository.findOne({
+      where: {
+        id: organization_id,
+      },
+    });
+
     const new_folder = await this.foldersRepository.save({
       name,
-      parentFolderId,
-      tree_index: treeIndex + next,
+      parent_folder_id,
+      tree_index: current_tree_index + next,
       users: [user],
+      organization: find_org,
+      absolute_path: parent_folder.absolute_path + '/' + name,
     });
 
     const new_folder_1 = {
       ...new_folder,
       folder_name: new_folder.name,
-      folder_parentFolderId: new_folder.parentFolderId,
+      folder_parent_folder_id: new_folder.parent_folder_id,
       folder_tree_index: new_folder.tree_index,
-      folder_createdAt : new_folder.createdAt,
-      folder_id: new_folder.id
-    }
+      folder_createdAt: new_folder.createdAt,
+      folder_id: new_folder.id,
+    };
 
     const query = this.foldersRepository
       .createQueryBuilder('folder')
       .leftJoinAndSelect('folder.users', 'user')
-      .where('user.id = :userId', { userId: user.id});
+      .where('user.id = :user_id', { user_id: user.id });
 
-    if (parentFolderId) {
-      query.andWhere('folder.parentFolderId = :parentFolderId', {
-        parentFolderId,
+    if (parent_folder_id) {
+      query.andWhere('folder.parent_folder_id = :parent_folder_id', {
+        parent_folder_id,
       });
     } else {
-      query.andWhere('folder.parentFolderId IS NULL');
+      query.andWhere('folder.parent_folder_id IS NULL');
     }
     const data = await query.getMany();
-    return { new_folder: new_folder_1, files_count: data.length };
+    parent_folder.sub_folders.push(new_folder);
+    const update_parent_folder =
+      await this.foldersRepository.save(parent_folder);
+    return {
+      new_folder: new_folder_1,
+      files_count: data.length,
+      parent_folder: update_parent_folder,
+    };
   }
 
   async findAll() {
     const repos = await this.foldersRepository.find();
   }
 
-  async findAllByUserId(userId: string) {
-    const repos = await this.foldersRepository.find({
+  async findAllByOrganization(organization_id: string, user_id: string) {
+    if (!organization_id || !user_id)
+      throw new NotFoundException('Missing Fields');
+
+    const find_user = await this.userService.findOne({
+      id: user_id,
+    });
+
+    if (find_user.role == 'admin') {
+      const get_files = await this.fileRepository.find({
+        relations: ['folder'],
+        where: {
+          organization: {
+            id: find_user.organization_created.id,
+          },
+          folder: {
+            is_deleted: false,
+          },
+        },
+      });
+
+      const file_data = get_files.map((file) => {
+        return {
+          name: file.name,
+          folder_tree_index: file.tree_index,
+          folder_id: file.folder.id,
+          folder_name: file.folder.name,
+          size: formatBytes(file.size_bytes),
+          mime_type: file.mime_type,
+          url: file.bucket_url,
+          file_id: file.id,
+          extension: file.extension,
+          folder_createdAt: file.createdAt,
+          id: file.id,
+        };
+      });
+      const query1 = await this.foldersRepository
+        .createQueryBuilder('folder')
+        .leftJoinAndSelect('folder.users', 'user')
+        .leftJoin('folder.sub_folders', 'sub_folder')
+        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
+        .where('folder.organization.id = :organizationId', {
+          organizationId: organization_id,
+        })
+        .andWhere('folder.is_deleted = :isDeleted', { isDeleted: false })
+        .groupBy('folder.id, user.id')
+        .orderBy('folder.createdAt', 'ASC')
+        .addSelect('folder.id', 'id')
+        .addSelect('folder.id', 'folder_id')
+        .getRawMany();
+
+      const data = [...query1, ...file_data].sort(
+        (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
+      );
+
+      return {
+        sub_folder_count: data,
+      };
+    }
+    if (find_user.role == 'guest') {
+      const find_group = await this.groupsRepository.find({
+        where: {
+          users: {
+            id: find_user.id,
+          },
+        },
+      });
+      const group_files_permissions = await this.gfpRepository.find({
+        relations: [
+          'file_permission.permission',
+          'file_permission.file',
+          'file_permission.file.folder',
+        ],
+        where: {
+          group: {
+            id: In(find_group.map((item) => item.id)),
+          },
+          file_permission: {
+            permission: {
+              type: 'view',
+              status: true,
+            },
+            file: {
+              folder: {
+                is_deleted: false,
+              },
+            },
+          },
+        },
+      });
+
+      const file_data = group_files_permissions.map((item) => {
+        return {
+          name: item.file_permission.file.name,
+          folder_tree_index: item.file_permission.file.tree_index,
+          folder_id: item.file_permission.file.folder.id,
+          folder_name: item.file_permission.file.folder.name,
+          size: formatBytes(item.file_permission.file.size_bytes),
+          mime_type: item.file_permission.file.mime_type,
+          url: item.file_permission.file.bucket_url,
+          file_id: item.file_permission.file.id,
+          folder_createdAt: item.file_permission.file.createdAt,
+          id: item.file_permission.file.id,
+        };
+      });
+
+      const query1 = await this.foldersRepository
+        .createQueryBuilder('folder')
+        .leftJoinAndSelect('folder.users', 'user')
+        .leftJoin('folder.sub_folders', 'sub_folder')
+        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
+        .where('folder.organization.id = :organizationId', {
+          organizationId: organization_id,
+        })
+        .andWhere('folder.is_deleted = :isDeleted', { isDeleted: false })
+        .groupBy('folder.id, user.id')
+        .orderBy('folder.createdAt', 'ASC')
+        .addSelect('folder.id', 'id')
+        .addSelect('folder.id', 'folder_id')
+        .getRawMany();
+
+      const data = [...query1, ...file_data].sort(
+        (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
+      );
+
+      return {
+        sub_folder_count: data,
+      };
+    }
+  }
+
+  async findAllByUserId(user_id: string) {
+    if (!user_id) throw new NotFoundException('Missing Fields');
+    return await this.foldersRepository.find({
       where: {
         users: {
-          id: userId,
+          id: user_id,
         },
       },
     });
-    console.log(repos);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} folder`;
-  }
-
-  async update(prev_name: string, new_name: string, parentFolderId?: string) {
+  async update(prev_name: string, new_name: string, parent_folder_id?: string) {
     const findRepo = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
         name: prev_name,
       },
     });
@@ -115,7 +294,7 @@ export class FoldersService {
 
     const findRepoWithNewName = await this.foldersRepository.find({
       where: {
-        parentFolderId,
+        parent_folder_id,
         name: new_name,
       },
     });
@@ -125,7 +304,7 @@ export class FoldersService {
 
     await this.foldersRepository.update(
       {
-        parentFolderId,
+        parent_folder_id,
         name: prev_name,
       },
       {
@@ -134,14 +313,47 @@ export class FoldersService {
     );
   }
 
-  async remove(id: string) {
-    return await this.foldersRepository.update(
-      {
-        id: id,
-      },
-      {
-        is_deleted: true,
-      },
-    );
+  async soft_delete(id: string) {
+    try {
+      return await this.foldersRepository.update(
+        {
+          id: id,
+        },
+        {
+          is_deleted: true,
+        },
+      );
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error.message 
+      );
+    }
+  }
+
+  async rename(folder_id: string, new_name: string, parent_folder_id: string) {
+    try {
+      const check_same_name_folder = await this.foldersRepository.find({
+        where: {
+          parent_folder_id,
+          name: new_name,
+          is_deleted:false
+        },
+      });
+      if (check_same_name_folder.length > 0)
+        return new ConflictException('folder with same already exists');
+      return await this.foldersRepository.update(
+        {
+          id: folder_id,
+        },
+        {
+          name: new_name,
+        },
+      );
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException(
+        error.message 
+      );
+    }
   }
 }

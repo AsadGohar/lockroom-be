@@ -1,57 +1,62 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
   Param,
-  Delete,
+  Get,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { FoldersService } from './folders.service';
-import { UpdateRepositoryDto } from './dto/update-repository.dto';
+import { AuthGuard } from 'src/guards/auth.guard';
 
 @Controller('folders')
 export class FoldersController {
   constructor(private readonly foldersService: FoldersService) {}
 
+  @UseGuards(AuthGuard)
   @Post('/create')
   create(
     @Body('name') name: string,
-    @Body('sub') sub: string,
-    @Body('parentFolderId') parentFolderId: string,
+    @Body('parent_folder_id') parent_folder_id: string,
+    @Body('organization_id') organization_id: string,
+    @Request() request,
   ) {
     try {
-      return this.foldersService.create(name, sub, parentFolderId)
+      return this.foldersService.create(
+        name,
+        request.decoded_data.user_id,
+        organization_id,
+        parent_folder_id,
+      );
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 
-  @Get()
-  findAll() {
-    return this.foldersService.findAll();
-  }
-
-  @Get(':id')
-  findAllByUserId(@Param('id') id: string) {
-    return this.foldersService.findAllByUserId(id);
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.foldersService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateRepositoryDto: UpdateRepositoryDto,
+  @UseGuards(AuthGuard)
+  @Post('/organization')
+  findAllByOrganization(
+    @Body('organization_id') organization_id: string,
+    @Request() request,
   ) {
-    // return this.foldersService.update(id, updateRepositoryDto);
+    return this.foldersService.findAllByOrganization(
+      organization_id,
+      request.decoded_data.user_id,
+    );
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.foldersService.remove(id);
+  @Post('rename')
+  rename(
+    @Body('folder_id') folder_id: string,
+    @Body('new_name') new_name: string,
+    @Body('parent_folder_id') parent_folder_id: string,
+  ) {
+    return this.foldersService.rename(folder_id, new_name, parent_folder_id);
+  }
+
+  @Post('delete')
+  remove(@Body('folder_id') folder_id: string) {
+    return this.foldersService.soft_delete(folder_id);
   }
 }
