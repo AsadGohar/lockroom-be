@@ -18,4 +18,4 @@ deploy-job:
     - apt-get update -yq
     - apt-get install -y ruby-dev
     - gem install dpl
-    - dpl - provider=heroku - app=$HEROKU_APP_NAME - api-key=$HEROKU_PRODUCTION_KEY
+    - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
