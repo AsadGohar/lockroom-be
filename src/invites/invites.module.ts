@@ -4,11 +4,52 @@ import { InvitesController } from './invites.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Invite } from './entities/invite.entity';
 import { User } from 'src/users/entities/user.entity';
-
+import { Group } from 'src/groups/entities/group.entity';
+import { JwtService } from '@nestjs/jwt';
+import { Organization } from 'src/organizations/entities/organization.entity';
+import { GroupsService } from 'src/groups/groups.service';
+import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
+import { FilesService } from 'src/files/files.service';
+import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
+import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
+import { Folder } from 'src/folders/entities/folder.entity';
+import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
+import { OrganizationsService } from 'src/organizations/organizations.service';
+import { PermissionService } from 'src/permission/permission.service';
+import { Permission } from 'src/permission/entities/permission.entity';
+import { FoldersService } from 'src/folders/folders.service';
+import { UsersService } from 'src/users/users.service';
+import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
+import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 @Module({
-  imports:[TypeOrmModule.forFeature([Invite, User])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Invite,
+      User,
+      Group,
+      Organization,
+      FilesPermissions,
+      Folder,
+      File,
+      GroupFilesPermissions,
+      Permission,
+      AuditLogs
+    ]),
+  ],
   controllers: [InvitesController],
-  providers: [InvitesService],
-  exports:[InvitesService]
+  providers: [
+    InvitesService,
+    JwtService,
+    GroupsService,
+    FilesService,
+    GroupFilesPermissionsService,
+    FilesPermissionsService,
+    OrganizationsService,
+    PermissionService,
+    FoldersService,
+    UsersService,
+    AuditLogsSerivce
+  ],
+  exports: [InvitesService],
 })
 export class InvitesModule {}

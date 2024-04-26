@@ -6,7 +6,6 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
@@ -22,8 +21,8 @@ export class AuthGuard implements CanActivate {
       const resp = await this.jwtService.verify(authToken, {
         secret: process.env.JWT_SECRET,
       });
-      request.decodedData = resp;
-      return true;
+      request.decoded_data = resp;
+      return true; 
     } catch (error) {
       console.log('auth error - ', error.message);
       throw new ForbiddenException(

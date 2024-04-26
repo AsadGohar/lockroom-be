@@ -12,11 +12,27 @@ import { MailController } from './mail/mail.controller';
 import { EmailService } from './email/email.service';
 import { InvitesModule } from './invites/invites.module';
 import { Invite } from './invites/entities/invite.entity';
-import { AuthGuard } from './guards/auth.guard';
-
+import { PermissionModule } from './permission/permission.module';
+import { GroupsModule } from './groups/groups.module';
+import { Permission } from './permission/entities/permission.entity';
+import { Group } from './groups/entities/group.entity';
+import { FilesModule } from './files/files.module';
+import { FilesPermissions } from './files-permissions/entities/files-permissions.entity';
+import { FilesPermissionsModule } from './files-permissions/files-permissions.module';
+import { File } from './files/entities/file.entity';
+import { JwtService } from '@nestjs/jwt';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { OrganizationsModule } from './organizations/organizations.module';
+import { Organization } from './organizations/entities/organization.entity';
+import { GroupFilesPermissions } from './group-files-permissions/entities/group-files-permissions.entity';
+import { GroupFilesPermissionsModule } from './group-files-permissions/group-files-permissions.module';
+import { GroupFilesPermissionsController } from './group-files-permissions/group-files-permissions.controller';
+import { AuditLogs } from './audit-logs/entities/audit-logs.entities';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { FilesService } from './files/files.service';
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), // Register the ConfigModule here
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -24,18 +40,46 @@ import { AuthGuard } from './guards/auth.guard';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      entities: [User, Folder, Invite],
+      entities: [
+        User,
+        Folder,
+        Invite,
+        Group,
+        Organization,
+        File,
+        Permission,
+        FilesPermissions,
+        GroupFilesPermissions,
+        AuditLogs
+      ],
       synchronize: true,
+      // logging:'all',
       ssl:{
-        rejectUnauthorized:false
+        rejectUnauthorized:false,
       },
-      // ssl:false
+      // ssl: false,
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60, // seconds
+          limit: 300,
+        },
+      ],
     }),
     UsersModule,
     UploadsModule,
     FoldersModule,
-    InvitesModule],
-  controllers: [AppController, MailController],
-  providers: [AppService, EmailService],
+    InvitesModule,
+    PermissionModule,
+    GroupsModule,
+    FilesModule,
+    FilesPermissionsModule,
+    OrganizationsModule,
+    GroupFilesPermissionsModule,
+    AuditLogsModule,
+  ],
+  controllers: [AppController, MailController, GroupFilesPermissionsController],
+  providers: [AppService, EmailService, JwtService],
 })
 export class AppModule {}
