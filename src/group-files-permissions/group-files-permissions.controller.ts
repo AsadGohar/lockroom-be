@@ -1,7 +1,6 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { GroupFilesPermissionsService } from './group-files-permissions.service';
 import { AuthGuard } from 'src/guards/auth.guard';
-
 @Controller('gfp')
 export class GroupFilesPermissionsController {
   constructor(

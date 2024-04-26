@@ -94,4 +94,31 @@ export class UploadService {
     }
     return file_data;
   }
+
+  async uploadFileAndUpdateUrl(
+    file: any,
+    file_id: string,
+  ) {
+    console.log(file[0], 'file')
+    let new_file = file[0]
+    // return
+    // const file =  file[0]
+    let file_name = uuidv4() + '-' + new_file.originalname;
+    let upload = await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: 'lockroom',
+        Key: file_name,
+        Body: new_file.buffer,
+      }),
+    );
+    // console.log(upload,'up res')
+    if(upload){
+      return await this.fileService.findFileAndUpdateUrl(file_id,file_name)
+    }   
+    else {
+      return {
+        message:'failed to upload file  '
+      }
+    } 
+  }
 }

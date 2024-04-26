@@ -9,7 +9,7 @@ import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { FoldersService } from 'src/folders/folders.service';
 import { Group } from 'src/groups/entities/group.entity';
-import { group } from 'console';
+
 @Injectable()
 export class FilesService {
   constructor(
@@ -191,7 +191,11 @@ export class FilesService {
     }
   }
 
-  async buildFolderFileStructure(folder: Folder, group_id: string) {
+  async buildFolderFileStructure(
+    folder: Folder,
+    group_id: string,
+    file_ids: string[],
+  ) {
     const folder_files = {
       name: folder.name,
       id: folder.id,
@@ -205,10 +209,10 @@ export class FilesService {
           file.id,
           group_id,
         );
-        console.log(
-          file_permissions[0].permission.status,
-          file_permissions[0].permission.type,
-        );
+        // console.log(
+        //   file_permissions[0].permission.status,
+        //   file_permissions[0].permission.type,
+        // );
         const file_access = {
           type: 'file',
           name: file.name,
@@ -227,6 +231,7 @@ export class FilesService {
           extension: file.extension,
         };
         folder_files.children.push(file_access);
+        file_ids.push(file.id);
       }
     }
     folder_files.children = folder_files.children.sort(
@@ -239,6 +244,7 @@ export class FilesService {
     organization_id: string,
     parent_folder_id: string,
     group_id: string,
+    file_ids: string[],
   ) {
     const root_folders = await this.foldersRepository.find({
       where: {
@@ -258,6 +264,7 @@ export class FilesService {
         const folder_file_structure = await this.buildFolderFileStructure(
           root_folder,
           group_id,
+          file_ids,
         );
         folder_file_structures.push(folder_file_structure);
       }
@@ -267,11 +274,11 @@ export class FilesService {
             organization_id,
             sub.id,
             group_id,
+            file_ids,
           );
         sub.children.push(...folder_file_structure);
       }
     }
-    // return
     return folder_file_structures;
   }
 
@@ -282,10 +289,12 @@ export class FilesService {
   ) {
     try {
       if (!organization_id) throw new NotFoundException('Missing Fields');
+      const file_ids_in_org = [];
       const result = await this.getFoldersAndFilesByOrganizationId(
         organization_id,
         parent_folder_id,
         group_id,
+        file_ids_in_org,
       );
       const home_folder = JSON.parse(
         JSON.stringify(
@@ -301,12 +310,14 @@ export class FilesService {
       const folder_file_structure = await this.buildFolderFileStructure(
         home_folder,
         group_id,
+        file_ids_in_org,
       );
       folder_file_structure.children = [
         ...folder_file_structure.children,
         ...result,
       ].sort((a, b) => a.index - b.index);
-      return folder_file_structure;
+      // console.log(file_ids_in_org,'orhgg')
+      return { folder_file_structure, file_ids_in_org };
     } catch (error) {
       throw Error(error);
     }
@@ -523,8 +534,54 @@ export class FilesService {
           },
         });
         // console.log(file.bucket_url, 'file url')
-        return file
+        return file;
       }
     } catch (error) {}
+  }
+
+  async getFileIdsFromParentFolderAndUpdatePermissions(
+    organization_id: string,
+    parent_folder_id: string,
+    group_id: string,
+    type: string,
+    status:boolean
+  ) {
+    const result = await this.getAllFilesByOrg(
+      organization_id,
+      parent_folder_id,
+      group_id,
+    );
+    // console.log(result.file_ids_in_org)
+    const update_files_permissions =
+      await this.gfpService.newUpdateGroupFilePermissions(
+        group_id,
+        result.file_ids_in_org,
+        status,
+        type,
+      );
+    return update_files_permissions;
+  }
+
+  async findFileAndUpdateUrl(file_id:string, new_name:string){
+    // console.log(file_id, new_name, 'herreeeee')
+    const update_file = await this.fileRepository.update({
+        id: file_id
+      },{
+        bucket_url: 'https://lockroom.s3.amazonaws.com/' + new_name
+      }
+    )
+    // console.log(update_file, 'udddd res')
+    if(update_file.affected>0){
+      const file = await this.fileRepository.findOne({
+        where: {
+          id:file_id
+        }
+      })
+      console.log('fhdasdas')
+      return {
+        message: 'file url updated',
+        file
+      }
+    }
   }
 }
