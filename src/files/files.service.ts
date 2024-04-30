@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+=======
+import { Injectable, NotFoundException } from '@nestjs/common';
+>>>>>>> e367fe01625c8781c2120ec38eae11835508f9ec
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { Folder } from 'src/folders/entities/folder.entity';
@@ -9,7 +13,10 @@ import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { FoldersService } from 'src/folders/folders.service';
 import { Group } from 'src/groups/entities/group.entity';
+<<<<<<< HEAD
 import { FilePermissionEnum } from 'src/types/enums';
+=======
+>>>>>>> e367fe01625c8781c2120ec38eae11835508f9ec
 
 @Injectable()
 export class FilesService {

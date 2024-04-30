@@ -10,6 +10,7 @@ async function bootstrap() {
   // };
   const app = await NestFactory.create(AppModule,{
     // httpsOptions
+    cors: true
   });
   app.enableCors({
     origin:'*'

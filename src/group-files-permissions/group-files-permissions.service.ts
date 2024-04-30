@@ -161,7 +161,6 @@ export class GroupFilesPermissionsService {
       find_group_files_permissions.map((gfp) => {
         permission_ids.push(gfp.file_permission.permission.id);
       });
-
       const update_permissions = await this.permissionRepository.update(
         {
           id: In(permission_ids),
