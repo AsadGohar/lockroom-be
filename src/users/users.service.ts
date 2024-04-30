@@ -82,7 +82,7 @@ export class UsersService {
         generated_otp: otp,
       });
 
-      await sendSMS(createUserDto.phone_number, otp);
+      // await sendSMS(createUserDto.phone_number, otp);
 
       const user = await this.userRepository.save(create_user);
 
@@ -163,11 +163,6 @@ export class UsersService {
       }
       if (user.sso_login && user.sso_type == 'google')
         throw new UnauthorizedException('Login with Google');
-      // if (!user.is_email_verified)
-      //   throw new ConflictException({
-      //     status: false,
-      //     message: "verify your email",
-      //   }); // Throw ConflictException
       const passwordMatched = await bcrypt.compare(password, user.password);
       if (!passwordMatched) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
@@ -199,7 +194,7 @@ export class UsersService {
         if (user.two_fa_type == 'sms') {
           const otp = generateOTP();
           user.generated_otp = String(otp);
-          await sendSMS(user.phone_number, String(otp));
+          // await sendSMS(user.phone_number, String(otp));
         }
 
         await this.userRepository.save(user);
@@ -243,7 +238,7 @@ export class UsersService {
         if (user.two_fa_type == 'sms') {
           const otp = generateOTP();
           user.generated_otp = String(otp);
-          await sendSMS(user.phone_number, String(otp));
+          // await sendSMS(user.phone_number, String(otp));
         }
 
         await this.userRepository.save(user);
@@ -287,11 +282,13 @@ export class UsersService {
             id: In(orgs),
           },
         });
+
         const query = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
           .where('user.id = :user_id', { user_id: find_user.id })
           .getMany();
+
         const query1 = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
@@ -301,6 +298,9 @@ export class UsersService {
           .groupBy('folder.id, user.id')
           .orderBy('folder.createdAt', 'ASC')
           .getRawMany();
+
+          // this,this.folderRepository.
+
         const payload = {
           user_id: find_user.id,
           email: find_user.email,
@@ -533,7 +533,7 @@ export class UsersService {
       const otp = String(generateOTP());
       find_user.generated_otp = otp;
       await this.userRepository.save(find_user);
-      await sendSMS(find_user.phone_number, otp);
+      // await sendSMS(find_user.phone_number, otp);
     } else {
       return new NotFoundException('user not found');
     }

@@ -14,6 +14,7 @@ import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
+import { FilePermissionEnum } from 'src/types/enums';
 @Injectable()
 export class FoldersService {
   constructor(
@@ -205,6 +206,7 @@ export class FoldersService {
           },
         },
       });
+      // console.log(find_group,'gruppp')
       const group_files_permissions = await this.gfpRepository.find({
         relations: [
           'file_permission.permission',
@@ -217,7 +219,7 @@ export class FoldersService {
           },
           file_permission: {
             permission: {
-              type: 'view',
+              type: In([FilePermissionEnum.VIEW_ORIGINAL, FilePermissionEnum.VIEW_WATERMARKED]),
               status: true,
             },
             file: {
@@ -262,6 +264,8 @@ export class FoldersService {
       const data = [...query1, ...file_data].sort(
         (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
       );
+
+      // console.log(data,'dasda')
 
       return {
         sub_folder_count: data,
