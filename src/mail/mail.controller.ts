@@ -32,13 +32,6 @@ export class MailController {
     @Body('organization_id') organization_id: string,
     @Request() request,
   ) {
-    try {
-      console.log(
-        'SEND INVITES TO',
-        emails,
-        'BY',
-        request.decoded_data.user_id,
-      );
       if (!request.decoded_data.user_id)
         throw new UnauthorizedException('Sender Id is Missing');
       let new_users = [];
@@ -51,29 +44,24 @@ export class MailController {
             email,
           });
           if (invitedUserAlreadyExists) {
-            console.log('invited user exists', invitedUserAlreadyExists);
-            if (invitedUserAlreadyExists.role == 'admin') return;
-            if (
-              invitedUserAlreadyExists?.organization_created?.id ==
-              organization_id
-            )
+            // console.log('invited user exists', invitedUserAlreadyExists);
+            // if (invitedUserAlreadyExists.role == 'admin') return;
+            // if (
+            //   invitedUserAlreadyExists?.organization_created?.id ==
+            //   organization_id
+            // )
               return;
-            return await this.groupService.addUserToAGroup(
-              group_id,
-              invitedUserAlreadyExists.id,
-              senderUser.first_name + ' ' + senderUser.last_name,
-            );
+            // return await this.groupService.addUserToAGroup(
+            //   group_id,
+            //   invitedUserAlreadyExists.id,
+            //   senderUser.first_name + ' ' + senderUser.last_name,
+            // );
           }
           // console.log('ghere', email)
           new_users.push(email);
           // console.log(new_users, 'in emails');
         }),
       );
-      // console.log(group_id, organization_id)
-      // console.log('before', request.decoded_data.user_id,
-      // new_users,
-      // group_id,
-      // organization_id,)
       if (new_users.length == 0) {
         throw new NotFoundException('no user found to invite');
       }
@@ -83,7 +71,6 @@ export class MailController {
         group_id,
         organization_id,
       );
-
       if (invites.length > 0) {
         const sendEmails = invites.map((invite) => {
           const payload = { invite_id: invite.id };
@@ -119,9 +106,5 @@ export class MailController {
           await this.groupService.findAllUsersInGroup(group_id);
         return { group_users };
       }
-    } catch (error) {
-      console.log(error);
-      throw Error(error)
-    }
   }
 }

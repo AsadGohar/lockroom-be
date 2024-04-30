@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { Folder } from 'src/folders/entities/folder.entity';
@@ -9,6 +9,7 @@ import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { FoldersService } from 'src/folders/folders.service';
 import { Group } from 'src/groups/entities/group.entity';
+import { FilePermissionEnum } from 'src/types/enums';
 
 @Injectable()
 export class FilesService {
@@ -178,17 +179,54 @@ export class FilesService {
     }
   }
 
-  async findOne(id: string) {
-    try {
+  async findOne(id: string, user_id: string) {
       if (!id) throw new NotFoundException('Missing Fields');
-      return await this.fileRepository.findOne({
+      const find_user = await this.userRepository.findOne({
+        relations: ['groups', 'organizations_added_in'],
         where: {
-          id,
+          id: user_id,
         },
       });
-    } catch (error) {
-      throw Error(error);
-    }
+      if (find_user.role == 'guest') {
+        const file_permissions = await this.fpService.findFilePermissiosn(
+          id,
+          find_user.groups[0].id,
+        );
+        const view_access_original =
+          file_permissions[FilePermissionEnum.VIEW_ORIGINAL];
+        const view_access_watermark =
+          file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
+        const download_access_original =
+          file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
+
+        const file = await this.fileRepository.findOne({
+          relations: ['FilesPermissions', 'FilesPermissions.permission', 'user', 'organization'],
+          where: {
+            id,
+          },
+        });
+
+        // console.log(file.organization.id,find_user.organizations_added_in[0].id, 'orrggggg')
+        if(file.organization.id != find_user.organizations_added_in[0].id)
+        throw new UnauthorizedException('Unauthorized to View File')
+
+        if(!view_access_original && !view_access_watermark)
+        throw new UnauthorizedException('Unauthorized to View File')
+
+        return {
+          ...file,
+          view_access_original,
+          view_access_watermark,
+          download_access_original,
+        };
+      } else {
+        return await this.fileRepository.findOne({
+          relations:['user'],
+          where: {
+            id,
+          },
+        });
+      }
   }
 
   async buildFolderFileStructure(
@@ -209,6 +247,15 @@ export class FilesService {
           file.id,
           group_id,
         );
+
+        const view_access_original =
+          file_permissions[FilePermissionEnum.VIEW_ORIGINAL];
+        const view_access_watermark =
+          file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
+        const download_access_original =
+          file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
+
+        // console.log(file_permissions,view_access_original,view_access_watermark , download_access_original)
         // console.log(
         //   file_permissions[0].permission.status,
         //   file_permissions[0].permission.type,
@@ -216,14 +263,9 @@ export class FilesService {
         const file_access = {
           type: 'file',
           name: file.name,
-          has_view_access:
-            file_permissions[0].permission.type == 'view'
-              ? file_permissions[0].permission.status
-              : file_permissions[1].permission.status,
-          has_download_access:
-            file_permissions[1].permission.type == 'download'
-              ? file_permissions[1].permission.status
-              : file_permissions[0].permission.status,
+          has_view_access_original: view_access_original,
+          has_view_access_watermark: view_access_watermark,
+          has_download_access_original: download_access_original,
           index: file.tree_index,
           mime_type: file.mime_type,
           file_id: file.id,
@@ -544,7 +586,7 @@ export class FilesService {
     parent_folder_id: string,
     group_id: string,
     type: string,
-    status:boolean
+    status: boolean,
   ) {
     const result = await this.getAllFilesByOrg(
       organization_id,
@@ -562,26 +604,28 @@ export class FilesService {
     return update_files_permissions;
   }
 
-  async findFileAndUpdateUrl(file_id:string, new_name:string){
+  async findFileAndUpdateUrl(file_id: string, new_name: string) {
     // console.log(file_id, new_name, 'herreeeee')
-    const update_file = await this.fileRepository.update({
-        id: file_id
-      },{
-        bucket_url: 'https://lockroom.s3.amazonaws.com/' + new_name
-      }
-    )
+    const update_file = await this.fileRepository.update(
+      {
+        id: file_id,
+      },
+      {
+        bucket_url: 'https://lockroom.s3.amazonaws.com/' + new_name,
+      },
+    );
     // console.log(update_file, 'udddd res')
-    if(update_file.affected>0){
+    if (update_file.affected > 0) {
       const file = await this.fileRepository.findOne({
         where: {
-          id:file_id
-        }
-      })
-      console.log('fhdasdas')
+          id: file_id,
+        },
+      });
+      // console.log('fhdasdas');
       return {
         message: 'file url updated',
-        file
-      }
+        file,
+      };
     }
   }
 }

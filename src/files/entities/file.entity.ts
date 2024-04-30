@@ -30,12 +30,6 @@ export class File {
   @Column({ nullable: true })
   original_name: string;
 
-  @ManyToOne(() => Folder, (folder) => folder.files, {
-    nullable: true,
-    onDelete: 'CASCADE',
-  })
-  folder: Folder;
-
   @Column({ nullable: true, default: false })
   is_deleted: boolean;
 
@@ -68,6 +62,12 @@ export class File {
   @ManyToOne(() => AuditLogs, (auditLogs) => auditLogs.file)
   @JoinColumn()
   audit_log: AuditLogs;
+
+  @ManyToOne(() => Folder, (folder) => folder.files, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  folder: Folder;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

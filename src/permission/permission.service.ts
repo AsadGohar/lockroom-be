@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Permission } from './entities/permission.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { FilePermissionEnum } from 'src/types/enums';
 
 @Injectable()
 export class PermissionService {
@@ -14,13 +15,17 @@ export class PermissionService {
     try {
       const new_permissions = [
         {
-          type: 'view',
+          type: FilePermissionEnum.VIEW_ORIGINAL,
           status: true,
         },
         {
-          type: 'download',
-          status: true,
+          type: FilePermissionEnum.VIEW_WATERMARKED,
+          status: false,
         },
+        {
+          type: FilePermissionEnum.DOWNLOAD_ORIGINAL,
+          status: true,
+        }
       ];
       return await this.permissionRepo.save(new_permissions);
     } catch (error) {
