@@ -34,7 +34,7 @@ export class GroupsService {
 
   async create(name: string, user_id: string, organization_id: string) {
     try {
-      console.log(user_id, 'user id');
+      // console.log(user_id, 'user id');
       if (!name || !user_id || !organization_id)
         throw new NotFoundException('Missing Fields');
       const group = await this.groupsRepository.findOne({
