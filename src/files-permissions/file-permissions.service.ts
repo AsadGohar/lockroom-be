@@ -30,7 +30,8 @@ export class FilesPermissionsService {
   }
 
   async findFilePermissiosn(file_id: string, group_id:string) {
-    return await this.filePermRepo.find({
+    let permissions = {};
+    const file_permissions = await this.filePermRepo.find({
       relations: ['permission', 'file', 'file.folder', 'group_files_permissions'],
       where: {
         file: {
@@ -51,5 +52,11 @@ export class FilesPermissionsService {
         },
       },
     });
+    if(file_permissions){
+      file_permissions.map((file_permission) => {
+        permissions[file_permission.permission.type] = file_permission.permission.status;
+      });
+      return permissions
+    }
   }
 }

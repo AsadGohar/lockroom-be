@@ -31,8 +31,8 @@ export class FilesController {
 
   @UseGuards(AuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.filesService.findOne(id);
+  findOne(@Param('id') id: string, @Request() request,) {
+    return this.filesService.findOne(id, request.decoded_data.user_id);
   }
 
   @UseGuards(AuthGuard)

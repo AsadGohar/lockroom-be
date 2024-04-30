@@ -163,11 +163,6 @@ export class UsersService {
       }
       if (user.sso_login && user.sso_type == 'google')
         throw new UnauthorizedException('Login with Google');
-      // if (!user.is_email_verified)
-      //   throw new ConflictException({
-      //     status: false,
-      //     message: "verify your email",
-      //   }); // Throw ConflictException
       const passwordMatched = await bcrypt.compare(password, user.password);
       if (!passwordMatched) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
@@ -301,6 +296,9 @@ export class UsersService {
           .groupBy('folder.id, user.id')
           .orderBy('folder.createdAt', 'ASC')
           .getRawMany();
+
+          // this,this.folderRepository.
+
         const payload = {
           user_id: find_user.id,
           email: find_user.email,
