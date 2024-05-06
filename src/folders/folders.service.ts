@@ -322,7 +322,7 @@ export class FoldersService {
     );
   }
 
-  async buildFolderFileStructure(folder: Folder) {
+  private async buildFolderFileStructure(folder: Folder) {
     const folder_files = {
       name: folder.name,
       id: folder.id,
@@ -350,7 +350,7 @@ export class FoldersService {
     return folder_files;
   }
 
-  async getFoldersAndFilesByOrganizationId(
+  private async getFoldersAndFilesByOrganizationId(
     organization_id: string,
     parent_folder_id: string,
     folder_ids: string[],
@@ -388,7 +388,7 @@ export class FoldersService {
     return folder_file_structures;
   }
 
-  async getAllFilesByOrg(organization_id: string, parent_folder_id: string) {
+  private async getAllFilesByOrg(organization_id: string, parent_folder_id: string) {
     try {
       if (!organization_id) throw new NotFoundException('Missing Fields');
       const folder_ids = [];
