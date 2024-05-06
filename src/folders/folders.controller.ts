@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Param,
-  Get,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { AuthGuard } from 'src/guards/auth.guard';
 
@@ -55,8 +47,9 @@ export class FoldersController {
     return this.foldersService.rename(folder_id, new_name, parent_folder_id);
   }
 
+  @UseGuards(AuthGuard)
   @Post('delete')
-  remove(@Body('folder_id') folder_id: string) {
-    return this.foldersService.soft_delete(folder_id);
+  remove(@Body('folder_id') folder_id: string, @Body('org_id') org_id: string) {
+    return this.foldersService.soft_delete(folder_id, org_id);
   }
 }
