@@ -56,7 +56,7 @@ export class FoldersService {
       where: {
         parent_folder_id,
         name: name,
-        is_deleted:false
+        is_deleted: false,
       },
     });
     if (child_folders_with_same_name.length > 0)
@@ -137,6 +137,8 @@ export class FoldersService {
 
   async findAll() {
     const repos = await this.foldersRepository.find();
+
+    console.log('repos', repos);
   }
 
   async findAllByOrganization(organization_id: string, user_id: string) {
@@ -219,7 +221,10 @@ export class FoldersService {
           },
           file_permission: {
             permission: {
-              type: In([FilePermissionEnum.VIEW_ORIGINAL, FilePermissionEnum.VIEW_WATERMARKED]),
+              type: In([
+                FilePermissionEnum.VIEW_ORIGINAL,
+                FilePermissionEnum.VIEW_WATERMARKED,
+              ]),
               status: true,
             },
             file: {
@@ -317,20 +322,104 @@ export class FoldersService {
     );
   }
 
-  async soft_delete(id: string) {
+  async buildFolderFileStructure(folder: Folder) {
+    const folder_files = {
+      name: folder.name,
+      id: folder.id,
+      type: 'folder',
+      index: folder.tree_index,
+      children: [],
+    };
+    if (folder.files && folder.files.length > 0) {
+      for (const file of folder.files) {
+        const file_access = {
+          type: 'file',
+          name: file.name,
+          index: file.tree_index,
+          mime_type: file.mime_type,
+          file_id: file.id,
+          url: file.bucket_url,
+          extension: file.extension,
+        };
+        folder_files.children.push(file_access);
+      }
+    }
+    folder_files.children = folder_files.children.sort(
+      (a, b) => Number(a.index) - Number(b.index),
+    );
+    return folder_files;
+  }
+
+  async getFoldersAndFilesByOrganizationId(
+    organization_id: string,
+    parent_folder_id: string,
+    folder_ids: string[],
+  ) {
+    const root_folders = await this.foldersRepository.find({
+      where: {
+        organization: { id: organization_id },
+        parent_folder_id: parent_folder_id,
+        is_deleted: false,
+      },
+      relations: ['sub_folders', 'files.organization'],
+      order: {
+        tree_index: 'ASC',
+      },
+    });
+
+    const folder_file_structures = [];
+    if (root_folders.length > 0) {
+      for (const root_folder of root_folders) {
+        const folder_file_structure =
+          await this.buildFolderFileStructure(root_folder);
+        folder_file_structures.push(folder_file_structure);
+        folder_ids?.push(root_folder?.id);
+      }
+      for (const sub of folder_file_structures) {
+        const folder_file_structure =
+          await this.getFoldersAndFilesByOrganizationId(
+            organization_id,
+            sub.id,
+            folder_ids,
+          );
+        sub.children.push(...folder_file_structure);
+      }
+    }
+    return folder_file_structures;
+  }
+
+  async getAllFilesByOrg(organization_id: string, parent_folder_id: string) {
+    try {
+      if (!organization_id) throw new NotFoundException('Missing Fields');
+      const folder_ids = [];
+      await this.getFoldersAndFilesByOrganizationId(
+        organization_id,
+        parent_folder_id,
+        folder_ids,
+      );
+
+      return { folder_ids };
+    } catch (error) {
+      throw Error(error);
+    }
+  }
+
+  async soft_delete(id: string, org_id: string) {
+    const to_delete = await this.getAllFilesByOrg(org_id, id);
+
+    const sub_folders_ids = to_delete?.folder_ids;
+
     try {
       return await this.foldersRepository.update(
         {
-          id: id,
+          id: In([...sub_folders_ids, id]),
         },
         {
           is_deleted: true,
         },
       );
     } catch (error) {
-      throw new InternalServerErrorException(
-        error.message 
-      );
+      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -340,7 +429,7 @@ export class FoldersService {
         where: {
           parent_folder_id,
           name: new_name,
-          is_deleted:false
+          is_deleted: false,
         },
       });
       if (check_same_name_folder.length > 0)
@@ -355,9 +444,7 @@ export class FoldersService {
       );
     } catch (error) {
       console.log(error);
-      throw new InternalServerErrorException(
-        error.message 
-      );
+      throw new InternalServerErrorException(error.message);
     }
   }
 }
