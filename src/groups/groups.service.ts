@@ -8,11 +8,9 @@ import { Group } from './entities/group.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
-import { sendEmailUtil } from 'src/utils/email.utils';
+import { EmailService } from 'src/email/email.service';
 import { inviteTemplate } from 'src/utils/email.templates';
 import { FilesService } from 'src/files/files.service';
-import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
-import { In } from 'typeorm';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 @Injectable()
@@ -24,12 +22,11 @@ export class GroupsService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
-    @InjectRepository(FilesPermissions)
-    private readonly fpRepository: Repository<FilesPermissions>,
 
     private readonly fileService: FilesService,
     private readonly gfpService: GroupFilesPermissionsService,
     private readonly filePermissionService: FilesPermissionsService,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(name: string, user_id: string, organization_id: string) {
@@ -142,7 +139,7 @@ export class GroupsService {
       find_group.users.push(find_user);
       find_user.organizations_added_in.push(find_org);
       await this.userRepository.save(find_user);
-      await sendEmailUtil(mail);
+      await this.emailService.send(mail);
       return await this.groupsRepository.save(find_group);
     } catch (error) {
       console.log(error);

@@ -24,6 +24,7 @@ import { FoldersService } from 'src/folders/folders.service';
 import { UsersService } from 'src/users/users.service';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { OTPService } from 'src/otp/otp.service';
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
@@ -65,7 +66,8 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
     JwtService,
     FoldersService,
     UsersService,
-    AuditLogsSerivce
+    AuditLogsSerivce,
+    OTPService
   ],
 })
 export class UploadsModule {}

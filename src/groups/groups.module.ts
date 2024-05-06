@@ -21,6 +21,8 @@ import { FoldersService } from 'src/folders/folders.service';
 import { UsersService } from 'src/users/users.service';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { EmailService } from 'src/email/email.service';
+import { OTPService } from 'src/otp/otp.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -47,7 +49,9 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
     JwtService,
     FoldersService,
     UsersService,
-    AuditLogsSerivce
+    AuditLogsSerivce,
+    EmailService,
+    OTPService
   ],
   exports: [GroupsService],
 })

@@ -21,6 +21,7 @@ import { Invite } from 'src/invites/entities/invite.entity';
 import { JwtService } from '@nestjs/jwt';
 import { FoldersService } from 'src/folders/folders.service';
 import { UsersService } from 'src/users/users.service';
+import { OTPService } from 'src/otp/otp.service';
 
 @Module({
   imports: [
@@ -50,7 +51,8 @@ import { UsersService } from 'src/users/users.service';
     JwtService,
     FoldersService,
     UsersService,
-    AuditLogsSerivce
+    AuditLogsSerivce,
+    OTPService
   ],
   exports: [AuditLogsSerivce],
 })
