@@ -1,8 +1,8 @@
-<<<<<<< HEAD
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-=======
-import { Injectable, NotFoundException } from '@nestjs/common';
->>>>>>> e367fe01625c8781c2120ec38eae11835508f9ec
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { Folder } from 'src/folders/entities/folder.entity';
@@ -13,10 +13,7 @@ import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { FoldersService } from 'src/folders/folders.service';
 import { Group } from 'src/groups/entities/group.entity';
-<<<<<<< HEAD
 import { FilePermissionEnum } from 'src/types/enums';
-=======
->>>>>>> e367fe01625c8781c2120ec38eae11835508f9ec
 
 @Injectable()
 export class FilesService {
@@ -187,53 +184,58 @@ export class FilesService {
   }
 
   async findOne(id: string, user_id: string) {
-      if (!id) throw new NotFoundException('Missing Fields');
-      const find_user = await this.userRepository.findOne({
-        relations: ['groups', 'organizations_added_in'],
+    if (!id) throw new NotFoundException('Missing Fields');
+    const find_user = await this.userRepository.findOne({
+      relations: ['groups', 'organizations_added_in'],
+      where: {
+        id: user_id,
+      },
+    });
+    if (find_user.role == 'guest') {
+      const file_permissions = await this.fpService.findFilePermissiosn(
+        id,
+        find_user.groups[0].id,
+      );
+      const view_access_original =
+        file_permissions[FilePermissionEnum.VIEW_ORIGINAL];
+      const view_access_watermark =
+        file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
+      const download_access_original =
+        file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
+
+      const file = await this.fileRepository.findOne({
+        relations: [
+          'FilesPermissions',
+          'FilesPermissions.permission',
+          'user',
+          'organization',
+        ],
         where: {
-          id: user_id,
+          id,
         },
       });
-      if (find_user.role == 'guest') {
-        const file_permissions = await this.fpService.findFilePermissiosn(
+
+      // console.log(file.organization.id,find_user.organizations_added_in[0].id, 'orrggggg')
+      if (file.organization.id != find_user.organizations_added_in[0].id)
+        throw new UnauthorizedException('Unauthorized to View File');
+
+      if (!view_access_original && !view_access_watermark)
+        throw new UnauthorizedException('Unauthorized to View File');
+
+      return {
+        ...file,
+        view_access_original,
+        view_access_watermark,
+        download_access_original,
+      };
+    } else {
+      return await this.fileRepository.findOne({
+        relations: ['user'],
+        where: {
           id,
-          find_user.groups[0].id,
-        );
-        const view_access_original =
-          file_permissions[FilePermissionEnum.VIEW_ORIGINAL];
-        const view_access_watermark =
-          file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
-        const download_access_original =
-          file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
-
-        const file = await this.fileRepository.findOne({
-          relations: ['FilesPermissions', 'FilesPermissions.permission', 'user', 'organization'],
-          where: {
-            id,
-          },
-        });
-
-        // console.log(file.organization.id,find_user.organizations_added_in[0].id, 'orrggggg')
-        if(file.organization.id != find_user.organizations_added_in[0].id)
-        throw new UnauthorizedException('Unauthorized to View File')
-
-        if(!view_access_original && !view_access_watermark)
-        throw new UnauthorizedException('Unauthorized to View File')
-
-        return {
-          ...file,
-          view_access_original,
-          view_access_watermark,
-          download_access_original,
-        };
-      } else {
-        return await this.fileRepository.findOne({
-          relations:['user'],
-          where: {
-            id,
-          },
-        });
-      }
+        },
+      });
+    }
   }
 
   async buildFolderFileStructure(

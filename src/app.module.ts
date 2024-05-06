@@ -54,7 +54,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
       synchronize: true,
       // logging:'all',
       ssl:{
-        rejectUnauthorized:false,
+        rejectUnauthorized:false
       },
       // ssl: false,
     }),
