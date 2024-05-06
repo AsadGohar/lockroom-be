@@ -221,14 +221,7 @@ export class FoldersService {
           },
           file_permission: {
             permission: {
-<<<<<<< HEAD
               type: In([FilePermissionEnum.VIEW_ORIGINAL, FilePermissionEnum.VIEW_WATERMARKED]),
-=======
-              type: In([
-                FilePermissionEnum.VIEW_ORIGINAL,
-                FilePermissionEnum.VIEW_WATERMARKED,
-              ]),
->>>>>>> 839a0d68bb0482182faa774b296fbb5800c84e40
               status: true,
             },
             file: {
