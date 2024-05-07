@@ -101,7 +101,7 @@ export class UploadService {
     let new_file = file[0];
     let file_name = uuidv4() + '-' + new_file.originalname;
     const find_file = await this.fileService.findOneWithoutUser(file_id);
-    if (find_file.versions.length < 6)
+    if (find_file.versions.length >= 5)
       throw new PreconditionFailedException('limit of file versions reached');
     let upload = await this.s3Client.send(
       new PutObjectCommand({

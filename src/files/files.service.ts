@@ -15,7 +15,6 @@ import { FoldersService } from 'src/folders/folders.service';
 import { Group } from 'src/groups/entities/group.entity';
 import { FilePermissionEnum } from 'src/types/enums';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
-import { version } from 'os';
 
 @Injectable()
 export class FilesService {
@@ -245,7 +244,7 @@ export class FilesService {
       };
     } else {
      const file =  await this.fileRepository.findOne({
-        relations: ['user'],
+        relations: ['user', 'versions'],
         where: {
           id,
         },

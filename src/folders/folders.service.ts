@@ -163,7 +163,9 @@ export class FoldersService {
         },
       });
 
-      const file_data = get_files.map(async(file) => {
+      // console.log(get_files,'fiiiii')
+
+      const file_data = get_files.map((file) => {
         return {
           name: file.name,
           folder_tree_index: file.tree_index,
@@ -197,6 +199,7 @@ export class FoldersService {
         (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
       );
 
+      // console.log(file_data, 'dataaaa')
       return {
         sub_folder_count: data,
       };
