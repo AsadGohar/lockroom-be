@@ -15,6 +15,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
 import { FilePermissionEnum } from 'src/types/enums';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
 @Injectable()
 export class FoldersService {
   constructor(
@@ -26,8 +27,8 @@ export class FoldersService {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Group)
     private readonly groupsRepository: Repository<Group>,
-    @InjectRepository(FilesPermissions)
-    private readonly fpRepository: Repository<FilesPermissions>,
+    @InjectRepository(FileVersion)
+    private readonly fileVersionRepository: Repository<FileVersion>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
     private readonly userService: UsersService,
@@ -151,7 +152,7 @@ export class FoldersService {
 
     if (find_user.role == 'admin') {
       const get_files = await this.fileRepository.find({
-        relations: ['folder'],
+        relations: ['folder', 'versions'],
         where: {
           organization: {
             id: find_user.organization_created.id,
@@ -162,7 +163,7 @@ export class FoldersService {
         },
       });
 
-      const file_data = get_files.map((file) => {
+      const file_data = get_files.map(async(file) => {
         return {
           name: file.name,
           folder_tree_index: file.tree_index,
@@ -170,7 +171,7 @@ export class FoldersService {
           folder_name: file.folder.name,
           size: formatBytes(file.size_bytes),
           mime_type: file.mime_type,
-          url: file.bucket_url,
+          url: file.versions.find(versions=> versions.id == file.current_version_id).bucket_url,
           file_id: file.id,
           extension: file.extension,
           folder_createdAt: file.createdAt,
@@ -213,6 +214,7 @@ export class FoldersService {
         relations: [
           'file_permission.permission',
           'file_permission.file',
+          'file_permission.file.file_version',
           'file_permission.file.folder',
         ],
         where: {
@@ -233,7 +235,9 @@ export class FoldersService {
         },
       });
 
+      
       const file_data = group_files_permissions.map((item) => {
+        const current_version = item.file_permission.file.current_version_id
         return {
           name: item.file_permission.file.name,
           folder_tree_index: item.file_permission.file.tree_index,
@@ -241,7 +245,7 @@ export class FoldersService {
           folder_name: item.file_permission.file.folder.name,
           size: formatBytes(item.file_permission.file.size_bytes),
           mime_type: item.file_permission.file.mime_type,
-          url: item.file_permission.file.bucket_url,
+          url: item.file_permission.file.versions.find(versions=> versions.id == current_version).bucket_url,
           file_id: item.file_permission.file.id,
           folder_createdAt: item.file_permission.file.createdAt,
           id: item.file_permission.file.id,
@@ -266,8 +270,6 @@ export class FoldersService {
       const data = [...query1, ...file_data].sort(
         (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
       );
-
-      // console.log(data,'dasda')
 
       return {
         sub_folder_count: data,
@@ -335,7 +337,7 @@ export class FoldersService {
           index: file.tree_index,
           mime_type: file.mime_type,
           file_id: file.id,
-          url: file.bucket_url,
+          url: file.versions.find(version=> version.id == file.current_version_id).bucket_url,
           extension: file.extension,
         };
         folder_files.children.push(file_access);

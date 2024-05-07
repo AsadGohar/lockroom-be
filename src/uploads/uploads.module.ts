@@ -25,6 +25,7 @@ import { UsersService } from 'src/users/users.service';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { OTPService } from 'src/otp/otp.service';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
@@ -48,7 +49,8 @@ import { OTPService } from 'src/otp/otp.service';
       Organization,
       Invite,
       Permission,
-      AuditLogs
+      AuditLogs,
+      FileVersion
     ]),
   ],
   controllers: [UploadController],
