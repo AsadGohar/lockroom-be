@@ -25,7 +25,7 @@ export class OrganizationsService {
   async getUsersByOrganization(organization_id: string) {
     try {
       const find_org = await this.orgRepository.findOne({
-        relations: ['creator', 'users', 'groups.users'],
+        relations: ['creator', 'users.groups', 'groups.users','users.createdGroups'],
         where: [
           {
             id: organization_id,
