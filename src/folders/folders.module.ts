@@ -11,6 +11,7 @@ import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { JwtService } from '@nestjs/jwt';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -21,6 +22,7 @@ import { JwtService } from '@nestjs/jwt';
       File,
       Organization,
       Group,
+      FileVersion
     ]),
     UsersModule,
   ],
