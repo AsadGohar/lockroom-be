@@ -217,7 +217,7 @@ export class FoldersService {
         relations: [
           'file_permission.permission',
           'file_permission.file',
-          'file_permission.file.file_version',
+          'file_permission.file.versions',
           'file_permission.file.folder',
         ],
         where: {
