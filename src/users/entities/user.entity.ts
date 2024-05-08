@@ -17,6 +17,7 @@ import { Group } from '../..//groups/entities/group.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { UserRoleEnum } from 'src/types/enums';
 
 @Entity()
 export class User {
@@ -44,7 +45,7 @@ export class User {
   @Column({ default: false })
   is_session_active: boolean;
 
-  @Column({ default: 'admin' })
+  @Column({ type: 'enum', enum: UserRoleEnum })
   role: string;
 
   @Column({ default: false })
@@ -80,8 +81,8 @@ export class User {
   @JoinTable()
   organizations_added_in: Organization[];
 
-  @OneToMany(() => Group, (group) => group.createdBy)
-  createdGroups: Group[];
+  @OneToMany(() => Group, (group) => group.created_by)
+  created_groups: Group[];
 
   @ManyToMany(() => Folder, (folder) => folder.users)
   @JoinTable()

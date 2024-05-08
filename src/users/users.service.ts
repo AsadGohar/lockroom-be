@@ -22,14 +22,13 @@ import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
 import { OTPService } from 'src/otp/otp.service';
+import { UserRoleEnum } from 'src/types/enums';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly jwtService: JwtService,
-    private readonly auditService: AuditLogsSerivce,
     @InjectRepository(Folder)
     private readonly folderRepository: Repository<Folder>,
     @InjectRepository(Group)
@@ -39,6 +38,8 @@ export class UsersService {
     @InjectRepository(Invite)
     private readonly inviteRepository: Repository<Invite>,
 
+    private readonly jwtService: JwtService,
+    private readonly auditService: AuditLogsSerivce,
     private readonly otpService: OTPService,
   ) {}
 
@@ -70,7 +71,7 @@ export class UsersService {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
       createUserDto.password = hashedPassword;
       createUserDto.full_name = `${createUserDto.first_name} ${createUserDto.last_name}`;
-      createUserDto.role = 'admin';
+      createUserDto.role = UserRoleEnum.OWNER;
 
       const otp = String(this.otpService.generateOTP());
 
@@ -96,8 +97,8 @@ export class UsersService {
       });
 
       const new_group = this.groupsRepository.create({
-        name: 'Associates',
-        createdBy: user,
+        name: 'Admin',
+        created_by: user,
       });
 
       const saved_group = await this.groupsRepository.save(new_group);
@@ -170,7 +171,7 @@ export class UsersService {
       if (!passwordMatched) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
-      if (user.role == 'admin') {
+      if (user.role == UserRoleEnum.ADMIN || user.role == UserRoleEnum.OWNER) {
         const payload = {
           user_id: user.id,
           email: user.email,
@@ -210,7 +211,7 @@ export class UsersService {
           organizations,
         };
       }
-      if (user.role == 'guest') {
+      if (user.role == UserRoleEnum.GUEST) {
         const payload = {
           user_id: user.id,
           email: user.email,
@@ -357,8 +358,8 @@ export class UsersService {
         .getRawMany();
 
       const new_group = this.groupsRepository.create({
-        name: 'Associates',
-        createdBy: new_user,
+        name: 'Admin',
+        created_by: new_user,
       });
       const saved_group = await this.groupsRepository.save(new_group);
 
@@ -431,7 +432,11 @@ export class UsersService {
         throw new NotFoundException('user not found');
       }
       const orgs = [];
-      if (find_user.role == 'admin') orgs.push(find_user.organization_created);
+      if (
+        find_user.role == UserRoleEnum.ADMIN ||
+        find_user.role == UserRoleEnum.OWNER
+      )
+        orgs.push(find_user.organization_created);
       find_user.organizations_added_in.map((org) => {
         orgs.push(org);
       });
@@ -464,9 +469,9 @@ export class UsersService {
           status: 404,
           message: 'user not found',
         });
-      if (find_user.role == 'admin') {
+      if (find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER) {
         return await this.groupsRepository.find({
-          where: { createdBy: { id: user_id } },
+          where: { created_by: { id: user_id } },
         });
       }
       return find_user.groups;

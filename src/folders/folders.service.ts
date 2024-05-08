@@ -8,14 +8,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Folder } from './entities/folder.entity';
 import { UsersService } from '../users/users.service';
-import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
-import { FilePermissionEnum } from 'src/types/enums';
-import { FileVersion } from 'src/file-version/entities/file-version.entity';
+import { UserRoleEnum, FilePermissionEnum } from 'src/types/enums';
+
 @Injectable()
 export class FoldersService {
   constructor(
@@ -27,10 +26,9 @@ export class FoldersService {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Group)
     private readonly groupsRepository: Repository<Group>,
-    @InjectRepository(FileVersion)
-    private readonly fileVersionRepository: Repository<FileVersion>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
+    
     private readonly userService: UsersService,
   ) {}
 
@@ -150,7 +148,7 @@ export class FoldersService {
       id: user_id,
     });
 
-    if (find_user.role == 'admin') {
+    if (find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER) {
       const get_files = await this.fileRepository.find({
         relations: ['folder', 'versions'],
         where: {
@@ -204,7 +202,7 @@ export class FoldersService {
         sub_folder_count: data,
       };
     }
-    if (find_user.role == 'guest') {
+    if (find_user.role == UserRoleEnum.GUEST) {
       const find_group = await this.groupsRepository.find({
         where: {
           users: {

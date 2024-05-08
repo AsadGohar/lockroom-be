@@ -1,6 +1,7 @@
 import { Controller, Post, Body, Request, UseGuards } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { UserRoleEnum } from 'src/types/enums';
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
@@ -34,6 +35,18 @@ export class GroupsController {
   }
 
   @UseGuards(AuthGuard)
+  @Post('org-groups')
+  findGroupsByOrganizationAndUserId(
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.groupsService.getGroupsByOrganization(
+      organization_id,
+      request.decoded_data.user_id,
+    );
+  }
+
+  @UseGuards(AuthGuard)
   @Post('switch-user')
   switchUser(
     @Body('new_group_id') new_group_id: string,
@@ -48,14 +61,16 @@ export class GroupsController {
   }
 
   @UseGuards(AuthGuard)
-  @Post('org-groups')
-  findGroupsByOrganizationAndUserId(
-    @Body('organization_id') organization_id: string,
-    @Request() request,
+  @Post('change-group')
+  roleUser(
+    @Body('new_role') new_role: UserRoleEnum,
+    @Body('guest_user_id') guest_user_id: string,
+    @Body('old_group_id') old_group_id: string,
   ) {
-    return this.groupsService.getGroupsByOrganization(
-      organization_id,
-      request.decoded_data.user_id,
+    return this.groupsService.updateUserRoleAndChangeGroup(
+      guest_user_id,
+      new_role,
+      old_group_id
     );
   }
 }

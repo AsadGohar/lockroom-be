@@ -13,6 +13,7 @@ import { inviteTemplate } from 'src/utils/email.templates';
 import { FilesService } from 'src/files/files.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
+import { UserRoleEnum } from 'src/types/enums';
 @Injectable()
 export class GroupsService {
   constructor(
@@ -54,7 +55,7 @@ export class GroupsService {
       });
       const new_group = this.groupsRepository.create({
         name,
-        createdBy: find_user,
+        created_by: find_user,
         organization: findOrg,
       });
 
@@ -159,7 +160,7 @@ export class GroupsService {
         id: user_id,
       },
     });
-    console.log(group.users)
+    console.log(group.users);
     const userIndex = group.users.findIndex(
       (existingUser) => existingUser.id === user.id,
     );
@@ -243,10 +244,7 @@ export class GroupsService {
     new_group_id: string,
     old_group_id: string,
   ) {
-    // console.log(new_group_id, old_group_id);
-    // return
-    const removed_group = await this.removeUserFromGroup(old_group_id, guest_user_id);
-    console.log(removed_group, 'fgrferfwe');
+    await this.removeUserFromGroup(old_group_id, guest_user_id);
     const find_new_group = await this.groupsRepository.findOne({
       relations: ['users'],
       where: {
@@ -260,6 +258,38 @@ export class GroupsService {
       },
     });
     find_new_group.users.push(find_user);
-   return await this.groupsRepository.save(find_new_group);
+    return await this.groupsRepository.save(find_new_group);
+  }
+
+  async updateUserRoleAndChangeGroup(
+    user_id: string,
+    user_role: UserRoleEnum,
+    old_group_id: string,
+  ) {
+    const update_user = await this.userRepository.update(
+      {
+        id: user_id,
+      },
+      {
+        role: user_role,
+      },
+    );
+    if (update_user.affected > 0) {
+      const find_admin_group = await this.groupsRepository.findOne({
+        where: {
+          name: 'Admin',
+        },
+      });
+      const addUserToAdminGroup = await this.switchUser(
+        user_id,
+        find_admin_group.id,
+        old_group_id,
+      );
+      if (addUserToAdminGroup) {
+        return {
+          group: addUserToAdminGroup,
+        };
+      }
+    }
   }
 }
