@@ -56,10 +56,10 @@ import { FileVersion } from './file-version/entities/file-version.entity';
       ],
       synchronize: true,
       // logging:'all',
-      // ssl:{
-      //   rejectUnauthorized:falxse
-      // },
-      ssl: false,
+      ssl:{
+        rejectUnauthorized:false
+      },
+      // ssl: false,
     }),
     ThrottlerModule.forRoot({
       throttlers: [
