@@ -159,9 +159,11 @@ export class GroupsService {
         id: user_id,
       },
     });
+    console.log(group.users)
     const userIndex = group.users.findIndex(
       (existingUser) => existingUser.id === user.id,
     );
+    // console.log(userIndex,'indexxx')
     if (userIndex == -1) throw new ConflictException('user not in the group');
     group.users.splice(userIndex, 1);
     return await this.groupsRepository.save(group);
@@ -234,5 +236,30 @@ export class GroupsService {
         },
       },
     });
+  }
+
+  async switchUser(
+    guest_user_id: string,
+    new_group_id: string,
+    old_group_id: string,
+  ) {
+    // console.log(new_group_id, old_group_id);
+    // return
+    const removed_group = await this.removeUserFromGroup(old_group_id, guest_user_id);
+    console.log(removed_group, 'fgrferfwe');
+    const find_new_group = await this.groupsRepository.findOne({
+      relations: ['users'],
+      where: {
+        id: new_group_id,
+      },
+    });
+    const find_user = await this.userRepository.findOne({
+      relations: ['organizations_added_in'],
+      where: {
+        id: guest_user_id,
+      },
+    });
+    find_new_group.users.push(find_user);
+   return await this.groupsRepository.save(find_new_group);
   }
 }
