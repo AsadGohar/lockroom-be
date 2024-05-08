@@ -85,7 +85,7 @@ export class UsersService {
         generated_otp: otp,
       });
 
-      // await this.otpService.sendSMSService(createUserDto.phone_number, otp);
+      await this.otpService.sendSMSService(createUserDto.phone_number, otp);
 
       const user = await this.userRepository.save(create_user);
 
@@ -197,7 +197,7 @@ export class UsersService {
         if (user.two_fa_type == 'sms') {
           const otp = this.otpService.generateOTP();
           user.generated_otp = String(otp);
-          // await this.otpService.sendSMSService(user.phone_number, String(otp));
+          await this.otpService.sendSMSService(user.phone_number, String(otp));
         }
 
         await this.userRepository.save(user);
@@ -241,7 +241,7 @@ export class UsersService {
         if (user.two_fa_type == 'sms') {
           const otp = this.otpService.generateOTP();
           user.generated_otp = String(otp);
-          // await this.otpService.sendSMSService(user.phone_number, String(otp));
+          await this.otpService.sendSMSService(user.phone_number, String(otp));
         }
 
         await this.userRepository.save(user);
@@ -534,7 +534,7 @@ export class UsersService {
       const otp = String(this.otpService.generateOTP());
       find_user.generated_otp = otp;
       await this.userRepository.save(find_user);
-      // await this.otpService.sendSMSService(find_user.phone_number, String(otp));
+      await this.otpService.sendSMSService(find_user.phone_number, String(otp));
     } else {
       return new NotFoundException('user not found');
     }
