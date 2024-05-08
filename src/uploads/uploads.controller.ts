@@ -33,6 +33,7 @@ export class UploadController {
     );
   }
 
+  //updating new saved file
   @Patch()
   @UseGuards(AuthGuard)
   @UseInterceptors(AnyFilesInterceptor())
@@ -47,6 +48,7 @@ export class UploadController {
     );
   }
 
+  //upload file to s3 buckets and update url
   @Post('drag-and-drop')
   @UseGuards(AuthGuard)
   @UseInterceptors(AnyFilesInterceptor())

@@ -15,6 +15,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
 import { FilePermissionEnum } from 'src/types/enums';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
 @Injectable()
 export class FoldersService {
   constructor(
@@ -26,8 +27,8 @@ export class FoldersService {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Group)
     private readonly groupsRepository: Repository<Group>,
-    @InjectRepository(FilesPermissions)
-    private readonly fpRepository: Repository<FilesPermissions>,
+    @InjectRepository(FileVersion)
+    private readonly fileVersionRepository: Repository<FileVersion>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
     private readonly userService: UsersService,
@@ -56,7 +57,7 @@ export class FoldersService {
       where: {
         parent_folder_id,
         name: name,
-        is_deleted:false
+        is_deleted: false,
       },
     });
     if (child_folders_with_same_name.length > 0)
@@ -137,6 +138,8 @@ export class FoldersService {
 
   async findAll() {
     const repos = await this.foldersRepository.find();
+
+    console.log('repos', repos);
   }
 
   async findAllByOrganization(organization_id: string, user_id: string) {
@@ -149,7 +152,7 @@ export class FoldersService {
 
     if (find_user.role == 'admin') {
       const get_files = await this.fileRepository.find({
-        relations: ['folder'],
+        relations: ['folder', 'versions'],
         where: {
           organization: {
             id: find_user.organization_created.id,
@@ -160,6 +163,8 @@ export class FoldersService {
         },
       });
 
+      // console.log(get_files,'fiiiii')
+
       const file_data = get_files.map((file) => {
         return {
           name: file.name,
@@ -168,7 +173,7 @@ export class FoldersService {
           folder_name: file.folder.name,
           size: formatBytes(file.size_bytes),
           mime_type: file.mime_type,
-          url: file.bucket_url,
+          url: file.versions.find(versions=> versions.id == file.current_version_id).bucket_url,
           file_id: file.id,
           extension: file.extension,
           folder_createdAt: file.createdAt,
@@ -194,6 +199,7 @@ export class FoldersService {
         (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
       );
 
+      // console.log(file_data, 'dataaaa')
       return {
         sub_folder_count: data,
       };
@@ -211,6 +217,7 @@ export class FoldersService {
         relations: [
           'file_permission.permission',
           'file_permission.file',
+          'file_permission.file.file_version',
           'file_permission.file.folder',
         ],
         where: {
@@ -231,7 +238,9 @@ export class FoldersService {
         },
       });
 
+      
       const file_data = group_files_permissions.map((item) => {
+        const current_version = item.file_permission.file.current_version_id
         return {
           name: item.file_permission.file.name,
           folder_tree_index: item.file_permission.file.tree_index,
@@ -239,7 +248,7 @@ export class FoldersService {
           folder_name: item.file_permission.file.folder.name,
           size: formatBytes(item.file_permission.file.size_bytes),
           mime_type: item.file_permission.file.mime_type,
-          url: item.file_permission.file.bucket_url,
+          url: item.file_permission.file.versions.find(versions=> versions.id == current_version).bucket_url,
           file_id: item.file_permission.file.id,
           folder_createdAt: item.file_permission.file.createdAt,
           id: item.file_permission.file.id,
@@ -264,8 +273,6 @@ export class FoldersService {
       const data = [...query1, ...file_data].sort(
         (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
       );
-
-      // console.log(data,'dasda')
 
       return {
         sub_folder_count: data,
@@ -317,20 +324,104 @@ export class FoldersService {
     );
   }
 
-  async soft_delete(id: string) {
+  private async buildFolderFileStructure(folder: Folder) {
+    const folder_files = {
+      name: folder.name,
+      id: folder.id,
+      type: 'folder',
+      index: folder.tree_index,
+      children: [],
+    };
+    if (folder.files && folder.files.length > 0) {
+      for (const file of folder.files) {
+        const file_access = {
+          type: 'file',
+          name: file.name,
+          index: file.tree_index,
+          mime_type: file.mime_type,
+          file_id: file.id,
+          url: file.versions.find(version=> version.id == file.current_version_id).bucket_url,
+          extension: file.extension,
+        };
+        folder_files.children.push(file_access);
+      }
+    }
+    folder_files.children = folder_files.children.sort(
+      (a, b) => Number(a.index) - Number(b.index),
+    );
+    return folder_files;
+  }
+
+  private async getFoldersAndFilesByOrganizationId(
+    organization_id: string,
+    parent_folder_id: string,
+    folder_ids: string[],
+  ) {
+    const root_folders = await this.foldersRepository.find({
+      where: {
+        organization: { id: organization_id },
+        parent_folder_id: parent_folder_id,
+        is_deleted: false,
+      },
+      relations: ['sub_folders', 'files.organization'],
+      order: {
+        tree_index: 'ASC',
+      },
+    });
+
+    const folder_file_structures = [];
+    if (root_folders.length > 0) {
+      for (const root_folder of root_folders) {
+        const folder_file_structure =
+          await this.buildFolderFileStructure(root_folder);
+        folder_file_structures.push(folder_file_structure);
+        folder_ids?.push(root_folder?.id);
+      }
+      for (const sub of folder_file_structures) {
+        const folder_file_structure =
+          await this.getFoldersAndFilesByOrganizationId(
+            organization_id,
+            sub.id,
+            folder_ids,
+          );
+        sub.children.push(...folder_file_structure);
+      }
+    }
+    return folder_file_structures;
+  }
+
+  private async getAllFilesByOrg(organization_id: string, parent_folder_id: string) {
+    try {
+      if (!organization_id) throw new NotFoundException('Missing Fields');
+      const folder_ids = [];
+      await this.getFoldersAndFilesByOrganizationId(
+        organization_id,
+        parent_folder_id,
+        folder_ids,
+      );
+
+      return { folder_ids };
+    } catch (error) {
+      throw Error(error);
+    }
+  }
+
+  async soft_delete(id: string, org_id: string) {
+    const to_delete = await this.getAllFilesByOrg(org_id, id);
+
+    const sub_folders_ids = to_delete?.folder_ids;
+
     try {
       return await this.foldersRepository.update(
         {
-          id: id,
+          id: In([...sub_folders_ids, id]),
         },
         {
           is_deleted: true,
         },
       );
     } catch (error) {
-      throw new InternalServerErrorException(
-        error.message 
-      );
+      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -340,7 +431,7 @@ export class FoldersService {
         where: {
           parent_folder_id,
           name: new_name,
-          is_deleted:false
+          is_deleted: false,
         },
       });
       if (check_same_name_folder.length > 0)
@@ -355,9 +446,7 @@ export class FoldersService {
       );
     } catch (error) {
       console.log(error);
-      throw new InternalServerErrorException(
-        error.message 
-      );
+      throw new InternalServerErrorException(error.message);
     }
   }
 }

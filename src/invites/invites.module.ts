@@ -21,6 +21,9 @@ import { FoldersService } from 'src/folders/folders.service';
 import { UsersService } from 'src/users/users.service';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { EmailService } from 'src/email/email.service';
+import { OTPService } from 'src/otp/otp.service';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -33,7 +36,8 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
       File,
       GroupFilesPermissions,
       Permission,
-      AuditLogs
+      AuditLogs,
+      FileVersion
     ]),
   ],
   controllers: [InvitesController],
@@ -48,7 +52,9 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
     PermissionService,
     FoldersService,
     UsersService,
-    AuditLogsSerivce
+    AuditLogsSerivce,
+    EmailService,
+    OTPService
   ],
   exports: [InvitesService],
 })

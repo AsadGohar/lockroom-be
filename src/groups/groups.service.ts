@@ -8,11 +8,9 @@ import { Group } from './entities/group.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
-import { sendEmailUtil } from 'src/utils/email.utils';
+import { EmailService } from 'src/email/email.service';
 import { inviteTemplate } from 'src/utils/email.templates';
 import { FilesService } from 'src/files/files.service';
-import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
-import { In } from 'typeorm';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 @Injectable()
@@ -24,12 +22,11 @@ export class GroupsService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
-    @InjectRepository(FilesPermissions)
-    private readonly fpRepository: Repository<FilesPermissions>,
 
     private readonly fileService: FilesService,
     private readonly gfpService: GroupFilesPermissionsService,
     private readonly filePermissionService: FilesPermissionsService,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(name: string, user_id: string, organization_id: string) {
@@ -142,7 +139,7 @@ export class GroupsService {
       find_group.users.push(find_user);
       find_user.organizations_added_in.push(find_org);
       await this.userRepository.save(find_user);
-      await sendEmailUtil(mail);
+      await this.emailService.send(mail);
       return await this.groupsRepository.save(find_group);
     } catch (error) {
       console.log(error);
@@ -162,9 +159,11 @@ export class GroupsService {
         id: user_id,
       },
     });
+    console.log(group.users)
     const userIndex = group.users.findIndex(
       (existingUser) => existingUser.id === user.id,
     );
+    // console.log(userIndex,'indexxx')
     if (userIndex == -1) throw new ConflictException('user not in the group');
     group.users.splice(userIndex, 1);
     return await this.groupsRepository.save(group);
@@ -237,5 +236,30 @@ export class GroupsService {
         },
       },
     });
+  }
+
+  async switchUser(
+    guest_user_id: string,
+    new_group_id: string,
+    old_group_id: string,
+  ) {
+    // console.log(new_group_id, old_group_id);
+    // return
+    const removed_group = await this.removeUserFromGroup(old_group_id, guest_user_id);
+    console.log(removed_group, 'fgrferfwe');
+    const find_new_group = await this.groupsRepository.findOne({
+      relations: ['users'],
+      where: {
+        id: new_group_id,
+      },
+    });
+    const find_user = await this.userRepository.findOne({
+      relations: ['organizations_added_in'],
+      where: {
+        id: guest_user_id,
+      },
+    });
+    find_new_group.users.push(find_user);
+   return await this.groupsRepository.save(find_new_group);
   }
 }

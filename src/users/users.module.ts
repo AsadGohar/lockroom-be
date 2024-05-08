@@ -12,6 +12,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { File } from 'src/files/entities/file.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
+import { OTPService } from 'src/otp/otp.service';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -22,7 +23,7 @@ import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
     TypeOrmModule.forFeature([User, Folder, Group, Invite, Organization, File, AuditLogs]),
   ],
   controllers: [UsersController],
-  providers: [UsersService, AuditLogsSerivce],
+  providers: [UsersService, AuditLogsSerivce, OTPService],
   exports: [UsersService]
 })
 
