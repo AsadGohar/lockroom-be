@@ -3,7 +3,6 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,8 +12,6 @@ import { Group } from 'src/groups/entities/group.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Organization } from 'src/organizations/entities/organization.entity';
-import { inviteTemplate } from 'src/utils/email.templates';
-import { sendEmailUtil } from 'src/utils/email.utils';
 import { GroupsService } from 'src/groups/groups.service';
 @Injectable()
 export class InvitesService {
@@ -28,7 +25,6 @@ export class InvitesService {
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
     private readonly jwtService: JwtService,
-    private readonly groupService: GroupsService,
   ) {}
 
   async findAll() {
@@ -49,13 +45,6 @@ export class InvitesService {
     group_id: string,
     organization_id: string,
   ) {
-      // console.log(organization_id, group_id)
-
-    // console.log( sender_id,
-    //   emails.length,
-    //   group_id,
-    //   organization_id,
-    //   emails, 'in servoce')
     if (
       !sender_id ||
       !group_id ||

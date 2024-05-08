@@ -21,6 +21,9 @@ import { FoldersService } from 'src/folders/folders.service';
 import { UsersService } from 'src/users/users.service';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { EmailService } from 'src/email/email.service';
+import { OTPService } from 'src/otp/otp.service';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
 
 @Module({
   imports: [
@@ -35,6 +38,7 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
       Organization,
       Invite,
       AuditLogs,
+      FileVersion
     ]),
   ],
   controllers: [FilesController],
@@ -49,6 +53,8 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
     FoldersService,
     UsersService,
     AuditLogsSerivce,
+    EmailService,
+    OTPService
   ],
   exports: [FilesService],
 })
