@@ -15,6 +15,7 @@ import { Folder } from 'src/folders/entities/folder.entity';
 import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
 
 @Entity()
 export class File {
@@ -43,9 +44,6 @@ export class File {
   tree_index: string;
 
   @Column({ nullable: true })
-  bucket_url: string;
-
-  @Column({ nullable: true })
   extension: string;
 
   @ManyToOne(() => User, (user) => user.files)
@@ -63,11 +61,19 @@ export class File {
   @JoinColumn()
   audit_log: AuditLogs;
 
+  @Column({ nullable: true, type: 'int' })
+  current_version_id: number | null;
+
   @ManyToOne(() => Folder, (folder) => folder.files, {
     nullable: true,
     onDelete: 'CASCADE',
   })
   folder: Folder;
+
+  @OneToMany(() => FileVersion, fileVersion => fileVersion.file, {
+      cascade: true,
+  })
+  versions: FileVersion[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

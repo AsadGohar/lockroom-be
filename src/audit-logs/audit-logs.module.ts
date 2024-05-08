@@ -22,6 +22,7 @@ import { JwtService } from '@nestjs/jwt';
 import { FoldersService } from 'src/folders/folders.service';
 import { UsersService } from 'src/users/users.service';
 import { OTPService } from 'src/otp/otp.service';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { OTPService } from 'src/otp/otp.service';
       GroupFilesPermissions,
       Permission,
       Invite,
-      AuditLogs
+      AuditLogs,
+      FileVersion
     ]),
   ],
   controllers: [AuditLogsController],

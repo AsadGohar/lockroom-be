@@ -23,6 +23,7 @@ import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { EmailService } from 'src/email/email.service';
 import { OTPService } from 'src/otp/otp.service';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -35,7 +36,8 @@ import { OTPService } from 'src/otp/otp.service';
       File,
       GroupFilesPermissions,
       Permission,
-      AuditLogs
+      AuditLogs,
+      FileVersion
     ]),
   ],
   controllers: [InvitesController],

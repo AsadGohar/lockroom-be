@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, PreconditionFailedException } from '@nestjs/common';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { FilesService } from 'src/files/files.service';
 import { v4 as uuidv4 } from 'uuid';
+import { InjectRepository } from '@nestjs/typeorm';
+import { FileVersion } from 'src/file-version/entities/file-version.entity';
+import { Repository } from 'typeorm';
+
 @Injectable()
 export class UploadService {
   private readonly s3Client = new S3Client({
@@ -82,7 +86,6 @@ export class UploadService {
         }),
       );
       if (upload) {
-        // console.log(file_name,'uploadeddd yesss')
         const updated_file =
           await this.fileService.updateFileNameAndBucketUrlDragAndDrop(
             file_ids[index],
@@ -90,20 +93,16 @@ export class UploadService {
           );
         file_data.push(updated_file);
       }
-      // console.log(file_name,'uploadeddd lol')
     }
     return file_data;
   }
 
-  async uploadFileAndUpdateUrl(
-    file: any,
-    file_id: string,
-  ) {
-    console.log(file[0], 'file')
-    let new_file = file[0]
-    // return
-    // const file =  file[0]
+  async uploadFileAndUpdateUrl(file: any, file_id: string) {
+    let new_file = file[0];
     let file_name = uuidv4() + '-' + new_file.originalname;
+    const find_file = await this.fileService.findOneWithoutUser(file_id);
+    if (find_file.versions.length >= 5)
+      throw new PreconditionFailedException('limit of file versions reached');
     let upload = await this.s3Client.send(
       new PutObjectCommand({
         Bucket: 'lockroom',
@@ -111,14 +110,12 @@ export class UploadService {
         Body: new_file.buffer,
       }),
     );
-    // console.log(upload,'up res')
-    if(upload){
-      return await this.fileService.findFileAndUpdateUrl(file_id,file_name)
-    }   
-    else {
+    if (upload) {
+      return await this.fileService.findFileAndUpdateUrl(file_id, file_name);
+    } else {
       return {
-        message:'failed to upload file  '
-      }
-    } 
+        message: 'failed to upload file  ',
+      };
+    }
   }
 }
