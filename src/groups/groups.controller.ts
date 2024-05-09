@@ -61,14 +61,14 @@ export class GroupsController {
   }
 
   @UseGuards(AuthGuard)
-  @Post('change-group')
+  @Post('promote-demote')
   roleUser(
     @Body('new_role') new_role: UserRoleEnum,
-    @Body('guest_user_id') guest_user_id: string,
+    @Body('user_id') user_id: string,
     @Body('old_group_id') old_group_id: string,
   ) {
     return this.groupsService.updateUserRoleAndChangeGroup(
-      guest_user_id,
+      user_id,
       new_role,
       old_group_id
     );

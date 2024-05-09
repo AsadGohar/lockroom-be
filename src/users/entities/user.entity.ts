@@ -45,7 +45,7 @@ export class User {
   @Column({ default: false })
   is_session_active: boolean;
 
-  @Column({ type: 'enum', enum: UserRoleEnum })
+  @Column({ type: 'enum', enum: UserRoleEnum, default: UserRoleEnum.OWNER })
   role: string;
 
   @Column({ default: false })

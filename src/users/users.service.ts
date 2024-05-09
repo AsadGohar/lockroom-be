@@ -96,16 +96,23 @@ export class UsersService {
         expiresIn: '1d',
       });
 
-      const new_group = this.groupsRepository.create({
-        name: 'Admin',
-        created_by: user,
-      });
+      const new_admin_group = await this.groupsRepository.save(
+        this.groupsRepository.create({
+          name: 'Admin',
+          created_by: user,
+        }),
+      );
 
-      const saved_group = await this.groupsRepository.save(new_group);
+      const new_associate_group = await this.groupsRepository.save(
+        this.groupsRepository.create({
+          name: 'Associates',
+          created_by: user,
+        }),
+      );
       const new_org = this.orgRepository.create({
         name: 'ORG-' + user.id.slice(0, 5),
         creator: user,
-        groups: [saved_group],
+        groups: [new_admin_group, new_associate_group],
         users: [],
         invites: [],
       });
@@ -357,20 +364,28 @@ export class UsersService {
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
-      const new_group = this.groupsRepository.create({
-        name: 'Admin',
-        created_by: new_user,
-      });
-      const saved_group = await this.groupsRepository.save(new_group);
+      const new_group_admin = await this.groupsRepository.save(
+        this.groupsRepository.create({
+          name: 'Admin',
+          created_by: new_user,
+        }),
+      );
+      const new_group_associates = await this.groupsRepository.save(
+        this.groupsRepository.create({
+          name: 'Associates',
+          created_by: new_user,
+        }),
+      );
 
-      const new_org = this.orgRepository.create({
-        name: 'ORG-' + new_user.id.slice(0, 5),
-        creator: saved_user,
-        groups: [saved_group],
-        users: [],
-        invites: [],
-      });
-      const saveOrg = await this.orgRepository.save(new_org);
+      const saveOrg = await this.orgRepository.save(
+        this.orgRepository.create({
+          name: 'ORG-' + new_user.id.slice(0, 5),
+          creator: saved_user,
+          groups: [new_group_admin, new_group_associates],
+          users: [],
+          invites: [],
+        }),
+      );
 
       const payload = { user_id: new_user.id, email: new_user.email };
       const access_token = this.jwtService.sign(payload, {
@@ -415,7 +430,10 @@ export class UsersService {
         find_user.is_email_verified = true;
         return await this.userRepository.save(find_user);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
   }
 
   async getUserByToken(user_id: string) {
@@ -469,7 +487,10 @@ export class UsersService {
           status: 404,
           message: 'user not found',
         });
-      if (find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER) {
+      if (
+        find_user.role == UserRoleEnum.ADMIN ||
+        find_user.role == UserRoleEnum.OWNER
+      ) {
         return await this.groupsRepository.find({
           where: { created_by: { id: user_id } },
         });
