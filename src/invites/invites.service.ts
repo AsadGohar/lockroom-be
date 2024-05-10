@@ -12,7 +12,7 @@ import { Group } from 'src/groups/entities/group.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Organization } from 'src/organizations/entities/organization.entity';
-import { GroupsService } from 'src/groups/groups.service';
+import { UserRoleEnum } from 'src/types/enums';
 @Injectable()
 export class InvitesService {
   constructor(
@@ -189,7 +189,7 @@ export class InvitesService {
           id: invite.organization.id,
         },
       });
-      const role = 'guest';
+      const role = UserRoleEnum.GUEST;
 
       invite.status = 'accepted';
       await this.inviteRepository.save(invite);
