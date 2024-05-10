@@ -23,6 +23,7 @@ import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
 import { OTPService } from 'src/otp/otp.service';
 import { UserRoleEnum } from 'src/types/enums';
+import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 
 @Injectable()
 export class UsersService {
@@ -37,6 +38,8 @@ export class UsersService {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Invite)
     private readonly inviteRepository: Repository<Invite>,
+    @InjectRepository(AuditLogs)
+    private readonly auditRepository: Repository<AuditLogs>,
 
     private readonly jwtService: JwtService,
     private readonly auditService: AuditLogsSerivce,
@@ -512,15 +515,29 @@ export class UsersService {
 
   async verifyOTP(otp: string, user_id: string) {
     const find_user = await this.userRepository.findOne({
+      relations:['organizations_added_in', 'groups'],
       where: {
         id: user_id,
       },
     });
     if (find_user && find_user.generated_otp.length > 0) {
       if (find_user.generated_otp == otp) {
-        return {
-          success: true,
-        };
+        if (find_user.role == UserRoleEnum.GUEST) {
+          const add_audit_record = await this.auditRepository.save(
+            this.auditRepository.create({
+              file: null,
+              organization: find_user.organizations_added_in[0],
+              user: find_user,
+              group: find_user.groups[0],
+              type: 'login',
+            }),
+          );
+          if (add_audit_record){
+            return {
+              success: true,
+            };
+          }
+        }
       }
       return new UnauthorizedException('OTP is invalid');
     } else {
