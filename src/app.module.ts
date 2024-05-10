@@ -57,7 +57,7 @@ import { FileVersion } from './file-version/entities/file-version.entity';
       synchronize: true,
       // logging:'all',
       ssl:{
-        rejectUnauthorized:false
+        rejectUnauthorized:false,
       },
       // ssl: false,
     }),
