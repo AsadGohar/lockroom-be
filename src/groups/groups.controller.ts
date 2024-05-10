@@ -35,20 +35,6 @@ export class GroupsController {
   }
 
   @UseGuards(AuthGuard)
-  @Post('switch-user')
-  switchUser(
-    @Body('new_group_id') new_group_id: string,
-    @Body('guest_user_id') guest_user_id: string,
-    @Body('old_group_id') old_group_id: string,
-  ) {
-    return this.groupsService.switchUser(
-      guest_user_id,
-      new_group_id,
-      old_group_id
-    );
-  }
-
-  @UseGuards(AuthGuard)
   @Post('org-groups')
   findGroupsByOrganizationAndUserId(
     @Body('organization_id') organization_id: string,
