@@ -147,7 +147,7 @@ export class FoldersService {
     const find_user = await this.userService.findOne({
       id: user_id,
     });
-    // console.log(find_user,'dasda')
+    console.log(find_user,'dasda')
     if (find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER) {
       // console.log(find_user.organization_created.id, find_user.organizations_added_in[0].id, )
       const org = find_user.role == UserRoleEnum.OWNER ? find_user.organization_created.id : find_user.organizations_added_in[0].id
