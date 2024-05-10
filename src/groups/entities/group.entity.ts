@@ -24,8 +24,8 @@ export class Group {
   @Column({ nullable: false })
   name: string;
 
-  @ManyToOne(() => User, (user) => user.createdGroups)
-  createdBy: User;
+  @ManyToOne(() => User, (user) => user.created_groups)
+  created_by: User;
 
   @ManyToMany(() => User, (user) => user.groups)
   users: User[];
