@@ -26,6 +26,8 @@ import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { OTPService } from 'src/otp/otp.service';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
+import { UsersModule } from 'src/users/users.module';
+import { GroupsService } from 'src/groups/groups.service';
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
@@ -52,10 +54,13 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
       AuditLogs,
       FileVersion
     ]),
+    // UsersModule
   ],
   controllers: [UploadController],
   providers: [
+    UsersService,
     UploadService,
+    OTPService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
@@ -67,9 +72,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
     PermissionService,
     JwtService,
     FoldersService,
-    UsersService,
     AuditLogsSerivce,
-    OTPService
   ],
 })
 export class UploadsModule {}
