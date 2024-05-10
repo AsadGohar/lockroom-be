@@ -12,7 +12,7 @@ import { Group } from 'src/groups/entities/group.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Organization } from 'src/organizations/entities/organization.entity';
-import { GroupsService } from 'src/groups/groups.service';
+import { UserRoleEnum } from 'src/types/enums';
 @Injectable()
 export class InvitesService {
   constructor(
@@ -45,12 +45,7 @@ export class InvitesService {
     group_id: string,
     organization_id: string,
   ) {
-    if (
-      !sender_id ||
-      !group_id ||
-      !organization_id ||
-      !emails
-    )
+    if (!sender_id || !group_id || !organization_id || !emails)
       throw new NotFoundException('Missing Fields');
     const findUser = await this.userRepository.findOne({
       where: {
@@ -102,7 +97,7 @@ export class InvitesService {
       }
     } catch (error) {
       console.log(error);
-      throw Error(error)
+      throw Error(error);
     }
   }
 
@@ -130,46 +125,13 @@ export class InvitesService {
           email: email,
         },
       });
-      if (find_user) {
-        throw new ConflictException('User Already Exists');
-        // const resp = await this.jwtService.verify(jwt_token, {
-        //   secret: process.env.JWT_SECRET,
-        // });
-        // const invite = await this.inviteRepository.findOne({
-        //   relations: ['organization', 'group'],
-        //   where: {
-        //     id: resp.invite_id,
-        //   },
-        // });
-        // const find_org = await this.orgRepository.findOne({
-        //   relations: ['users'],
-        //   where: {
-        //     id: invite.organization.id,
-        //   },
-        // });
-        // const find_group = await this.groupRepository.findOne({
-        //   relations: ['users'],
-        //   where: {
-        //     id: invite.group.id,
-        //   },
-        // });
-        // find_user.organizations_added_in.push(find_org);
-        // find_group.users.push(find_user);
-        // const saved_user = await this.userRepository.save(find_user);
-        // const find_invite = await this.inviteRepository.findOne({
-        //   where: {
-        //     id: resp.invite_id,
-        //   },
-        // });
-        // find_invite.status = 'accepted';
-        // await this.inviteRepository.save(invite);
-        // await this.groupRepository.save(find_group);
-        // find_org.users.push(saved_user);
-        // await this.orgRepository.save(find_org);
-        // return {
-        //   status: true,
-        // };
-      }
+      if (find_user) throw new ConflictException('User Already Exists');
+
+      const existing_number = await this.userRepository.findOne({
+        where: { phone_number },
+      });
+      if (existing_number) throw new ConflictException('phone number already taken');
+      
       const hashedPassword = await bcrypt.hash(password, 10);
       password = hashedPassword;
       const full_name = `${first_name} ${last_name}`;
@@ -189,7 +151,7 @@ export class InvitesService {
           id: invite.organization.id,
         },
       });
-      const role = 'guest';
+      const role = UserRoleEnum.GUEST;
 
       invite.status = 'accepted';
       await this.inviteRepository.save(invite);
@@ -228,5 +190,4 @@ export class InvitesService {
       );
     }
   }
-
 }

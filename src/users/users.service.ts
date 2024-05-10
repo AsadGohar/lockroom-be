@@ -22,14 +22,14 @@ import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
 import { OTPService } from 'src/otp/otp.service';
+import { UserRoleEnum } from 'src/types/enums';
+import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly jwtService: JwtService,
-    private readonly auditService: AuditLogsSerivce,
     @InjectRepository(Folder)
     private readonly folderRepository: Repository<Folder>,
     @InjectRepository(Group)
@@ -38,7 +38,11 @@ export class UsersService {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Invite)
     private readonly inviteRepository: Repository<Invite>,
+    @InjectRepository(AuditLogs)
+    private readonly auditRepository: Repository<AuditLogs>,
 
+    private readonly jwtService: JwtService,
+    private readonly auditService: AuditLogsSerivce,
     private readonly otpService: OTPService,
   ) {}
 
@@ -70,7 +74,7 @@ export class UsersService {
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
       createUserDto.password = hashedPassword;
       createUserDto.full_name = `${createUserDto.first_name} ${createUserDto.last_name}`;
-      createUserDto.role = 'admin';
+      createUserDto.role = UserRoleEnum.OWNER;
 
       const otp = String(this.otpService.generateOTP());
 
@@ -95,16 +99,23 @@ export class UsersService {
         expiresIn: '1d',
       });
 
-      const new_group = this.groupsRepository.create({
-        name: 'Associates',
-        createdBy: user,
-      });
+      const new_admin_group = await this.groupsRepository.save(
+        this.groupsRepository.create({
+          name: 'Admin',
+          created_by: user,
+        }),
+      );
 
-      const saved_group = await this.groupsRepository.save(new_group);
+      const new_associate_group = await this.groupsRepository.save(
+        this.groupsRepository.create({
+          name: 'Associates',
+          created_by: user,
+        }),
+      );
       const new_org = this.orgRepository.create({
         name: 'ORG-' + user.id.slice(0, 5),
         creator: user,
-        groups: [saved_group],
+        groups: [new_admin_group, new_associate_group],
         users: [],
         invites: [],
       });
@@ -170,7 +181,7 @@ export class UsersService {
       if (!passwordMatched) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
-      if (user.role == 'admin') {
+      if (user.role == UserRoleEnum.ADMIN || user.role == UserRoleEnum.OWNER) {
         const payload = {
           user_id: user.id,
           email: user.email,
@@ -210,7 +221,7 @@ export class UsersService {
           organizations,
         };
       }
-      if (user.role == 'guest') {
+      if (user.role == UserRoleEnum.GUEST) {
         const payload = {
           user_id: user.id,
           email: user.email,
@@ -356,20 +367,28 @@ export class UsersService {
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
-      const new_group = this.groupsRepository.create({
-        name: 'Associates',
-        createdBy: new_user,
-      });
-      const saved_group = await this.groupsRepository.save(new_group);
+      const new_group_admin = await this.groupsRepository.save(
+        this.groupsRepository.create({
+          name: 'Admin',
+          created_by: new_user,
+        }),
+      );
+      const new_group_associates = await this.groupsRepository.save(
+        this.groupsRepository.create({
+          name: 'Associates',
+          created_by: new_user,
+        }),
+      );
 
-      const new_org = this.orgRepository.create({
-        name: 'ORG-' + new_user.id.slice(0, 5),
-        creator: saved_user,
-        groups: [saved_group],
-        users: [],
-        invites: [],
-      });
-      const saveOrg = await this.orgRepository.save(new_org);
+      const saveOrg = await this.orgRepository.save(
+        this.orgRepository.create({
+          name: 'ORG-' + new_user.id.slice(0, 5),
+          creator: saved_user,
+          groups: [new_group_admin, new_group_associates],
+          users: [],
+          invites: [],
+        }),
+      );
 
       const payload = { user_id: new_user.id, email: new_user.email };
       const access_token = this.jwtService.sign(payload, {
@@ -414,7 +433,10 @@ export class UsersService {
         find_user.is_email_verified = true;
         return await this.userRepository.save(find_user);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
   }
 
   async getUserByToken(user_id: string) {
@@ -431,7 +453,11 @@ export class UsersService {
         throw new NotFoundException('user not found');
       }
       const orgs = [];
-      if (find_user.role == 'admin') orgs.push(find_user.organization_created);
+      if (
+        find_user.role == UserRoleEnum.ADMIN ||
+        find_user.role == UserRoleEnum.OWNER
+      )
+        orgs.push(find_user.organization_created);
       find_user.organizations_added_in.map((org) => {
         orgs.push(org);
       });
@@ -464,9 +490,12 @@ export class UsersService {
           status: 404,
           message: 'user not found',
         });
-      if (find_user.role == 'admin') {
+      if (
+        find_user.role == UserRoleEnum.ADMIN ||
+        find_user.role == UserRoleEnum.OWNER
+      ) {
         return await this.groupsRepository.find({
-          where: { createdBy: { id: user_id } },
+          where: { created_by: { id: user_id } },
         });
       }
       return find_user.groups;
@@ -486,15 +515,29 @@ export class UsersService {
 
   async verifyOTP(otp: string, user_id: string) {
     const find_user = await this.userRepository.findOne({
+      relations:['organizations_added_in', 'groups'],
       where: {
         id: user_id,
       },
     });
     if (find_user && find_user.generated_otp.length > 0) {
       if (find_user.generated_otp == otp) {
-        return {
-          success: true,
-        };
+        if (find_user.role == UserRoleEnum.GUEST) {
+          const add_audit_record = await this.auditRepository.save(
+            this.auditRepository.create({
+              file: null,
+              organization: find_user.organizations_added_in[0],
+              user: find_user,
+              group: find_user.groups[0],
+              type: 'login',
+            }),
+          );
+          if (add_audit_record){
+            return {
+              success: true,
+            };
+          }
+        }
       }
       return new UnauthorizedException('OTP is invalid');
     } else {
