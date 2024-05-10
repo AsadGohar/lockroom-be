@@ -3,21 +3,47 @@ image: node:20.10.0
 cache:
   paths:
     - node_modules/
+    - dist/
 
 before_script:
-  - node -v
+  - apt-get update -qy
+  - apt-get install -y curl
+  - curl -sL https://deb.nodesource.com/setup_14.x | bash -
+  - apt-get install -y nodejs
+  - npm install -g npm@latest
   - npm install
 
 stages:
-  - deploy
+  - build
+  - staging
+  - production
 
-deploy-job:
-  stage: deploy
-  environment: production
+build:
+  stage: build
   script:
-    - apt-get update -yq
+    - npm run build
+
+staging:
+  stage: staging
+  image: node:20.10.0
+  script:
+    - apt-get update -qy
     - apt-get install -y ruby-dev
     - gem install dpl
-    - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
+    - dpl --provider=heroku --app=$HEROKU_APP_STAGING --api-key=$HEROKU_API_KEY
+  only:
+    - staging
+
+production:
+  stage: production
+  image: node:20.10.0
+  script:
+    - apt-get update -qy
+    - apt-get install -y ruby-dev
+    - gem install dpl
+    - dpl --provider=heroku --app=$HEROKU_APP_PRODUCTION --api-key=$HEROKU_API_KEY
   only:
     - master
+
+
+ 
