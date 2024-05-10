@@ -13,7 +13,7 @@ import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-
 import { OrganizationsService } from 'src/organizations/organizations.service';
 import { FoldersService } from 'src/folders/folders.service';
 import { Group } from 'src/groups/entities/group.entity';
-import { FilePermissionEnum } from 'src/types/enums';
+import { FilePermissionEnum, UserRoleEnum } from 'src/types/enums';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
 
 @Injectable()
@@ -197,7 +197,7 @@ export class FilesService {
         id: user_id,
       },
     });
-    if (find_user.role == 'guest') {
+    if (find_user.role == UserRoleEnum.GUEST) {
       const file_permissions = await this.fpService.findFilePermissiosn(
         id,
         find_user.groups[0].id,

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './entities/user.entity'
+import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { ConfigModule } from '@nestjs/config';
@@ -13,6 +13,7 @@ import { File } from 'src/files/entities/file.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { OTPService } from 'src/otp/otp.service';
+import { GroupsService } from 'src/groups/groups.service';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -20,11 +21,18 @@ import { OTPService } from 'src/otp/otp.service';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
-    TypeOrmModule.forFeature([User, Folder, Group, Invite, Organization, File, AuditLogs]),
+    TypeOrmModule.forFeature([
+      User,
+      Folder,
+      Group,
+      Invite,
+      Organization,
+      File,
+      AuditLogs,
+    ]),
   ],
   controllers: [UsersController],
   providers: [UsersService, AuditLogsSerivce, OTPService],
-  exports: [UsersService]
+  exports: [UsersService],
 })
-
 export class UsersModule {}

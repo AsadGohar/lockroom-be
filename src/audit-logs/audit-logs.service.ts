@@ -30,7 +30,7 @@ export class AuditLogsSerivce {
       if (!user_id || !organization_id || !type)
         throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
-        relations: ['groups', 'createdGroups'],
+        relations: ['groups', 'created_groups'],
         where: {
           id: user_id,
         },
@@ -47,7 +47,7 @@ export class AuditLogsSerivce {
           id: organization_id,
         },
       });
-      const groups = [...find_user.groups, ...find_user.createdGroups];
+      const groups = [...find_user.groups, ...find_user.created_groups];
       const audit_logs = groups.map((item) => {
         return this.auditLogsRepository.create({
           file: file_id ? find_file : null,

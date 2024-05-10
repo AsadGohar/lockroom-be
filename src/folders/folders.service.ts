@@ -8,14 +8,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Folder } from './entities/folder.entity';
 import { UsersService } from '../users/users.service';
-import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
-import { FilePermissionEnum } from 'src/types/enums';
-import { FileVersion } from 'src/file-version/entities/file-version.entity';
+import { UserRoleEnum, FilePermissionEnum } from 'src/types/enums';
+
 @Injectable()
 export class FoldersService {
   constructor(
@@ -27,10 +26,9 @@ export class FoldersService {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Group)
     private readonly groupsRepository: Repository<Group>,
-    @InjectRepository(FileVersion)
-    private readonly fileVersionRepository: Repository<FileVersion>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
+    
     private readonly userService: UsersService,
   ) {}
 
@@ -149,13 +147,15 @@ export class FoldersService {
     const find_user = await this.userService.findOne({
       id: user_id,
     });
-
-    if (find_user.role == 'admin') {
+    console.log(find_user,'dasda')
+    if (find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER) {
+      // console.log(find_user.organization_created.id, find_user.organizations_added_in[0].id, )
+      const org = find_user.role == UserRoleEnum.OWNER ? find_user.organization_created.id : find_user.organizations_added_in[0].id
       const get_files = await this.fileRepository.find({
         relations: ['folder', 'versions'],
         where: {
           organization: {
-            id: find_user.organization_created.id,
+            id: org,
           },
           folder: {
             is_deleted: false,
@@ -204,7 +204,7 @@ export class FoldersService {
         sub_folder_count: data,
       };
     }
-    if (find_user.role == 'guest') {
+    if (find_user.role == UserRoleEnum.GUEST) {
       const find_group = await this.groupsRepository.find({
         where: {
           users: {

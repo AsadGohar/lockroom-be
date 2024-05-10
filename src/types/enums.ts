@@ -3,3 +3,9 @@ export enum FilePermissionEnum {
   DOWNLOAD_ORIGINAL = 'download_original',
   VIEW_WATERMARKED = 'view_watermarked',
 }
+
+export enum UserRoleEnum {
+  OWNER = 'owner',
+  ADMIN = 'admin',
+  GUEST = 'guest',
+}
