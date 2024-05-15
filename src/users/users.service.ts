@@ -515,7 +515,7 @@ export class UsersService {
 
   async verifyOTP(otp: string, user_id: string) {
     const find_user = await this.userRepository.findOne({
-      relations:['organizations_added_in', 'groups'],
+      relations: ['organizations_added_in', 'groups'],
       where: {
         id: user_id,
       },
@@ -532,7 +532,7 @@ export class UsersService {
               type: 'login',
             }),
           );
-          if (add_audit_record){
+          if (add_audit_record) {
             return {
               success: true,
             };
@@ -653,6 +653,19 @@ export class UsersService {
     } catch (error) {
       console.error('Error truncating user table:', error);
       throw Error(error);
+    }
+  }
+
+  async updateViewType(view_type: string, user_id: string) {
+    const find_user = await this.userRepository.findOne({
+      where: {
+        id: user_id,
+      },
+    });
+    if (find_user) {
+      find_user.view_type = view_type;
+      const saved_user = await this.userRepository.save(find_user);
+      return { user: saved_user };
     }
   }
 }
