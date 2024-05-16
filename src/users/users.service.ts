@@ -4,6 +4,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
+  NotImplementedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -14,7 +15,7 @@ import { Folder } from 'src/folders/entities/folder.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
-import { verificationTemplate } from 'src/utils/email.templates';
+// import { verificationTemplate } from 'src/utils/email.templates';
 import { decodeJwtResponse } from 'src/utils/jwt.utils';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
@@ -131,17 +132,17 @@ export class UsersService {
         absolute_path: '/Home',
       });
 
-      const mail = {
-        to: user.email,
-        subject: 'Verify Email',
-        from:
-          String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
-        text: 'Verify',
-        html: verificationTemplate(
-          String(user.first_name).toUpperCase(),
-          `${process.env.FE_HOST}/thank-you/verify-email?customer=${access_token}`,
-        ),
-      };
+      // const mail = {
+      //   to: user.email,
+      //   subject: 'Verify Email',
+      //   from:
+      //     String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
+      //   text: 'Verify',
+      //   html: verificationTemplate(
+      //     String(user.first_name).toUpperCase(),
+      //     `${process.env.FE_HOST}/thank-you/verify-email?customer=${access_token}`,
+      //   ),
+      // };
 
       // await sendEmailUtil(mail);
 
@@ -515,7 +516,7 @@ export class UsersService {
 
   async verifyOTP(otp: string, user_id: string) {
     const find_user = await this.userRepository.findOne({
-      relations:['organizations_added_in', 'groups'],
+      relations: ['organizations_added_in', 'groups'],
       where: {
         id: user_id,
       },
@@ -532,7 +533,7 @@ export class UsersService {
               type: 'login',
             }),
           );
-          if (add_audit_record){
+          if (add_audit_record) {
             return {
               success: true,
             };
@@ -653,6 +654,22 @@ export class UsersService {
     } catch (error) {
       console.error('Error truncating user table:', error);
       throw Error(error);
+    }
+  }
+
+  async updateViewType(view_type: string, user_id: string) {
+    const update_user = await this.userRepository.update(user_id, {
+      view_type,
+    });
+    if (update_user.affected > 0) {
+      const user = await this.userRepository.findOne({
+        where: { id: user_id },
+      });
+      return user;
+    } else {
+      throw new NotImplementedException(
+        'Something went wrong while updating user',
+      );
     }
   }
 }
