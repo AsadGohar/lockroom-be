@@ -112,4 +112,13 @@ export class UsersController {
     const data = await this.usersService.loginWithGoogle(jwt_token);
     return data;
   }
+
+  @UseGuards(AuthGuard)
+  @Patch('update-view')
+  updateViewType(@Body('view_type') view_type: string, @Request() request) {
+    return this.usersService.updateViewType(
+      view_type,
+      request?.decoded_data?.user_id,
+    );
+  }
 }
