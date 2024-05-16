@@ -18,11 +18,15 @@ import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { UserRoleEnum } from 'src/types/enums';
+import { UserViewType } from '../user.view-type.enum';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ default: UserViewType.GRID, enum: UserViewType })
+  view_type: string;
 
   @Column({ nullable: false })
   first_name: string;
@@ -76,7 +80,7 @@ export class User {
   organization_created: Organization;
 
   @ManyToMany(() => Organization, (organisation) => organisation.users, {
-    cascade:true
+    cascade: true,
   })
   @JoinTable()
   organizations_added_in: Organization[];
@@ -91,7 +95,6 @@ export class User {
   @ManyToMany(() => Group, (group) => group.users, {
     onDelete: 'CASCADE',
   })
-  
   @JoinTable()
   groups: Group[];
 
@@ -102,7 +105,7 @@ export class User {
   @OneToMany(() => File, (file) => file.user)
   files: File[];
 
-  @OneToMany(() => AuditLogs, auditLog => auditLog.user)
+  @OneToMany(() => AuditLogs, (auditLog) => auditLog.user)
   audit_log: AuditLogs[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
