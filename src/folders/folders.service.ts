@@ -8,13 +8,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Folder } from './entities/folder.entity';
 import { UsersService } from '../users/users.service';
-import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
 import { PartialFolderDto } from './dto/partial-folder.dto';
+import { UserRoleEnum, FilePermissionEnum } from 'src/types/enums';
+
 @Injectable()
 export class FoldersService {
   constructor(
@@ -28,6 +29,7 @@ export class FoldersService {
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
+    
     private readonly userService: UsersService,
   ) {}
 
@@ -129,6 +131,8 @@ export class FoldersService {
 
   async findAll() {
     const repos = await this.foldersRepository.find();
+
+    console.log('repos', repos);
   }
 
   async findAllByOrganization(dto: PartialFolderDto, user_id: string) {
@@ -139,19 +143,23 @@ export class FoldersService {
     const find_user = await this.userService.findOne({
       id: user_id,
     });
-
-    if (find_user.role == 'admin') {
+    console.log(find_user,'dasda')
+    if (find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER) {
+      // console.log(find_user.organization_created.id, find_user.organizations_added_in[0].id, )
+      const org = find_user.role == UserRoleEnum.OWNER ? find_user.organization_created.id : find_user.organizations_added_in[0].id
       const get_files = await this.fileRepository.find({
-        relations: ['folder'],
+        relations: ['folder', 'versions'],
         where: {
           organization: {
-            id: find_user.organization_created.id,
+            id: org,
           },
           folder: {
             is_deleted: false,
           },
         },
       });
+
+      // console.log(get_files,'fiiiii')
 
       const file_data = get_files.map((file) => {
         return {
@@ -161,7 +169,7 @@ export class FoldersService {
           folder_name: file.folder.name,
           size: formatBytes(file.size_bytes),
           mime_type: file.mime_type,
-          url: file.bucket_url,
+          url: file.versions.find(versions=> versions.id == file.current_version_id).bucket_url,
           file_id: file.id,
           extension: file.extension,
           folder_createdAt: file.createdAt,
@@ -187,11 +195,12 @@ export class FoldersService {
         (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
       );
 
+      // console.log(file_data, 'dataaaa')
       return {
         sub_folder_count: data,
       };
     }
-    if (find_user.role == 'guest') {
+    if (find_user.role == UserRoleEnum.GUEST) {
       const find_group = await this.groupsRepository.find({
         where: {
           users: {
@@ -199,10 +208,12 @@ export class FoldersService {
           },
         },
       });
+      // console.log(find_group,'gruppp')
       const group_files_permissions = await this.gfpRepository.find({
         relations: [
           'file_permission.permission',
           'file_permission.file',
+          'file_permission.file.versions',
           'file_permission.file.folder',
         ],
         where: {
@@ -211,7 +222,7 @@ export class FoldersService {
           },
           file_permission: {
             permission: {
-              type: 'view',
+              type: In([FilePermissionEnum.VIEW_ORIGINAL, FilePermissionEnum.VIEW_WATERMARKED]),
               status: true,
             },
             file: {
@@ -223,7 +234,9 @@ export class FoldersService {
         },
       });
 
+      
       const file_data = group_files_permissions.map((item) => {
+        const current_version = item.file_permission.file.current_version_id
         return {
           name: item.file_permission.file.name,
           folder_tree_index: item.file_permission.file.tree_index,
@@ -231,7 +244,7 @@ export class FoldersService {
           folder_name: item.file_permission.file.folder.name,
           size: formatBytes(item.file_permission.file.size_bytes),
           mime_type: item.file_permission.file.mime_type,
-          url: item.file_permission.file.bucket_url,
+          url: item.file_permission.file.versions.find(versions=> versions.id == current_version).bucket_url,
           file_id: item.file_permission.file.id,
           folder_createdAt: item.file_permission.file.createdAt,
           id: item.file_permission.file.id,
@@ -307,12 +320,97 @@ export class FoldersService {
     );
   }
 
-  async soft_delete(dto: PartialFolderDto) {
-    const { folder_id } = dto;
+  private async buildFolderFileStructure(folder: Folder) {
+    const folder_files = {
+      name: folder.name,
+      id: folder.id,
+      type: 'folder',
+      index: folder.tree_index,
+      children: [],
+    };
+    if (folder.files && folder.files.length > 0) {
+      for (const file of folder.files) {
+        const file_access = {
+          type: 'file',
+          name: file.name,
+          index: file.tree_index,
+          mime_type: file.mime_type,
+          file_id: file.id,
+          url: file.versions.find(version=> version.id == file.current_version_id).bucket_url,
+          extension: file.extension,
+        };
+        folder_files.children.push(file_access);
+      }
+    }
+    folder_files.children = folder_files.children.sort(
+      (a, b) => Number(a.index) - Number(b.index),
+    );
+    return folder_files;
+  }
+
+  private async getFoldersAndFilesByOrganizationId(
+    organization_id: string,
+    parent_folder_id: string,
+    folder_ids: string[],
+  ) {
+    const root_folders = await this.foldersRepository.find({
+      where: {
+        organization: { id: organization_id },
+        parent_folder_id: parent_folder_id,
+        is_deleted: false,
+      },
+      relations: ['sub_folders', 'files.organization'],
+      order: {
+        tree_index: 'ASC',
+      },
+    });
+
+    const folder_file_structures = [];
+    if (root_folders.length > 0) {
+      for (const root_folder of root_folders) {
+        const folder_file_structure =
+          await this.buildFolderFileStructure(root_folder);
+        folder_file_structures.push(folder_file_structure);
+        folder_ids?.push(root_folder?.id);
+      }
+      for (const sub of folder_file_structures) {
+        const folder_file_structure =
+          await this.getFoldersAndFilesByOrganizationId(
+            organization_id,
+            sub.id,
+            folder_ids,
+          );
+        sub.children.push(...folder_file_structure);
+      }
+    }
+    return folder_file_structures;
+  }
+
+  private async getAllFilesByOrg(organization_id: string, parent_folder_id: string) {
+    try {
+      if (!organization_id) throw new NotFoundException('Missing Fields');
+      const folder_ids = [];
+      await this.getFoldersAndFilesByOrganizationId(
+        organization_id,
+        parent_folder_id,
+        folder_ids,
+      );
+
+      return { folder_ids };
+    } catch (error) {
+      throw Error(error);
+    }
+  }
+
+  async soft_delete(id: string, org_id: string) {
+    const to_delete = await this.getAllFilesByOrg(org_id, id);
+
+    const sub_folders_ids = to_delete?.folder_ids;
+
     try {
       return await this.foldersRepository.update(
         {
-          id: folder_id,
+          id: In([...sub_folders_ids, id]),
         },
         {
           is_deleted: true,

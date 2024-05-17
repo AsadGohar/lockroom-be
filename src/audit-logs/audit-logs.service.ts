@@ -26,7 +26,7 @@ export class AuditLogsSerivce {
       let { user_id, organization_id, file_id, type } = dto;
       // if(type == 'login') file_id = null
       const find_user = await this.userRepository.findOne({
-        relations: ['groups', 'createdGroups'],
+        relations: ['groups', 'created_groups'],
         where: {
           id: user_id,
         },
@@ -43,7 +43,10 @@ export class AuditLogsSerivce {
           id: organization_id,
         },
       });
-      const groups = [...find_user.groups, ...find_user.createdGroups];
+
+      const groups = [...find_user.groups, ...find_user.created_groups];
+
+      console.log(groups, 'grrpppps')
       const audit_logs = groups.map((item) => {
         return this.auditLogsRepository.create({
           file: file_id ? find_file : null,
@@ -71,6 +74,8 @@ export class AuditLogsSerivce {
       }
       const formattedStartDate = startDate && format(startDate, 'yyyy-MM-dd');
 
+      console.log(formattedStartDate,'date', date, '\n\n')
+
       const group_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
         .select('group.name', 'group_name')
@@ -78,15 +83,18 @@ export class AuditLogsSerivce {
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'view')`, 'views')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'login')`, 'login')
         .leftJoin('audit_logs.group', 'group')
-        .groupBy('group.name');
+        .groupBy('group.name')
 
       if (date.type == 'days' || date.type == 'months') {
         group_rankings_query.where('audit_logs.createdAt >= :startDate', {
           startDate: formattedStartDate,
-        });
+        })
+        .andWhere('audit_logs.organizationId = :organization_id', {
+          organization_id,
+        })
       }
       const group_rankings = await group_rankings_query.getRawMany();
-
+      console.log(group_rankings,'recordsss')
       const user_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
         .select('group.name', 'group_name')
@@ -170,9 +178,15 @@ export class AuditLogsSerivce {
             users.push(user);
           }
         });
-        // docs.sort((a,b)=> b.views - a.views)
         data.push(createObjs(group.group_name, group, docs, users));
       });
+
+      //sorting documnents
+      data.forEach(data_item => {
+        data_item.documents.sort((a, b) => parseInt(b.views) - parseInt(a.views));
+      });
+      //sorting total
+      data.sort((a, b) => parseInt(b.total) - parseInt(a.total));
       return { data };
     } catch (error) {
       console.log(error);

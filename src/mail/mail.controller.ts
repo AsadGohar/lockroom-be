@@ -48,30 +48,10 @@ export class MailController {
           const invitedUserAlreadyExists = await this.userService.findOne({
             email,
           });
-          if (invitedUserAlreadyExists) {
-            console.log('invited user exists', invitedUserAlreadyExists);
-            if (invitedUserAlreadyExists.role == 'admin') return;
-            if (
-              invitedUserAlreadyExists?.organization_created?.id ==
-              organization_id
-            )
-              return;
-            return await this.groupService.addUserToAGroup(
-              group_id,
-              invitedUserAlreadyExists.id,
-              senderUser.first_name + ' ' + senderUser.last_name,
-            );
-          }
-          // console.log('ghere', email)
+          if (invitedUserAlreadyExists) return;
           new_users.push(email);
-          // console.log(new_users, 'in emails');
         }),
       );
-      // console.log(group_id, organization_id)
-      // console.log('before', request.decoded_data.user_id,
-      // new_users,
-      // group_id,
-      // organization_id,)
       if (new_users.length == 0) {
         throw new NotFoundException('no user found to invite');
       }
@@ -81,7 +61,6 @@ export class MailController {
         group_id,
         organization_id,
       );
-
       if (invites.length > 0) {
         const sendEmails = invites.map((invite) => {
           const payload = { invite_id: invite.id };

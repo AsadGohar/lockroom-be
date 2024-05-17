@@ -29,6 +29,8 @@ import { GroupFilesPermissionsModule } from './group-files-permissions/group-fil
 import { GroupFilesPermissionsController } from './group-files-permissions/group-files-permissions.controller';
 import { AuditLogs } from './audit-logs/entities/audit-logs.entities';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { FileVersionModule } from './file-version/file-version.module';
+import { FileVersion } from './file-version/entities/file-version.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -49,7 +51,8 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
         Permission,
         FilesPermissions,
         GroupFilesPermissions,
-        AuditLogs
+        AuditLogs,
+        FileVersion
       ],
       synchronize: true,
       // logging:'all',
@@ -76,7 +79,8 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
     FilesPermissionsModule,
     OrganizationsModule,
     GroupFilesPermissionsModule,
-    AuditLogsModule
+    AuditLogsModule,
+    FileVersionModule,
   ],
   controllers: [AppController, MailController, GroupFilesPermissionsController],
   providers: [AppService, EmailService, JwtService],

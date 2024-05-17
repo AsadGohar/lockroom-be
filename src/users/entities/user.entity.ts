@@ -6,11 +6,9 @@ import {
   ManyToMany,
   JoinTable,
   CreateDateColumn,
-  ManyToOne,
   OneToMany,
   UpdateDateColumn,
   OneToOne,
-  JoinColumn
 } from 'typeorm';
 import { Folder } from '../../folders/entities/folder.entity';
 import { v4 as uuidv4 } from 'uuid';
@@ -19,11 +17,16 @@ import { Group } from '../..//groups/entities/group.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { UserRoleEnum } from 'src/types/enums';
+import { UserViewType } from '../user.view-type.enum';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ default: UserViewType.GRID, enum: UserViewType })
+  view_type: string;
 
   @Column({ nullable: false })
   first_name: string;
@@ -41,19 +44,28 @@ export class User {
   is_email_verified: boolean;
 
   @Column({ default: false })
+  is_phone_number_verified: boolean;
+
+  @Column({ default: false })
   is_session_active: boolean;
 
-  @Column({ default: 'admin' })
+  @Column({ type: 'enum', enum: UserRoleEnum, default: UserRoleEnum.OWNER })
   role: string;
 
   @Column({ default: false })
   sso_login: boolean;
+
+  @Column({ default: '' })
+  qr_code_secret: string;
 
   @Column({ default: false })
   sso_type: string;
 
   @Column({ default: '' })
   display_picture_url: string;
+
+  @Column({ default: 'sms' })
+  two_fa_type: string;
 
   @Column({ default: '' })
   password: string;
@@ -68,13 +80,13 @@ export class User {
   organization_created: Organization;
 
   @ManyToMany(() => Organization, (organisation) => organisation.users, {
-    cascade:true
+    cascade: true,
   })
   @JoinTable()
   organizations_added_in: Organization[];
 
-  @OneToMany(() => Group, (group) => group.createdBy)
-  createdGroups: Group[];
+  @OneToMany(() => Group, (group) => group.created_by)
+  created_groups: Group[];
 
   @ManyToMany(() => Folder, (folder) => folder.users)
   @JoinTable()
@@ -93,7 +105,7 @@ export class User {
   @OneToMany(() => File, (file) => file.user)
   files: File[];
 
-  @OneToMany(() => AuditLogs, auditLog => auditLog.user)
+  @OneToMany(() => AuditLogs, (auditLog) => auditLog.user)
   audit_log: AuditLogs[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

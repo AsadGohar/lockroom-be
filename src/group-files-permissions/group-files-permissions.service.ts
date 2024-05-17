@@ -6,6 +6,8 @@ import { GroupsService } from 'src/groups/groups.service';
 import { Group } from 'src/groups/entities/group.entity';
 import { In } from 'typeorm';
 import { Permission } from 'src/permission/entities/permission.entity';
+import { FilesService } from 'src/files/files.service';
+import { FilePermissionEnum } from 'src/types/enums';
 
 @Injectable()
 export class GroupFilesPermissionsService {
@@ -16,7 +18,6 @@ export class GroupFilesPermissionsService {
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
-    // private readonly groupService: GroupsService,
   ) {}
 
   async createGroupFilePermissionsFoAllGroups(
@@ -31,18 +32,55 @@ export class GroupFilesPermissionsService {
           },
         },
       });
-      const group_files_permissions = groups
-        .map((group) => {
-          return files_permissions.map((fp) => {
+
+      let gfp = [];
+
+      for (let index = 0; index < groups.length; index++) {
+        const find_perm = files_permissions.find(
+          (p) => p.group_name == groups[index].name,
+        );
+        gfp.push(
+          find_perm.file_permissions.map((fp) => {
             return {
-              group,
+              group: groups[index],
               file_permission: fp,
             };
-          });
-        })
-        .flat();
+          }),
+        );
+      }
+      // const group_files_permissions = groups
+      //   .map((group) => {
+      //     return files_permissions.map((fp) => {
+      //       return {
+      //         group,
+      //         file_permission: fp,
+      //       };
+      //     });
+      //   })
+      //   .flat();
+      // const group_files_permissions = groups.flatMap((group) => {
+      //   return files_permissions.map((fp) => {
+      //     return {
+      //       group,
+      //       file_permission: fp,
+      //     };
+      //   });
+      // });
+      // console.log(files_permissions, 'fpmm');
+      // console.log(gfp.flat(),'ggggg')
+      // const group_files_permissions_test = groups.map((group) => {
+      //   return
+      // }).flat();
+
+      // console.log(group_files_permissions_test, 'fpp');
+      // console.log(group_files_permissions_test.map(gfp=>{
+      //   return { group_name: gfp.group?.name,
+      //     file: gfp.file_permission.file?.name,
+      //     perm: gfp.file_permission.permission?.type
+      //   }
+      // }), 'testssst');
       const new_group_files_permissions = await this.groupFilePermRepo.save(
-        group_files_permissions,
+        gfp.flat(),
       );
       return new_group_files_permissions;
     } catch (error) {
@@ -132,6 +170,41 @@ export class GroupFilesPermissionsService {
         },
       );
       if (update_permissions.affected > 0) {
+        if (status && (type == FilePermissionEnum.VIEW_ORIGINAL || type == FilePermissionEnum.VIEW_WATERMARKED)) {
+          const find_reverse_permission = await this.groupFilePermRepo.find({
+            relations: ['group', 'file_permission.permission'],
+            where: {
+              group: {
+                id: group_id,
+              },
+              file_permission: {
+                file: {
+                  id: In(file_ids),
+                },
+                permission: {
+                  type: this.getReversePermission(type as FilePermissionEnum),
+                },
+              },
+            },
+          });
+          const reverse_permission_ids = [];
+          find_reverse_permission.map((gfp) => {
+            reverse_permission_ids.push(gfp.file_permission.permission.id);
+          });
+          const update_reverse_permissions =
+            await this.permissionRepository.update(
+              {
+                id: In(reverse_permission_ids),
+              },
+              {
+                status: !status,
+              },
+            );
+          return {
+            update_reverse_permissions,
+            message: status ? 'enabled view on file' : 'disabled view on file',
+          };
+        }
         return {
           update_permissions,
           message: status ? 'enabled view on file' : 'disabled view on file',
@@ -156,6 +229,14 @@ export class GroupFilesPermissionsService {
       });
     } catch (error) {
       console.log(error);
+    }
+  }
+
+  private getReversePermission(permission: FilePermissionEnum) {
+    if (permission == FilePermissionEnum.VIEW_ORIGINAL) {
+      return FilePermissionEnum.VIEW_WATERMARKED;
+    } else if (permission == FilePermissionEnum.VIEW_WATERMARKED) {
+      return FilePermissionEnum.VIEW_ORIGINAL;
     }
   }
 }

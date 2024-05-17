@@ -5,6 +5,7 @@ import {
   MinLength,
   IsIn
 } from 'class-validator';
+import { UserRoleEnum } from 'src/types/enums';
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -30,7 +31,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsIn(['admin', 'guest'])
+  @IsIn([UserRoleEnum.ADMIN, UserRoleEnum.GUEST, UserRoleEnum.OWNER])
   role: string;
   
   @IsNotEmpty()
