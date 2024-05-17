@@ -120,16 +120,16 @@ export class FilesService {
       });
 
       const saved_file = await this.fileRepository.save(new_file);
-      
+
       const new_file_version = this.fileVersionRepository.create({
         bucket_url,
-        file: saved_file
+        file: saved_file,
       });
-      
+
       const save_file_version =
-      await this.fileVersionRepository.save(new_file_version);
-      
-      saved_file.current_version_id = save_file_version.id
+        await this.fileVersionRepository.save(new_file_version);
+
+      saved_file.current_version_id = save_file_version.id;
       const new_saved_file = await this.fileRepository.save(saved_file);
 
       const find_groups = await this.groupRepository.find({
@@ -155,7 +155,11 @@ export class FilesService {
           organization_id,
           file_permissions,
         );
-      return { file_permissions, saved_file:new_saved_file, new_group_files_permissions };
+      return {
+        file_permissions,
+        saved_file: new_saved_file,
+        new_group_files_permissions,
+      };
     } catch (error) {
       console.log(error);
       throw Error(error);
@@ -223,8 +227,6 @@ export class FilesService {
         },
       });
 
-
-
       const file_with_url = {
         ...file,
         size: formatBytes(file.size_bytes),
@@ -247,7 +249,7 @@ export class FilesService {
         download_access_original,
       };
     } else {
-     const file =  await this.fileRepository.findOne({
+      const file = await this.fileRepository.findOne({
         relations: ['user', 'versions'],
         where: {
           id,
@@ -261,11 +263,15 @@ export class FilesService {
         ).bucket_url,
       };
 
-      return file_with_url
+      file_with_url.versions.sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
+
+      return file_with_url;
     }
   }
 
-  async findOneWithoutUser(id:string){
+  async findOneWithoutUser(id: string) {
     return await this.fileRepository.findOne({
       relations: [
         'FilesPermissions',
