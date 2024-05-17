@@ -217,6 +217,8 @@ export class FilesService {
         where: { id },
       });
 
+
+
       const file_with_url = {
         ...file,
         size: formatBytes(file.size_bytes),
