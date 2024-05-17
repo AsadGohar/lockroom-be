@@ -164,6 +164,7 @@ export class FilesService {
     }
   }
 
+
   async getAllFilesByOrganization(organization_id: string) {
     try {
       if (!organization_id) throw new NotFoundException('Missing Fields');
@@ -216,8 +217,6 @@ export class FilesService {
         ],
         where: { id },
       });
-
-
 
       const file_with_url = {
         ...file,
