@@ -15,6 +15,7 @@ import { FoldersService } from 'src/folders/folders.service';
 import { Group } from 'src/groups/entities/group.entity';
 import { FilePermissionEnum, UserRoleEnum } from 'src/types/enums';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
+import { formatBytes } from 'src/utils/converts.utils';
 
 @Injectable()
 export class FilesService {
@@ -222,8 +223,11 @@ export class FilesService {
         },
       });
 
+
+
       const file_with_url = {
         ...file,
+        size: formatBytes(file.size_bytes),
         bucket_url: file.versions.find(
           (version) => version.id == file.current_version_id,
         ).bucket_url,
@@ -251,6 +255,7 @@ export class FilesService {
       });
       const file_with_url = {
         ...file,
+        size: formatBytes(file.size_bytes),
         bucket_url: file.versions.find(
           (version) => version.id == file.current_version_id,
         ).bucket_url,
