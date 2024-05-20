@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   Request,
+  Patch
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { AuthGuard } from 'src/guards/auth.guard';
@@ -85,5 +86,11 @@ export class FilesController {
       type,
       status
     );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('update/:id')
+  update(@Param('id') id: string,  @Body('data') data: any) {
+    return this.filesService.update(id, data);
   }
 }
