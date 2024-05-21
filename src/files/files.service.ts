@@ -729,4 +729,25 @@ export class FilesService {
     }
     return { message: 'failed to delete file' };
   }
+
+  async update(id: string, properties: any) {
+    if (properties?.current_version_id) {
+      const find_file_version = await this.fileVersionRepository.findOne({
+        relations: ['file'],
+        where: {
+          id: properties?.current_version_id,
+          file: {
+            id,
+          },
+        },
+      });
+      if (!find_file_version)
+        throw new NotFoundException('invalid file version');
+    }
+    const file = await this.fileRepository.update(id, properties);
+    if (file.affected > 0) {
+      return { file, message: 'file updated successfully' };
+    }
+    return { message: 'failed to update file' };
+  }
 }
