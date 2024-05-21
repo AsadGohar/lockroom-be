@@ -243,13 +243,6 @@ export class UsersService {
           },
         });
 
-        await this.auditService.create(
-          null,
-          user.id,
-          user.organizations_added_in[0].id,
-          'login',
-        );
-
         if (user.two_fa_type == 'sms') {
           const otp = this.otpService.generateOTP();
           user.generated_otp = String(otp);
@@ -287,6 +280,14 @@ export class UsersService {
 
       if (find_user) {
         const orgs = [];
+        if(find_user.role == UserRoleEnum.GUEST){
+          await this.auditService.create(
+            null,
+            find_user.id,
+            find_user.organizations_added_in[0].id,
+            'login',
+          );
+        }
         orgs.push(find_user?.organization_created?.id);
         find_user.organizations_added_in.map((org) => {
           orgs.push(org.id);
@@ -524,22 +525,28 @@ export class UsersService {
     if (find_user && find_user.generated_otp.length > 0) {
       if (find_user.generated_otp == otp) {
         if (find_user.role == UserRoleEnum.GUEST) {
-          const add_audit_record = await this.auditRepository.save(
-            this.auditRepository.create({
-              file: null,
-              organization: find_user.organizations_added_in[0],
-              user: find_user,
-              group: find_user.groups[0],
-              type: 'login',
-            }),
-          );
+          // console.log(find_user.generated_otp == otp,'go bad')
+          const audit = this.auditRepository.create({
+            file: null,
+            organization: find_user.organizations_added_in[0],
+            user: find_user,
+            group: find_user.groups[0],
+            type: 'login',
+          })
+          // console.log(audit,'auddd')
+          const add_audit_record = await this.auditRepository.save(audit)
           if (add_audit_record) {
+            // console.log('hereee in audit')
             return {
               success: true,
             };
           }
         }
+        return {
+          success: true,
+        };
       }
+      console.log('heeress')
       return new UnauthorizedException('OTP is invalid');
     } else {
       return new NotFoundException('user not found');
@@ -554,7 +561,7 @@ export class UsersService {
     });
     if (find_user && find_user.generated_otp.length > 0) {
       if (find_user.generated_otp == otp) {
-        console.log('here');
+        console.log('here recognized');
         find_user.is_phone_number_verified = true;
         await this.userRepository.save(find_user);
         console.log(find_user);
