@@ -50,7 +50,7 @@ export class AuditLogsSerivce {
 
       const groups = [...find_user.groups, ...find_user.created_groups];
 
-      console.log(groups, 'grrpppps')
+      // console.log(groups, 'grrpppps')
       const audit_logs = groups.map((item) => {
         return this.auditLogsRepository.create({
           file: file_id ? find_file : null,
@@ -68,6 +68,7 @@ export class AuditLogsSerivce {
 
   async getStats(organization_id: string, date: any) {
     try {
+      // console.log(organization_id,'or isss')
       if (!organization_id || !date)
         throw new NotFoundException('Missing Fields');
       let startDate;
@@ -86,19 +87,20 @@ export class AuditLogsSerivce {
         .addSelect('COUNT(*)', 'total')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'view')`, 'views')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'login')`, 'login')
+        .where('audit_logs.organizationId = :organization_id', {
+          organization_id,
+        })
         .leftJoin('audit_logs.group', 'group')
         .groupBy('group.name')
 
       if (date.type == 'days' || date.type == 'months') {
-        group_rankings_query.where('audit_logs.createdAt >= :startDate', {
+        group_rankings_query.andWhere('audit_logs.createdAt >= :startDate', {
           startDate: formattedStartDate,
         })
-        .andWhere('audit_logs.organizationId = :organization_id', {
-          organization_id,
-        })
+        
       }
       const group_rankings = await group_rankings_query.getRawMany();
-      console.log(group_rankings,'recordsss')
+      // console.log(group_rankings,'recordsss 1')
       const user_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
         .select('group.name', 'group_name')
