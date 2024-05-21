@@ -172,6 +172,7 @@ export class FilesService {
       return this.fileRepository.find({
         relations: ['folder'],
         where: {
+          is_deleted:false,
           organization: {
             id: organization_id,
           },
@@ -226,8 +227,6 @@ export class FilesService {
           id,
         },
       });
-
-
 
       const file_with_url = {
         ...file,
@@ -301,7 +300,8 @@ export class FilesService {
       children: [],
     };
     if (folder.files && folder.files.length > 0) {
-      for (const file of folder.files) {
+      for (const file of folder.files.filter(file=>!file.is_deleted)) {
+        // console.log(file,'dasdsa in here')
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
           group_id,
@@ -353,12 +353,12 @@ export class FilesService {
     file_ids: string[],
   ) {
     const root_folders = await this.foldersRepository.find({
+      relations: ['sub_folders', 'files.organization'],
       where: {
         organization: { id: organization_id },
         parent_folder_id: parent_folder_id,
         is_deleted: false,
       },
-      relations: ['sub_folders', 'files.organization'],
       order: {
         tree_index: 'ASC',
       },
@@ -367,6 +367,8 @@ export class FilesService {
     const folder_file_structures = [];
     if (root_folders.length > 0) {
       for (const root_folder of root_folders) {
+        const new_root = root_folder.files.filter(file=> !file.is_deleted)
+        console.log(root_folder, new_root, 'dasdas')
         const folder_file_structure = await this.buildFolderFileStructure(
           root_folder,
           group_id,
@@ -695,27 +697,6 @@ export class FilesService {
       message: 'file url updated',
       file: find_file,
     };
-    // const update_file = await this.fileRepository.update(
-    //   {
-    //     id: file_id,
-    //   },
-    //   {
-    //     bucket_url:  process.env.S3_BUCKET_BASE_URL  + new_name,
-    //   },
-    // );
-    // // console.log(update_file, 'udddd res')
-    // if (update_file.affected > 0) {
-    //   const file = await this.fileRepository.findOne({
-    //     where: {
-    //       id: file_id,
-    //     },
-    //   });
-    //   // console.log('fhdasdas');
-    //   return {
-    //     message: 'file url updated',
-    //     file,
-    //   };
-    // }
   }
 
   async update(id: string, properties: any) {
@@ -737,5 +718,15 @@ export class FilesService {
       return { file, message: 'file updated successfully' };
     }
     return { message: 'failed to update file' };
+  }
+
+  async softDelete(id: string) {
+    const soft_delete = await this.update(id, {
+      is_deleted: true,
+    });
+    if (soft_delete) {
+      return { message: 'file deleted successfully' };
+    }
+    return { message: 'failed to delete file' };
   }
 }

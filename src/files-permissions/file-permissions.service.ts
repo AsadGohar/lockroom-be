@@ -36,6 +36,7 @@ export class FilesPermissionsService {
       where: {
         file: {
           id: file_id,
+          is_deleted:false,
           folder: {
             is_deleted: false,
           },
