@@ -6,7 +6,8 @@ import {
   Param,
   UseGuards,
   Request,
-  Patch
+  Patch,
+  Delete
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { AuthGuard } from 'src/guards/auth.guard';
@@ -92,5 +93,11 @@ export class FilesController {
   @Patch('update/:id')
   update(@Param('id') id: string,  @Body('data') data: any) {
     return this.filesService.update(id, data);
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('delete/:id')
+  delete(@Param('id') id: string) {
+    return this.filesService.softDelete(id);
   }
 }

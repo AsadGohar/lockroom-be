@@ -38,6 +38,7 @@ export class AuditLogsSerivce {
       const find_file = file_id
         ? await this.fileRepository.findOne({
             where: {
+              is_deleted:false,
               id: file_id,
             },
           })

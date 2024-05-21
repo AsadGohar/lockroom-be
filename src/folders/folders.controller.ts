@@ -49,7 +49,7 @@ export class FoldersController {
 
   @UseGuards(AuthGuard)
   @Post('delete')
-  remove(@Body('folder_id') folder_id: string, @Body('org_id') org_id: string) {
-    return this.foldersService.soft_delete(folder_id, org_id);
+  remove(@Body('folder_id') folder_id: string, @Body('organization_id') organization_id: string) {
+    return this.foldersService.softDelete(folder_id, organization_id);
   }
 }
