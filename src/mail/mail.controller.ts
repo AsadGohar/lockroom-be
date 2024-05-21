@@ -38,6 +38,8 @@ export class MailController {
       const senderUser = await this.userService.findOne({
         id: request.decoded_data.user_id,
       });
+      // console.log(request.decoded_data.user_id,'dsads')
+      if(!senderUser) throw new NotFoundException('sender user not found')
       await Promise.all(
         emails.map(async (email: string) => {
           const invitedUserAlreadyExists = await this.userService.findOne({
