@@ -641,14 +641,22 @@ export class FilesService {
 
     find_file.current_version_id = new_file_version.id;
     await this.fileRepository.save(find_file);
-    return { message: 'file url updated', file: find_file };
+    return {
+      message: 'file url updated',
+      file: find_file,
+    };
   }
 
   async update(id: string, properties: any) {
     if (properties?.current_version_id) {
       const find_file_version = await this.fileVersionRepository.findOne({
         relations: ['file'],
-        where: { id: properties?.current_version_id, file: { id } },
+        where: {
+          id: properties?.current_version_id,
+          file: {
+            id,
+          },
+        },
       });
       if (!find_file_version)
         throw new NotFoundException('invalid file version');
@@ -661,9 +669,8 @@ export class FilesService {
   }
 
   async softDelete(id: string) {
-    const soft_delete = await this.fileRepository.update(id, {
+    const soft_delete = await this.update(id, {
       is_deleted: true,
-      this_deleted: true,
     });
     if (soft_delete) {
       return { message: 'file deleted successfully' };
@@ -693,24 +700,4 @@ export class FilesService {
     return { message: 'failed to restore file' };
   }
 
-  async update(id: string, properties: any) {
-    if (properties?.current_version_id) {
-      const find_file_version = await this.fileVersionRepository.findOne({
-        relations: ['file'],
-        where: {
-          id: properties?.current_version_id,
-          file: {
-            id,
-          },
-        },
-      });
-      if (!find_file_version)
-        throw new NotFoundException('invalid file version');
-    }
-    const file = await this.fileRepository.update(id, properties);
-    if (file.affected > 0) {
-      return { file, message: 'file updated successfully' };
-    }
-    return { message: 'failed to update file' };
-  }
 }
