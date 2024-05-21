@@ -60,12 +60,9 @@ import { RolesGuard } from './guards/role.guard';
         FileVersion,
       ],
       synchronize: true,
-      ssl:
-        process.env.NODE_ENV == 'development'
-          ? false
-          : {
-              rejectUnauthorized: false,
-            },
+      ssl: process.env.NODE_ENV == 'development' ? false : {
+        rejectUnauthorized: false
+      }
     }),
     ThrottlerModule.forRoot({
       throttlers: [
