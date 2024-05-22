@@ -6,7 +6,7 @@ import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { User } from 'src/users/entities/user.entity';
 import { createExcelWorkbook } from 'src/utils/excel.utils';
-import { subMonths, format, subDays, addDays } from 'date-fns';
+import { subMonths, format, subDays } from 'date-fns';
 import { PartialDto } from './dto/partial-audit.dto';
 @Injectable()
 export class AuditLogsSerivce {
@@ -34,6 +34,7 @@ export class AuditLogsSerivce {
       const find_file = file_id
         ? await this.fileRepository.findOne({
             where: {
+              is_deleted: false,
               id: file_id,
             },
           })
@@ -46,7 +47,7 @@ export class AuditLogsSerivce {
 
       const groups = [...find_user.groups, ...find_user.created_groups];
 
-      console.log(groups, 'grrpppps')
+      // console.log(groups, 'grrpppps')
       const audit_logs = groups.map((item) => {
         return this.auditLogsRepository.create({
           file: file_id ? find_file : null,
@@ -74,7 +75,7 @@ export class AuditLogsSerivce {
       }
       const formattedStartDate = startDate && format(startDate, 'yyyy-MM-dd');
 
-      console.log(formattedStartDate,'date', date, '\n\n')
+      console.log(formattedStartDate, 'date', date, '\n\n');
 
       const group_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
@@ -82,19 +83,19 @@ export class AuditLogsSerivce {
         .addSelect('COUNT(*)', 'total')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'view')`, 'views')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'login')`, 'login')
-        .leftJoin('audit_logs.group', 'group')
-        .groupBy('group.name')
-
-      if (date.type == 'days' || date.type == 'months') {
-        group_rankings_query.where('audit_logs.createdAt >= :startDate', {
-          startDate: formattedStartDate,
-        })
-        .andWhere('audit_logs.organizationId = :organization_id', {
+        .where('audit_logs.organizationId = :organization_id', {
           organization_id,
         })
+        .leftJoin('audit_logs.group', 'group')
+        .groupBy('group.name');
+
+      if (date.type == 'days' || date.type == 'months') {
+        group_rankings_query.andWhere('audit_logs.createdAt >= :startDate', {
+          startDate: formattedStartDate,
+        });
       }
       const group_rankings = await group_rankings_query.getRawMany();
-      console.log(group_rankings,'recordsss')
+      // console.log(group_rankings,'recordsss 1')
       const user_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
         .select('group.name', 'group_name')
@@ -182,8 +183,10 @@ export class AuditLogsSerivce {
       });
 
       //sorting documnents
-      data.forEach(data_item => {
-        data_item.documents.sort((a, b) => parseInt(b.views) - parseInt(a.views));
+      data.forEach((data_item) => {
+        data_item.documents.sort(
+          (a, b) => parseInt(b.views) - parseInt(a.views),
+        );
       });
       //sorting total
       data.sort((a, b) => parseInt(b.total) - parseInt(a.total));

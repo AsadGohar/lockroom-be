@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { FileVersionService } from './file-version.service';
 import { CreateFileVersionDto } from './dto/create-file-version.dto';
 import { UpdateFileVersionDto } from './dto/update-file-version.dto';
@@ -23,7 +31,10 @@ export class FileVersionController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateFileVersionDto: UpdateFileVersionDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateFileVersionDto: UpdateFileVersionDto,
+  ) {
     return this.fileVersionService.update(+id, updateFileVersionDto);
   }
 

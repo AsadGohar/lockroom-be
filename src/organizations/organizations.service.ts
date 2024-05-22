@@ -27,7 +27,12 @@ export class OrganizationsService {
     try {
       const { organization_id } = dto
       const find_org = await this.orgRepository.findOne({
-        relations: ['creator', 'users.groups', 'groups.users','users.created_groups'],
+        relations: [
+          'creator',
+          'users.groups',
+          'groups.users',
+          'users.created_groups',
+        ],
         where: [
           {
             id: organization_id,

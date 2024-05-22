@@ -44,6 +44,6 @@ export class FoldersController {
   @UseGuards(AuthGuard)
   @Post('delete')
   remove(@Body(ValidationPipe) dto: PartialFolderDto) {
-    return this.foldersService.soft_delete(dto);
+    return this.foldersService.softDelete(dto);
   }
 }

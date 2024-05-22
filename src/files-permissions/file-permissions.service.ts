@@ -29,22 +29,28 @@ export class FilesPermissionsService {
     }
   }
 
-  async findFilePermissiosn(file_id: string, group_id:string) {
-    let permissions = {};
+  async findFilePermissiosn(file_id: string, group_id: string) {
+    const permissions = {};
     const file_permissions = await this.filePermRepo.find({
-      relations: ['permission', 'file', 'file.folder', 'group_files_permissions'],
+      relations: [
+        'permission',
+        'file',
+        'file.folder',
+        'group_files_permissions',
+      ],
       where: {
         file: {
           id: file_id,
+          is_deleted: false,
           folder: {
             is_deleted: false,
           },
         },
         group_files_permissions: {
           group: {
-            id: group_id
-          }
-        }
+            id: group_id,
+          },
+        },
       },
       order: {
         file: {
@@ -52,11 +58,12 @@ export class FilesPermissionsService {
         },
       },
     });
-    if(file_permissions){
+    if (file_permissions) {
       file_permissions.map((file_permission) => {
-        permissions[file_permission.permission.type] = file_permission.permission.status;
+        permissions[file_permission.permission.type] =
+          file_permission.permission.status;
       });
-      return permissions
+      return permissions;
     }
   }
 }

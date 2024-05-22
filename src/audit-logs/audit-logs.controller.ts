@@ -3,13 +3,11 @@ import {
   Post,
   Get,
   Body,
-  Res,
   Param,
   UseGuards,
   Request,
   ValidationPipe,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { AuditLogsSerivce } from './audit-logs.service';
 import { UploadService } from 'src/uploads/uploads.service';
 import { AuthGuard } from 'src/guards/auth.guard';
@@ -43,18 +41,7 @@ export class AuditLogsController {
   }
 
   @Get('')
-  async getFile(
-    @Param('organization_id') organization_id: string,
-    @Res() res: Response,
-  ) {
-    const file = await this.auditLogsService.exportDataToExcel(organization_id);
-    // const filePath = path.join(__dirname, '/src/excel-files/user/', file.name);
-
-    // Set appropriate headers
-    // res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    // res.setHeader('Content-Type', 'application/octet-stream');
-
-    // Send the file
-    // res.sendFile(filePath);
+  async getFile(@Param('organization_id') organization_id: string) {
+    return await this.auditLogsService.exportDataToExcel(organization_id);
   }
 }
