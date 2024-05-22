@@ -59,15 +59,18 @@ import { FileVersion } from './file-version/entities/file-version.entity';
         FileVersion,
       ],
       synchronize: true,
-      ssl: process.env.NODE_ENV == 'development' ? false : {
-        rejectUnauthorized: false
-      }
+      ssl:
+        process.env.NODE_ENV == 'development'
+          ? false
+          : {
+              rejectUnauthorized: false,
+            },
     }),
     ThrottlerModule.forRoot({
       throttlers: [
         {
           ttl: 60, // seconds
-          limit: 300,
+          limit: 1000,
         },
       ],
     }),

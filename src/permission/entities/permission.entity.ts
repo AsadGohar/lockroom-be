@@ -17,10 +17,10 @@ export class Permission {
   @Column({ nullable: false })
   type: string;
 
-  @Column({ nullable: true})
-  status: boolean
+  @Column({ nullable: true })
+  status: boolean;
 
-  @OneToMany(() => FilesPermissions, fp => fp.permission)
+  @OneToMany(() => FilesPermissions, (fp) => fp.permission)
   FilesPermissions: FilesPermissions[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

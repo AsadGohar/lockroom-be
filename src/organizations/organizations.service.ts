@@ -25,7 +25,12 @@ export class OrganizationsService {
   async getUsersByOrganization(organization_id: string) {
     try {
       const find_org = await this.orgRepository.findOne({
-        relations: ['creator', 'users.groups', 'groups.users','users.created_groups'],
+        relations: [
+          'creator',
+          'users.groups',
+          'groups.users',
+          'users.created_groups',
+        ],
         where: [
           {
             id: organization_id,
@@ -33,18 +38,18 @@ export class OrganizationsService {
         ],
       });
       const find_invites = await this.inviteRepository.find({
-        relations:['sender'],
+        relations: ['sender'],
         where: {
           organization: {
             id: organization_id,
           },
-          status:'pending'
+          status: 'pending',
         },
       });
       if (!find_org) throw new NotFoundException('organization not found');
       return {
         organization: find_org,
-        invites: find_invites.filter(item=> item.status == 'pending'),
+        invites: find_invites.filter((item) => item.status == 'pending'),
       };
     } catch (error) {
       console.log(error);
@@ -68,21 +73,21 @@ export class OrganizationsService {
       });
       if (!find_org) throw new NotFoundException('organization not found');
       const find_invites = await this.inviteRepository.find({
-        relations:['sender'],
+        relations: ['sender'],
         where: {
           organization: {
             id: organization_id,
           },
           group: {
-            id: group_id
+            id: group_id,
           },
-          status:'pending'
+          status: 'pending',
         },
       });
 
       return {
-        organization: {...find_org, group_name:find_org.groups[0].name},
-        invites:  find_invites,
+        organization: { ...find_org, group_name: find_org.groups[0].name },
+        invites: find_invites,
       };
     } catch (error) {
       console.log(error);

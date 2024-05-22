@@ -7,7 +7,7 @@ import {
   UseGuards,
   Request,
   Patch,
-  Delete
+  Delete,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { AuthGuard } from 'src/guards/auth.guard';
@@ -33,7 +33,7 @@ export class FilesController {
 
   @UseGuards(AuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string, @Request() request,) {
+  findOne(@Param('id') id: string, @Request() request) {
     return this.filesService.findOne(id, request.decoded_data.user_id);
   }
 
@@ -85,13 +85,13 @@ export class FilesController {
       parent_folder_id,
       group_id,
       type,
-      status
+      status,
     );
   }
 
   @UseGuards(AuthGuard)
   @Patch('update/:id')
-  update(@Param('id') id: string,  @Body('data') data: any) {
+  update(@Param('id') id: string, @Body('data') data: any) {
     return this.filesService.update(id, data);
   }
 

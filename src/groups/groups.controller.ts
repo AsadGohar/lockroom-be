@@ -56,7 +56,7 @@ export class GroupsController {
     return this.groupsService.switchUser(
       guest_user_id,
       new_group_id,
-      old_group_id
+      old_group_id,
     );
   }
 
@@ -70,7 +70,7 @@ export class GroupsController {
     return this.groupsService.updateUserRoleAndChangeGroup(
       user_id,
       new_role,
-      old_group_id
+      old_group_id,
     );
   }
 }

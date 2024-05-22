@@ -51,7 +51,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
       Invite,
       Permission,
       AuditLogs,
-      FileVersion
+      FileVersion,
     ]),
     // UsersModule
   ],
@@ -73,7 +73,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
     FoldersService,
     UsersService,
     AuditLogsSerivce,
-    OTPService
+    OTPService,
   ],
 })
 export class UploadsModule {}
