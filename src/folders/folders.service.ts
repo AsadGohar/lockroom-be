@@ -73,7 +73,7 @@ export class FoldersService {
 
     const all_child_files = await this.fileRepository.find({
       where: {
-        is_deleted:false,
+        is_deleted: false,
         folder: {
           id: parent_folder_id,
         },

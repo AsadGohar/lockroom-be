@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
   BeforeInsert,
   JoinColumn,
-  ManyToMany
+  ManyToMany,
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Group } from 'src/groups/entities/group.entity';
@@ -51,7 +51,7 @@ export class Organization {
   @OneToMany(() => Folder, (folder) => folder.organization)
   folder: Folder[];
 
-  @OneToMany(() => AuditLogs, auditLog => auditLog.organization)
+  @OneToMany(() => AuditLogs, (auditLog) => auditLog.organization)
   audit_log: AuditLogs[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
