@@ -200,6 +200,12 @@ export class GroupsService {
     try {
       if (!organization_id || !user_id)
         throw new NotFoundException('Missing Fields');
+
+      const find_user = await this.userRepository.findOne({
+        where: {
+          id: user_id
+        }
+      })
       const groups_result = [];
       const find_groups = await this.groupsRepository.find({
         relations: ['users', 'organization.creator'],
@@ -212,16 +218,13 @@ export class GroupsService {
 
       find_groups.map((group) => {
         if (
-          group.organization.creator &&
-          group.organization.creator.id == user_id
+          find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER
         ) {
           groups_result.push(group);
         } else if (group.users.find((user) => user.id == user_id)) {
           groups_result.push(group);
         }
       });
-
-      // console.log(groups_result,'ress')
 
       return groups_result.sort(
         (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),

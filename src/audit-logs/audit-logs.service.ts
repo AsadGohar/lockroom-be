@@ -94,12 +94,6 @@ export class AuditLogsSerivce {
         .leftJoin('audit_logs.group', 'group')
         .groupBy('group.name');
 
-      if (date.type == 'days' || date.type == 'months') {
-        group_rankings_query.andWhere('audit_logs.createdAt >= :startDate', {
-          startDate: formattedStartDate,
-        });
-      }
-      const group_rankings = await group_rankings_query.getRawMany();
       // console.log(group_rankings,'recordsss 1')
       const user_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
@@ -115,13 +109,6 @@ export class AuditLogsSerivce {
           organization_id,
         })
         .orderBy('engagement', 'DESC');
-
-      if (date.type == 'days' || date.type == 'months') {
-        user_rankings_query.where('audit_logs.createdAt >= :startDate', {
-          startDate: formattedStartDate,
-        });
-      }
-      const user_rankings = await user_rankings_query.limit(4).getRawMany();
 
       const document_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
@@ -140,16 +127,28 @@ export class AuditLogsSerivce {
         })
         .andWhere('audit_logs.type = :type', {
           type: 'view',
-        });
+        })
+         .orderBy('views', 'DESC')
 
       if (date.type == 'days' || date.type == 'months') {
-        document_rankings_query.where('audit_logs.createdAt >= :startDate', {
+        document_rankings_query.andWhere('audit_logs.createdAt >= :startDate', {
+          startDate: formattedStartDate,
+        });
+        user_rankings_query.andWhere('audit_logs.createdAt >= :startDate', {
+          startDate: formattedStartDate,
+        });
+        group_rankings_query.andWhere('audit_logs.createdAt >= :startDate', {
           startDate: formattedStartDate,
         });
       }
-      const document_rankings = await document_rankings_query
-        .limit(3)
-        .getRawMany();
+
+      const group_rankings = await group_rankings_query.getRawMany();
+      const user_rankings = await user_rankings_query.limit(4).getRawMany();
+      const document_rankings = await document_rankings_query.getRawMany();
+
+      console.log(document_rankings, 'rankingssdsa');
+
+      // return
 
       const createObjs = (
         name: string,
@@ -173,7 +172,8 @@ export class AuditLogsSerivce {
         const docs = [];
         const users = [];
         document_rankings.map((doc) => {
-          if (doc.group_name == group.group_name) {
+          // console.log(doc,'dsdsas')
+          if (doc.group_name == group.group_name && docs.length < 3) {
             delete doc.group_name;
             docs.push(doc);
           }
@@ -184,6 +184,7 @@ export class AuditLogsSerivce {
             users.push(user);
           }
         });
+        // console.log(docs,'docc')
         data.push(createObjs(group.group_name, group, docs, users));
       });
 
@@ -195,6 +196,8 @@ export class AuditLogsSerivce {
       });
       //sorting total
       data.sort((a, b) => parseInt(b.total) - parseInt(a.total));
+
+      // console.log(data,'dastad')
       return { data };
     } catch (error) {
       console.log(error);
