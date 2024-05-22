@@ -478,7 +478,7 @@ export class UsersService {
     });
   }
 
-  async getAllGroups(user_id: string) {
+  async getAllGroups(organization_id: string,user_id: string) {
     try {
       if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
@@ -497,7 +497,9 @@ export class UsersService {
         find_user.role == UserRoleEnum.OWNER
       ) {
         return await this.groupsRepository.find({
-          where: { created_by: { id: user_id } },
+          where: { organization: {
+            id: organization_id
+          } },
         });
       }
       return find_user.groups;
