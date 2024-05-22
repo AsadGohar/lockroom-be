@@ -16,13 +16,16 @@ export class GroupFilesPermissions {
   @PrimaryGeneratedColumn('uuid')
   id: number;
 
-  @ManyToOne(() => Group, (group) => group.group_files_permissions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Group, (group) => group.group_files_permissions, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   group: Group;
 
   @ManyToOne(
     () => FilesPermissions,
-    (filePermission) => filePermission.group_files_permissions, { onDelete: 'CASCADE' }
+    (filePermission) => filePermission.group_files_permissions,
+    { onDelete: 'CASCADE' },
   )
   @JoinColumn()
   file_permission: FilesPermissions;

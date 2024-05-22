@@ -172,7 +172,7 @@ export class FilesService {
       return this.fileRepository.find({
         relations: ['folder'],
         where: {
-          is_deleted:false,
+          is_deleted: false,
           organization: {
             id: organization_id,
           },
@@ -300,7 +300,7 @@ export class FilesService {
       children: [],
     };
     if (folder.files && folder.files.length > 0) {
-      for (const file of folder.files.filter(file=>!file.is_deleted)) {
+      for (const file of folder.files.filter((file) => !file.is_deleted)) {
         // console.log(file,'dasdsa in here')
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
@@ -367,8 +367,8 @@ export class FilesService {
     const folder_file_structures = [];
     if (root_folders.length > 0) {
       for (const root_folder of root_folders) {
-        const new_root = root_folder.files.filter(file=> !file.is_deleted)
-        console.log(root_folder, new_root, 'dasdas')
+        const new_root = root_folder.files.filter((file) => !file.is_deleted);
+        console.log(root_folder, new_root, 'dasdas');
         const folder_file_structure = await this.buildFolderFileStructure(
           root_folder,
           group_id,

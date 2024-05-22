@@ -234,7 +234,7 @@ export class GroupsService {
 
   async getGroupsByOrg(organization_id: string) {
     return this.groupsRepository.find({
-      relations:['user.organization'],
+      relations: ['user.organization'],
       where: {
         organization: {
           id: organization_id,
@@ -274,13 +274,8 @@ export class GroupsService {
     user_role: UserRoleEnum,
     old_group_id: string,
   ) {
-    console.log(user_id,user_role, old_group_id)
-    const find_user = await this.userRepository.findOne({
-      where: {
-        id: user_id
-      }
-    })
-  //  const old_group_id =  find_user.groups[0].id
+    console.log(user_id, user_role, old_group_id);
+    //  const old_group_id =  find_user.groups[0].id
     const update_user = await this.userRepository.update(
       {
         id: user_id,

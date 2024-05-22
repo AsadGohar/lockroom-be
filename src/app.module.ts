@@ -35,8 +35,6 @@ import { FileVersion } from './file-version/entities/file-version.entity';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // envFilePath: process.env.NODE_ENV == 'development' ? '.env.development' : '.env'
-      // envFilePath: `.env.${process.env.NODE_ENV || 'development'}`
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -59,9 +57,12 @@ import { FileVersion } from './file-version/entities/file-version.entity';
         FileVersion,
       ],
       synchronize: true,
-      ssl: process.env.NODE_ENV == 'development' ? false : {
-        rejectUnauthorized: false
-      }
+      ssl:
+        process.env.NODE_ENV == 'development'
+          ? false
+          : {
+              rejectUnauthorized: false,
+            },
     }),
     ThrottlerModule.forRoot({
       throttlers: [

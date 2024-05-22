@@ -22,7 +22,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
       File,
       Organization,
       Group,
-      FileVersion
+      FileVersion,
     ]),
     UsersModule,
   ],

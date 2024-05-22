@@ -280,7 +280,7 @@ export class UsersService {
 
       if (find_user) {
         const orgs = [];
-        if(find_user.role == UserRoleEnum.GUEST){
+        if (find_user.role == UserRoleEnum.GUEST) {
           await this.auditService.create(
             null,
             find_user.id,
@@ -532,9 +532,9 @@ export class UsersService {
             user: find_user,
             group: find_user.groups[0],
             type: 'login',
-          })
+          });
           // console.log(audit,'auddd')
-          const add_audit_record = await this.auditRepository.save(audit)
+          const add_audit_record = await this.auditRepository.save(audit);
           if (add_audit_record) {
             // console.log('hereee in audit')
             return {
@@ -546,7 +546,7 @@ export class UsersService {
           success: true,
         };
       }
-      console.log('heeress')
+      console.log('heeress');
       return new UnauthorizedException('OTP is invalid');
     } else {
       return new NotFoundException('user not found');
