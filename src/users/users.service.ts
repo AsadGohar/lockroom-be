@@ -651,6 +651,11 @@ export class UsersService {
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
+      ssl: process.env.NODE_ENV == 'development'
+      ? false
+      : {
+          rejectUnauthorized: false,
+        },
     }).initialize();
 
     try {
