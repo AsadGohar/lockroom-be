@@ -36,8 +36,6 @@ import { RolesGuard } from './guards/role.guard';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // envFilePath: process.env.NODE_ENV == 'development' ? '.env.development' : '.env'
-      // envFilePath: `.env.${process.env.NODE_ENV || 'development'}`
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -60,9 +58,12 @@ import { RolesGuard } from './guards/role.guard';
         FileVersion,
       ],
       synchronize: true,
-      ssl: process.env.NODE_ENV == 'development' ? false : {
-        rejectUnauthorized: false
-      }
+      ssl:
+        process.env.NODE_ENV == 'development'
+          ? false
+          : {
+              rejectUnauthorized: false,
+            },
     }),
     ThrottlerModule.forRoot({
       throttlers: [

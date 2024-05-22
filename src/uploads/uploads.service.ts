@@ -23,10 +23,8 @@ export class UploadService {
   ) {
     if (files.length > 0) {
       const file_names = [];
-
-      const file_promises = files.map((file) => {
+      const file_promises = files.map((file: any) => {
         const file_name = uuidv4() + '-' + file.originalname;
-
         file_names.push(file_name);
 
         return this.s3Client.send(
