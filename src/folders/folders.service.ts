@@ -418,8 +418,8 @@ export class FoldersService {
     }
   }
 
-  async softDelete(dto:PartialFolderDto) {
-    const {id, organization_id} = dto
+  async softDelete(dto: PartialFolderDto) {
+    const { id, organization_id } = dto;
     const to_delete = await this.getAllFilesByOrg(organization_id, id);
 
     const sub_folders_ids = to_delete?.folder_ids;

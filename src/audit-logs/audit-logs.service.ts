@@ -23,7 +23,7 @@ export class AuditLogsSerivce {
 
   async create(dto: PartialDto) {
     try {
-      let { user_id, organization_id, file_id, type } = dto;
+      const { user_id, organization_id, file_id, type } = dto;
       // if(type == 'login') file_id = null
       const find_user = await this.userRepository.findOne({
         relations: ['groups', 'created_groups'],
@@ -65,7 +65,7 @@ export class AuditLogsSerivce {
 
   async getStats(dto: PartialDto) {
     try {
-      let { organization_id, date } = dto;
+      const { organization_id, date } = dto;
 
       let startDate;
       if (date?.type == 'days') {
@@ -123,7 +123,7 @@ export class AuditLogsSerivce {
         .andWhere('audit_logs.type = :type', {
           type: 'view',
         })
-         .orderBy('views', 'DESC')
+        .orderBy('views', 'DESC');
 
       if (date.type == 'days' || date.type == 'months') {
         document_rankings_query.andWhere('audit_logs.createdAt >= :startDate', {

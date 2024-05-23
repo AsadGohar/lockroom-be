@@ -556,7 +556,7 @@ export class FilesService {
           parent_folder_id,
         },
         user_id,
-        );
+      );
 
       for (let index = 0; index < files.length; index++) {
         const file = files[index];
@@ -602,11 +602,11 @@ export class FilesService {
       if (!folder) {
         console.log('nested not found', folderName);
         const create_folder = await this.folderService.create(
-         {
-          name:folderName,
-          organization_id: organization_id,
-          folder_id: currentFolderId
-         },
+          {
+            name: folderName,
+            organization_id: organization_id,
+            folder_id: currentFolderId,
+          },
           user_id,
         );
 

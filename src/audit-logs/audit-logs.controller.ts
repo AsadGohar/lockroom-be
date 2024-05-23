@@ -5,19 +5,15 @@ import {
   Body,
   Param,
   UseGuards,
-  Request,
   ValidationPipe,
 } from '@nestjs/common';
 import { AuditLogsSerivce } from './audit-logs.service';
-import { UploadService } from 'src/uploads/uploads.service';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PartialDto } from './dto/partial-audit.dto';
-PartialDto;
 @Controller('audit')
 export class AuditLogsController {
   constructor(
     private readonly auditLogsService: AuditLogsSerivce,
-    private readonly uploadsService: UploadService,
   ) {}
 
   @UseGuards(AuthGuard)
@@ -34,9 +30,7 @@ export class AuditLogsController {
 
   @UseGuards(AuthGuard)
   @Post('stats')
-  stats(
-    @Body(ValidationPipe) dto: PartialDto
-  ) {
+  stats(@Body(ValidationPipe) dto: PartialDto) {
     return this.auditLogsService.getStats(dto);
   }
 

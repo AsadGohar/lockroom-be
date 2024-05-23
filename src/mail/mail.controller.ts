@@ -5,7 +5,7 @@ import {
   UseGuards,
   UnauthorizedException,
   Request,
-  NotFoundException
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from 'src/email/email.service';

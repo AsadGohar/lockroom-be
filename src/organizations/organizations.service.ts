@@ -23,9 +23,9 @@ export class OrganizationsService {
     });
   }
 
-  async getUsersByOrganization(dto:PartialOrganizationDto) {
+  async getUsersByOrganization(dto: PartialOrganizationDto) {
     try {
-      const { organization_id } = dto
+      const { organization_id } = dto;
       const find_org = await this.orgRepository.findOne({
         relations: [
           'creator',

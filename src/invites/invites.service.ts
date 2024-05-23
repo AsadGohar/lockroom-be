@@ -105,7 +105,7 @@ export class InvitesService {
 
   async addInvitedUser(dto: PartialInviteDto) {
     try {
-      let { email, password, first_name, last_name, phone_number, jwt_token } =
+      const { email, first_name, last_name, phone_number, jwt_token } =
         dto;
       const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in'],
@@ -121,8 +121,8 @@ export class InvitesService {
       if (existing_number)
         throw new ConflictException('phone number already taken');
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-      password = hashedPassword;
+      const hashedPassword = await bcrypt.hash(dto.password, 10);
+      dto.password = hashedPassword;
       const full_name = `${first_name} ${last_name}`;
 
       const resp = await this.jwtService.verify(jwt_token, {
@@ -151,8 +151,8 @@ export class InvitesService {
         },
       });
       const new_user = this.userRepository.create({
+        password: dto.password,
         email,
-        password,
         first_name,
         last_name,
         role,

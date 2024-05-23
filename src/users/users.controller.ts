@@ -37,14 +37,20 @@ export class UsersController {
   }
 
   @Post('login')
-  login(@Body(ValidationPipe) dto:PartialUserDto) {
+  login(@Body(ValidationPipe) dto: PartialUserDto) {
     return this.usersService.loginUser(dto);
   }
 
   @UseGuards(AuthGuard)
   @Post('find-groups')
-  findAllGroupsByUserId(@Body('organization_id') organization_id: string, @Request() request) {
-    return this.usersService.getAllGroups(organization_id,request?.decoded_data?.user_id);
+  findAllGroupsByUserId(
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.usersService.getAllGroups(
+      organization_id,
+      request?.decoded_data?.user_id,
+    );
   }
 
   @UseGuards(AuthGuard)

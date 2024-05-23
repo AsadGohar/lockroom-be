@@ -486,7 +486,7 @@ export class UsersService {
     });
   }
 
-  async getAllGroups(organization_id: string,user_id: string) {
+  async getAllGroups(organization_id: string, user_id: string) {
     try {
       if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
@@ -505,9 +505,11 @@ export class UsersService {
         find_user.role == UserRoleEnum.OWNER
       ) {
         return await this.groupsRepository.find({
-          where: { organization: {
-            id: organization_id
-          } },
+          where: {
+            organization: {
+              id: organization_id,
+            },
+          },
         });
       }
       return find_user.groups;
@@ -661,11 +663,12 @@ export class UsersService {
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      ssl: process.env.NODE_ENV == 'development'
-      ? false
-      : {
-          rejectUnauthorized: false,
-        },
+      ssl:
+        process.env.NODE_ENV == 'development'
+          ? false
+          : {
+              rejectUnauthorized: false,
+            },
     }).initialize();
 
     try {
