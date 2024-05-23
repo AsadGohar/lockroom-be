@@ -45,5 +45,4 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
   user_id: string;
-
 }

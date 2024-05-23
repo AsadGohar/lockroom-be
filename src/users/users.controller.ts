@@ -37,7 +37,7 @@ export class UsersController {
   }
 
   @Post('login')
-  login(@Body(ValidationPipe) dto:PartialUserDto) {
+  login(@Body(ValidationPipe) dto: PartialUserDto) {
     return this.usersService.loginUser(dto);
   }
 

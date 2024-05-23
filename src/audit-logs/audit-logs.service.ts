@@ -25,7 +25,7 @@ export class AuditLogsSerivce {
 
   async create(dto: PartialDto) {
     try {
-      let { user_id, organization_id, file_id, type } = dto;
+      const { user_id, organization_id, file_id, type } = dto;
       // if(type == 'login') file_id = null
       const find_user = await this.userRepository.findOne({
         relations: ['groups', 'created_groups'],
