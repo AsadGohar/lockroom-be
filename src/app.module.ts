@@ -68,7 +68,7 @@ import { FileVersion } from './file-version/entities/file-version.entity';
       throttlers: [
         {
           ttl: 60, // seconds
-          limit: 300,
+          limit: 1000,
         },
       ],
     }),

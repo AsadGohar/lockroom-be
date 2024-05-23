@@ -43,8 +43,8 @@ export class UsersController {
 
   @UseGuards(AuthGuard)
   @Post('find-groups')
-  findAllGroupsByUserId(@Request() request) {
-    return this.usersService.getAllGroups(request?.decoded_data?.user_id);
+  findAllGroupsByUserId(@Body('organization_id') organization_id: string, @Request() request) {
+    return this.usersService.getAllGroups(organization_id,request?.decoded_data?.user_id);
   }
 
   @UseGuards(AuthGuard)
