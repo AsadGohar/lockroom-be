@@ -64,7 +64,7 @@ export class FoldersController {
   }
 
   @UseGuards(AuthGuard)
-  @Patch('rearragne')
+  @Patch('rearrange')
   rearragne(
     @Body('data') data: any,
     @Body('organization_id') organization_id: string,
