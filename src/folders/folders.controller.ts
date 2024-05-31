@@ -1,4 +1,11 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Patch,
+} from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { AuthGuard } from 'src/guards/auth.guard';
 
@@ -54,5 +61,19 @@ export class FoldersController {
     @Body('organization_id') organization_id: string,
   ) {
     return this.foldersService.softDelete(folder_id, organization_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('rearrange')
+  rearragne(
+    @Body('data') data: any,
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.foldersService.rearrangeFolderAndFiles(
+      data,
+      organization_id,
+      request.decoded_data.user_id,
+    );
   }
 }
