@@ -202,9 +202,7 @@ export class FoldersService {
         .addSelect('folder.id', 'folder_id')
         .getRawMany();
 
-      const data = [...query1, ...file_data].sort(
-        (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
-      );
+      const data = this.sortByFolderTreeIndex([...query1, ...file_data]);
 
       return {
         sub_folder_count: data,
@@ -281,9 +279,7 @@ export class FoldersService {
         .addSelect('folder.id', 'folder_id')
         .getRawMany();
 
-      const data = [...query1, ...file_data].sort(
-        (a, b) => Number(a.folder_createdAt) - Number(b.folder_createdAt),
-      );
+      const data = this.sortByFolderTreeIndex([...query1, ...file_data]);
 
       return {
         sub_folder_count: data,
@@ -464,5 +460,57 @@ export class FoldersService {
       console.log(error);
       throw new InternalServerErrorException(error.message);
     }
+  }
+
+  private sortByFolderTreeIndex(data) {
+    data.sort((a, b) => {
+      const indexA = a.folder_tree_index.split('.').map(Number);
+      const indexB = b.folder_tree_index.split('.').map(Number);
+      for (let i = 0; i < Math.max(indexA.length, indexB.length); i++) {
+        if (indexA[i] === indexB[i]) {
+          continue;
+        } else {
+          return indexA[i] - indexB[i];
+        }
+      }
+      return 0;
+    });
+    return data;
+  }
+
+  async rearrangeFolderAndFiles(data: any[], organization_id:string, user_id: string) {
+    for (let index = 0; index < data.length; index++) {
+      const element = data[index];
+      if (element.type === 'folder') {
+        const update_folder_index = await this.foldersRepository.update(
+          {
+            id: element.id,
+          },
+          {
+            tree_index: element.folder_tree_index,
+          },
+        );
+        if (update_folder_index.affected > 0) {
+          console.log('updated');
+        }
+      }
+      if (element.type === 'file') {
+        const update_file_index = await this.fileRepository.update(
+          {
+            id: element.id,
+          },
+          {
+            tree_index: element.folder_tree_index,
+          },
+        );
+        if (update_file_index.affected > 0) {
+          console.log('updated');
+        }
+      }
+    }
+    return {
+      success: true,
+      new_data: await this.findAllByOrganization(organization_id, user_id)
+    };
   }
 }
