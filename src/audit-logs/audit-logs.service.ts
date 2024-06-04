@@ -128,7 +128,7 @@ export class AuditLogsSerivce {
         .andWhere('audit_logs.type = :type', {
           type: 'view',
         })
-         .orderBy('views', 'DESC')
+        .orderBy('views', 'DESC');
 
       if (date.type == 'days' || date.type == 'months') {
         document_rankings_query.andWhere('audit_logs.createdAt >= :startDate', {
@@ -146,7 +146,7 @@ export class AuditLogsSerivce {
       const user_rankings = await user_rankings_query.limit(4).getRawMany();
       const document_rankings = await document_rankings_query.getRawMany();
 
-      console.log(document_rankings, 'rankingssdsa');
+      // console.log(document_rankings, 'rankingssdsa');
 
       // return
 
