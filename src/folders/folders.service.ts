@@ -112,25 +112,25 @@ export class FoldersService {
       folder_id: new_folder.id,
     };
 
-    const query = this.foldersRepository
-      .createQueryBuilder('folder')
-      .leftJoinAndSelect('folder.users', 'user')
-      .where('user.id = :user_id', { user_id: user.id });
+    // const query = this.foldersRepository
+    //   .createQueryBuilder('folder')
+    //   .leftJoinAndSelect('folder.users', 'user')
+    //   .where('user.id = :user_id', { user_id: user.id });
 
     if (parent_folder_id) {
-      query.andWhere('folder.parent_folder_id = :parent_folder_id', {
-        parent_folder_id,
-      });
+      // query.andWhere('folder.parent_folder_id = :parent_folder_id', {
+      //   parent_folder_id,
+      // });
     } else {
-      query.andWhere('folder.parent_folder_id IS NULL');
+      // query.andWhere('folder.parent_folder_id IS NULL');
     }
-    const data = await query.getMany();
+    // const data = await query.getMany();
     parent_folder.sub_folders.push(new_folder);
     const update_parent_folder =
       await this.foldersRepository.save(parent_folder);
     return {
       new_folder: new_folder_1,
-      files_count: data.length,
+      // files_count: data.length,
       parent_folder: update_parent_folder,
     };
   }
