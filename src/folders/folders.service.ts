@@ -378,11 +378,18 @@ export class FoldersService {
       const check_same_name_folder = await this.foldersRepository.find({
         where: { parent_folder_id, name: new_name, is_deleted: false },
       });
-      if (check_same_name_folder.length > 0)
-        return new ConflictException('folder with same already exists');
+      const folder_with_same_display_name = check_same_name_folder?.find(
+        (folder) => folder.display_name === new_name,
+      );
       return await this.foldersRepository.update(
         { id: folder_id },
-        { name: new_name },
+        {
+          name: new_name,
+          display_name:
+            check_same_name_folder?.length > 0 && folder_with_same_display_name
+              ? `${new_name} (${check_same_name_folder?.length + 1})`
+              : new_name,
+        },
       );
     } catch (error) {
       throw new InternalServerErrorException(error.message);
