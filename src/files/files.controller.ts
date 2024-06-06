@@ -100,4 +100,10 @@ export class FilesController {
   delete(@Param('id') id: string) {
     return this.filesService.softDelete(id);
   }
+
+  @UseGuards(AuthGuard)
+  @Delete('restore/:id')
+  restore(@Param('id') id: string) {
+    return this.filesService.restore(id);
+  }
 }
