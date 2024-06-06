@@ -45,6 +45,19 @@ export class FoldersController {
     );
   }
 
+  @UseGuards(AuthGuard)
+  @Post('/deleted-items')
+  findAllDeletedByOrganization(
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.foldersService.findAllByOrganization(
+      organization_id,
+      request.decoded_data.user_id,
+      true,
+    );
+  }
+
   @Post('rename')
   rename(
     @Body('folder_id') folder_id: string,
@@ -61,6 +74,15 @@ export class FoldersController {
     @Body('organization_id') organization_id: string,
   ) {
     return this.foldersService.softDelete(folder_id, organization_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('restore')
+  restore(
+    @Body('folder_id') folder_id: string,
+    @Body('organization_id') organization_id: string,
+  ) {
+    return this.foldersService.restore(folder_id, organization_id);
   }
 
   @UseGuards(AuthGuard)

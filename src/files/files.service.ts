@@ -729,4 +729,14 @@ export class FilesService {
     }
     return { message: 'failed to delete file' };
   }
+
+  async restore(id: string) {
+    const restore = await this.update(id, {
+      is_deleted: false,
+    });
+    if (restore) {
+      return { message: 'file restored successfully' };
+    }
+    return { message: 'failed to restore file' };
+  }
 }

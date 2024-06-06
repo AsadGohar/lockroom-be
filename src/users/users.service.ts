@@ -123,14 +123,17 @@ export class UsersService {
 
       const saveOrg = await this.orgRepository.save(new_org);
 
-      await this.folderRepository.save({
+      const newFolder = await this.folderRepository.save({
         name: 'Home',
         parent_folder_id: null,
         tree_index: '1',
         users: [user],
         organization: saveOrg,
         absolute_path: '/Home',
+        display_name: 'Home',
       });
+
+      console.log('newFolder', newFolder);
 
       // const mail = {
       //   to: user.email,
@@ -405,6 +408,7 @@ export class UsersService {
         users: [new_user],
         organization: saveOrg,
         absolute_path: '/Home',
+        display_name: 'Home',
       });
       return {
         access_token,
