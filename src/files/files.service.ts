@@ -293,7 +293,7 @@ export class FilesService {
     file_ids: string[],
   ) {
     const folder_files = {
-      name: folder.name,
+      name: folder.display_name,
       id: folder.id,
       type: 'folder',
       index: folder.tree_index,
