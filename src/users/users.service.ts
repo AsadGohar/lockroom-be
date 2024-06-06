@@ -130,6 +130,7 @@ export class UsersService {
         users: [user],
         organization: saveOrg,
         absolute_path: '/Home',
+        display_name: 'Home',
       });
 
       // const mail = {
@@ -405,6 +406,7 @@ export class UsersService {
         users: [new_user],
         organization: saveOrg,
         absolute_path: '/Home',
+        display_name: 'Home',
       });
       return {
         access_token,
