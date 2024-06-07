@@ -227,6 +227,8 @@ export class GroupsService {
         }
       });
 
+      // console.log(groups_result,'ress')
+
       return groups_result.sort(
         (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
       );
