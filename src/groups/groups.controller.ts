@@ -15,7 +15,7 @@ export class GroupsController {
   ) {
     return this.groupsService.create(
       name,
-      request.decoded_data.user_id,
+      request.decoded_data?.user_id,
       organization_id,
     );
   }
@@ -25,7 +25,7 @@ export class GroupsController {
   removeUserFromAGroup(@Body('groupId') groupId: string, @Request() request) {
     return this.groupsService.removeUserFromGroup(
       groupId,
-      request.decoded_data.user_id,
+      request.decoded_data?.user_id,
     );
   }
 
@@ -42,7 +42,7 @@ export class GroupsController {
   ) {
     return this.groupsService.getGroupsByOrganization(
       organization_id,
-      request.decoded_data.user_id,
+      request.decoded_data?.user_id,
     );
   }
 
@@ -56,7 +56,7 @@ export class GroupsController {
     return this.groupsService.switchUser(
       guest_user_id,
       new_group_id,
-      old_group_id
+      old_group_id,
     );
   }
 
@@ -70,7 +70,7 @@ export class GroupsController {
     return this.groupsService.updateUserRoleAndChangeGroup(
       user_id,
       new_role,
-      old_group_id
+      old_group_id,
     );
   }
 }
