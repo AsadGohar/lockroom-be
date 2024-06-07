@@ -1,11 +1,8 @@
-import { Injectable, PreconditionFailedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { FilesService } from 'src/files/files.service';
 import { v4 as uuidv4 } from 'uuid';
-import { InjectRepository } from '@nestjs/typeorm';
-import { FileVersion } from 'src/file-version/entities/file-version.entity';
-import { Repository } from 'typeorm';
 
 @Injectable()
 export class UploadService {
@@ -28,7 +25,7 @@ export class UploadService {
     if (files.length > 0) {
       const file_names = [];
       const file_promises = files.map((file: any) => {
-        let file_name = uuidv4() + '-' + file.originalname;
+        const file_name = uuidv4() + '-' + file.originalname;
         file_names.push(file_name);
         return this.s3Client.send(
           new PutObjectCommand({
@@ -77,8 +74,8 @@ export class UploadService {
     const file_data = [];
     // console.log(file_ids,'idsss')
     for (let index = 0; index < files.length; index++) {
-      let file_name = uuidv4() + '-' + files[index].originalname;
-      let upload = await this.s3Client.send(
+      const file_name = uuidv4() + '-' + files[index].originalname;
+      const upload = await this.s3Client.send(
         new PutObjectCommand({
           Bucket: 'lockroom',
           Key: file_name,
@@ -98,12 +95,12 @@ export class UploadService {
   }
 
   async uploadFileAndUpdateUrl(file: any, file_id: string) {
-    let new_file = file[0];
-    let file_name = uuidv4() + '-' + new_file.originalname;
+    const new_file = file[0];
+    const file_name = uuidv4() + '-' + new_file.originalname;
     // const find_file = await this.fileService.findOneWithoutUser(file_id);
     // if (find_file.versions.length >= 5)
     //   throw new PreconditionFailedException('limit of file versions reached');
-    let upload = await this.s3Client.send(
+    const upload = await this.s3Client.send(
       new PutObjectCommand({
         Bucket: 'lockroom',
         Key: file_name,

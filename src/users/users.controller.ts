@@ -42,8 +42,14 @@ export class UsersController {
 
   @UseGuards(AuthGuard)
   @Post('find-groups')
-  findAllGroupsByUserId(@Request() request) {
-    return this.usersService.getAllGroups(request?.decoded_data?.user_id);
+  findAllGroupsByUserId(
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.usersService.getAllGroups(
+      organization_id,
+      request?.decoded_data?.user_id,
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -111,5 +117,14 @@ export class UsersController {
   async loginWithGmail(@Body('jwt_token') jwt_token: string) {
     const data = await this.usersService.loginWithGoogle(jwt_token);
     return data;
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('update-view')
+  updateViewType(@Body('view_type') view_type: string, @Request() request) {
+    return this.usersService.updateViewType(
+      view_type,
+      request?.decoded_data?.user_id,
+    );
   }
 }
