@@ -15,9 +15,7 @@ export class OTPService {
   async sendSMSService(phone_number: string, otp: string) {
     try {
       const smsResponse = await this.client.messages.create({
-        messagingServiceSid: this.configService.getOrThrow(
-          'TWILIO_MESSAGING_SID',
-        ),
+        messagingServiceSid: this.configService.getOrThrow('TWILIO_MESSAGING_SID'),
         to: phone_number,
         body: `Use this code ${otp}`,
       });

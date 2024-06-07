@@ -2,9 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroupFilesPermissions } from './entities/group-files-permissions.entity';
+import { GroupsService } from 'src/groups/groups.service';
 import { Group } from 'src/groups/entities/group.entity';
 import { In } from 'typeorm';
 import { Permission } from 'src/permission/entities/permission.entity';
+import { FilesService } from 'src/files/files.service';
 import { FilePermissionEnum } from 'src/types/enums';
 
 @Injectable()
@@ -31,7 +33,7 @@ export class GroupFilesPermissionsService {
         },
       });
 
-      const gfp = [];
+      let gfp = [];
 
       for (let index = 0; index < groups.length; index++) {
         const find_perm = files_permissions.find(
@@ -168,11 +170,7 @@ export class GroupFilesPermissionsService {
         },
       );
       if (update_permissions.affected > 0) {
-        if (
-          status &&
-          (type == FilePermissionEnum.VIEW_ORIGINAL ||
-            type == FilePermissionEnum.VIEW_WATERMARKED)
-        ) {
+        if (status && (type == FilePermissionEnum.VIEW_ORIGINAL || type == FilePermissionEnum.VIEW_WATERMARKED)) {
           const find_reverse_permission = await this.groupFilePermRepo.find({
             relations: ['group', 'file_permission.permission'],
             where: {

@@ -22,7 +22,7 @@ export class AuthGuard implements CanActivate {
         secret: process.env.JWT_SECRET,
       });
       request.decoded_data = resp;
-      return true;
+      return true; 
     } catch (error) {
       console.log('auth error - ', error.message);
       throw new ForbiddenException(

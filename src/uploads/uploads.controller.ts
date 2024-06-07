@@ -6,7 +6,7 @@ import {
   Body,
   UseGuards,
   Request,
-  Patch,
+  Patch
 } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './uploads.service';
@@ -42,7 +42,10 @@ export class UploadController {
     file: Express.Multer.File,
     @Body('file_id') file_id: string,
   ) {
-    return await this.uploadService.uploadFileAndUpdateUrl(file, file_id);
+    return await this.uploadService.uploadFileAndUpdateUrl(
+      file,
+      file_id
+    );
   }
 
   //upload file to s3 buckets and update url

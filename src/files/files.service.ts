@@ -15,7 +15,6 @@ import { FoldersService } from 'src/folders/folders.service';
 import { Group } from 'src/groups/entities/group.entity';
 import { FilePermissionEnum, UserRoleEnum } from 'src/types/enums';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
-import { formatBytes } from 'src/utils/converts.utils';
 
 @Injectable()
 export class FilesService {
@@ -120,16 +119,16 @@ export class FilesService {
       });
 
       const saved_file = await this.fileRepository.save(new_file);
-
+      
       const new_file_version = this.fileVersionRepository.create({
         bucket_url,
-        file: saved_file,
+        file: saved_file
       });
-
+      
       const save_file_version =
-        await this.fileVersionRepository.save(new_file_version);
-
-      saved_file.current_version_id = save_file_version.id;
+      await this.fileVersionRepository.save(new_file_version);
+      
+      saved_file.current_version_id = save_file_version.id
       const new_saved_file = await this.fileRepository.save(saved_file);
 
       const find_groups = await this.groupRepository.find({
@@ -155,11 +154,7 @@ export class FilesService {
           organization_id,
           file_permissions,
         );
-      return {
-        file_permissions,
-        saved_file: new_saved_file,
-        new_group_files_permissions,
-      };
+      return { file_permissions, saved_file:new_saved_file, new_group_files_permissions };
     } catch (error) {
       console.log(error);
       throw Error(error);
@@ -172,7 +167,6 @@ export class FilesService {
       return this.fileRepository.find({
         relations: ['folder'],
         where: {
-          is_deleted: false,
           organization: {
             id: organization_id,
           },
@@ -230,7 +224,6 @@ export class FilesService {
 
       const file_with_url = {
         ...file,
-        size: formatBytes(file.size_bytes),
         bucket_url: file.versions.find(
           (version) => version.id == file.current_version_id,
         ).bucket_url,
@@ -250,7 +243,7 @@ export class FilesService {
         download_access_original,
       };
     } else {
-      const file = await this.fileRepository.findOne({
+     const file =  await this.fileRepository.findOne({
         relations: ['user', 'versions'],
         where: {
           id,
@@ -258,21 +251,16 @@ export class FilesService {
       });
       const file_with_url = {
         ...file,
-        size: formatBytes(file.size_bytes),
         bucket_url: file.versions.find(
           (version) => version.id == file.current_version_id,
         ).bucket_url,
       };
 
-      file_with_url.versions.sort(
-        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-      );
-
-      return file_with_url;
+      return file_with_url
     }
   }
 
-  async findOneWithoutUser(id: string) {
+  async findOneWithoutUser(id:string){
     return await this.fileRepository.findOne({
       relations: [
         'FilesPermissions',
@@ -293,15 +281,14 @@ export class FilesService {
     file_ids: string[],
   ) {
     const folder_files = {
-      name: folder.display_name,
+      name: folder.name,
       id: folder.id,
       type: 'folder',
       index: folder.tree_index,
       children: [],
     };
     if (folder.files && folder.files.length > 0) {
-      for (const file of folder.files.filter((file) => !file.is_deleted)) {
-        // console.log(file,'dasdsa in here')
+      for (const file of folder.files) {
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
           group_id,
@@ -353,12 +340,12 @@ export class FilesService {
     file_ids: string[],
   ) {
     const root_folders = await this.foldersRepository.find({
-      relations: ['sub_folders', 'files.organization'],
       where: {
         organization: { id: organization_id },
         parent_folder_id: parent_folder_id,
         is_deleted: false,
       },
+      relations: ['sub_folders', 'files.organization'],
       order: {
         tree_index: 'ASC',
       },
@@ -367,8 +354,6 @@ export class FilesService {
     const folder_file_structures = [];
     if (root_folders.length > 0) {
       for (const root_folder of root_folders) {
-        const new_root = root_folder.files.filter((file) => !file.is_deleted);
-        console.log(root_folder, new_root, 'dasdas');
         const folder_file_structure = await this.buildFolderFileStructure(
           root_folder,
           group_id,
@@ -697,46 +682,26 @@ export class FilesService {
       message: 'file url updated',
       file: find_file,
     };
-  }
-
-  async update(id: string, properties: any) {
-    if (properties?.current_version_id) {
-      const find_file_version = await this.fileVersionRepository.findOne({
-        relations: ['file'],
-        where: {
-          id: properties?.current_version_id,
-          file: {
-            id,
-          },
-        },
-      });
-      if (!find_file_version)
-        throw new NotFoundException('invalid file version');
-    }
-    const file = await this.fileRepository.update(id, properties);
-    if (file.affected > 0) {
-      return { file, message: 'file updated successfully' };
-    }
-    return { message: 'failed to update file' };
-  }
-
-  async softDelete(id: string) {
-    const soft_delete = await this.update(id, {
-      is_deleted: true,
-    });
-    if (soft_delete) {
-      return { message: 'file deleted successfully' };
-    }
-    return { message: 'failed to delete file' };
-  }
-
-  async restore(id: string) {
-    const restore = await this.update(id, {
-      is_deleted: false,
-    });
-    if (restore) {
-      return { message: 'file restored successfully' };
-    }
-    return { message: 'failed to restore file' };
+    // const update_file = await this.fileRepository.update(
+    //   {
+    //     id: file_id,
+    //   },
+    //   {
+    //     bucket_url:  process.env.S3_BUCKET_BASE_URL  + new_name,
+    //   },
+    // );
+    // // console.log(update_file, 'udddd res')
+    // if (update_file.affected > 0) {
+    //   const file = await this.fileRepository.findOne({
+    //     where: {
+    //       id: file_id,
+    //     },
+    //   });
+    //   // console.log('fhdasdas');
+    //   return {
+    //     message: 'file url updated',
+    //     file,
+    //   };
+    // }
   }
 }

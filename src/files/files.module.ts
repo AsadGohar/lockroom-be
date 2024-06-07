@@ -38,7 +38,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
       Organization,
       Invite,
       AuditLogs,
-      FileVersion,
+      FileVersion
     ]),
   ],
   controllers: [FilesController],
@@ -54,7 +54,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
     UsersService,
     AuditLogsSerivce,
     EmailService,
-    OTPService,
+    OTPService
   ],
   exports: [FilesService],
 })

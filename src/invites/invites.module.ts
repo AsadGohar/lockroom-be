@@ -37,7 +37,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
       GroupFilesPermissions,
       Permission,
       AuditLogs,
-      FileVersion,
+      FileVersion
     ]),
   ],
   controllers: [InvitesController],
@@ -54,7 +54,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
     UsersService,
     AuditLogsSerivce,
     EmailService,
-    OTPService,
+    OTPService
   ],
   exports: [InvitesService],
 })

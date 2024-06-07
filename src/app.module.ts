@@ -31,14 +31,9 @@ import { AuditLogs } from './audit-logs/entities/audit-logs.entities';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { FileVersionModule } from './file-version/file-version.module';
 import { FileVersion } from './file-version/entities/file-version.entity';
-import { RolesGuard } from './guards/role.guard';
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      // envFilePath: process.env.NODE_ENV == 'development' ? '.env.development' : '.env'
-      // envFilePath: `.env.${process.env.NODE_ENV || 'development'}`
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -57,21 +52,20 @@ import { RolesGuard } from './guards/role.guard';
         FilesPermissions,
         GroupFilesPermissions,
         AuditLogs,
-        FileVersion,
+        FileVersion
       ],
       synchronize: true,
-      ssl:
-        process.env.NODE_ENV == 'development'
-          ? false
-          : {
-              rejectUnauthorized: false,
-            },
+      // logging:'all',
+      ssl:{
+        rejectUnauthorized:false
+      },
+      // ssl: false,
     }),
     ThrottlerModule.forRoot({
       throttlers: [
         {
           ttl: 60, // seconds
-          limit: 1000,
+          limit: 300,
         },
       ],
     }),
@@ -89,6 +83,6 @@ import { RolesGuard } from './guards/role.guard';
     FileVersionModule,
   ],
   controllers: [AppController, MailController, GroupFilesPermissionsController],
-  providers: [AppService, EmailService, JwtService, RolesGuard],
+  providers: [AppService, EmailService, JwtService],
 })
 export class AppModule {}
