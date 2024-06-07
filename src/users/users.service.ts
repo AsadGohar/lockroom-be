@@ -4,7 +4,6 @@ import {
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
-  NotImplementedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -15,7 +14,7 @@ import { Folder } from 'src/folders/entities/folder.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
-// import { verificationTemplate } from 'src/utils/email.templates';
+import { verificationTemplate } from 'src/utils/email.templates';
 import { decodeJwtResponse } from 'src/utils/jwt.utils';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
@@ -130,20 +129,19 @@ export class UsersService {
         users: [user],
         organization: saveOrg,
         absolute_path: '/Home',
-        display_name: 'Home',
       });
 
-      // const mail = {
-      //   to: user.email,
-      //   subject: 'Verify Email',
-      //   from:
-      //     String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
-      //   text: 'Verify',
-      //   html: verificationTemplate(
-      //     String(user.first_name).toUpperCase(),
-      //     `${process.env.FE_HOST}/thank-you/verify-email?customer=${access_token}`,
-      //   ),
-      // };
+      const mail = {
+        to: user.email,
+        subject: 'Verify Email',
+        from:
+          String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
+        text: 'Verify',
+        html: verificationTemplate(
+          String(user.first_name).toUpperCase(),
+          `${process.env.FE_HOST}/thank-you/verify-email?customer=${access_token}`,
+        ),
+      };
 
       // await sendEmailUtil(mail);
 
@@ -244,6 +242,13 @@ export class UsersService {
           },
         });
 
+        await this.auditService.create(
+          null,
+          user.id,
+          user.organizations_added_in[0].id,
+          'login',
+        );
+
         if (user.two_fa_type == 'sms') {
           const otp = this.otpService.generateOTP();
           user.generated_otp = String(otp);
@@ -281,14 +286,6 @@ export class UsersService {
 
       if (find_user) {
         const orgs = [];
-        if (find_user.role == UserRoleEnum.GUEST) {
-          await this.auditService.create(
-            null,
-            find_user.id,
-            find_user.organizations_added_in[0].id,
-            'login',
-          );
-        }
         orgs.push(find_user?.organization_created?.id);
         find_user.organizations_added_in.map((org) => {
           orgs.push(org.id);
@@ -406,7 +403,6 @@ export class UsersService {
         users: [new_user],
         organization: saveOrg,
         absolute_path: '/Home',
-        display_name: 'Home',
       });
       return {
         access_token,
@@ -480,7 +476,7 @@ export class UsersService {
     });
   }
 
-  async getAllGroups(organization_id: string, user_id: string) {
+  async getAllGroups(user_id: string) {
     try {
       if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
@@ -499,11 +495,7 @@ export class UsersService {
         find_user.role == UserRoleEnum.OWNER
       ) {
         return await this.groupsRepository.find({
-          where: {
-            organization: {
-              id: organization_id,
-            },
-          },
+          where: { created_by: { id: user_id } },
         });
       }
       return find_user.groups;
@@ -523,7 +515,7 @@ export class UsersService {
 
   async verifyOTP(otp: string, user_id: string) {
     const find_user = await this.userRepository.findOne({
-      relations: ['organizations_added_in', 'groups'],
+      relations:['organizations_added_in', 'groups'],
       where: {
         id: user_id,
       },
@@ -531,28 +523,22 @@ export class UsersService {
     if (find_user && find_user.generated_otp.length > 0) {
       if (find_user.generated_otp == otp) {
         if (find_user.role == UserRoleEnum.GUEST) {
-          // console.log(find_user.generated_otp == otp,'go bad')
-          const audit = this.auditRepository.create({
-            file: null,
-            organization: find_user.organizations_added_in[0],
-            user: find_user,
-            group: find_user.groups[0],
-            type: 'login',
-          });
-          // console.log(audit,'auddd')
-          const add_audit_record = await this.auditRepository.save(audit);
-          if (add_audit_record) {
-            // console.log('hereee in audit')
+          const add_audit_record = await this.auditRepository.save(
+            this.auditRepository.create({
+              file: null,
+              organization: find_user.organizations_added_in[0],
+              user: find_user,
+              group: find_user.groups[0],
+              type: 'login',
+            }),
+          );
+          if (add_audit_record){
             return {
               success: true,
             };
           }
         }
-        return {
-          success: true,
-        };
       }
-      console.log('heeress');
       return new UnauthorizedException('OTP is invalid');
     } else {
       return new NotFoundException('user not found');
@@ -567,7 +553,7 @@ export class UsersService {
     });
     if (find_user && find_user.generated_otp.length > 0) {
       if (find_user.generated_otp == otp) {
-        console.log('here recognized');
+        console.log('here');
         find_user.is_phone_number_verified = true;
         await this.userRepository.save(find_user);
         console.log(find_user);
@@ -657,12 +643,6 @@ export class UsersService {
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      ssl:
-        process.env.NODE_ENV == 'development'
-          ? false
-          : {
-              rejectUnauthorized: false,
-            },
     }).initialize();
 
     try {
@@ -673,22 +653,6 @@ export class UsersService {
     } catch (error) {
       console.error('Error truncating user table:', error);
       throw Error(error);
-    }
-  }
-
-  async updateViewType(view_type: string, user_id: string) {
-    const update_user = await this.userRepository.update(user_id, {
-      view_type,
-    });
-    if (update_user.affected > 0) {
-      const user = await this.userRepository.findOne({
-        where: { id: user_id },
-      });
-      return user;
-    } else {
-      throw new NotImplementedException(
-        'Something went wrong while updating user',
-      );
     }
   }
 }

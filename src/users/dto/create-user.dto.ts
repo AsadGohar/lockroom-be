@@ -3,7 +3,7 @@ import {
   IsString,
   IsEmail,
   MinLength,
-  IsIn,
+  IsIn
 } from 'class-validator';
 import { UserRoleEnum } from 'src/types/enums';
 
@@ -33,7 +33,7 @@ export class CreateUserDto {
   @IsString()
   @IsIn([UserRoleEnum.ADMIN, UserRoleEnum.GUEST, UserRoleEnum.OWNER])
   role: string;
-
+  
   @IsNotEmpty()
   @IsString()
   phone_number: string;

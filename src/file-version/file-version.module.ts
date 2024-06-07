@@ -4,7 +4,11 @@ import { FileVersionController } from './file-version.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FileVersion } from './entities/file-version.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([FileVersion])],
+  imports: [
+    TypeOrmModule.forFeature([
+      FileVersion
+    ]),
+  ],
   controllers: [FileVersionController],
   providers: [FileVersionService],
 })

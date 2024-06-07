@@ -149,7 +149,7 @@ export class GroupsService {
   }
 
   async removeUserFromGroup(group_id: string, user_id: string) {
-    // console.log(group_id, "to be removed from")
+    console.log(group_id, "to be removed from")
     const group = await this.groupsRepository.findOne({
       relations: ['users'],
       where: {
@@ -200,12 +200,6 @@ export class GroupsService {
     try {
       if (!organization_id || !user_id)
         throw new NotFoundException('Missing Fields');
-
-      const find_user = await this.userRepository.findOne({
-        where: {
-          id: user_id,
-        },
-      });
       const groups_result = [];
       const find_groups = await this.groupsRepository.find({
         relations: ['users', 'organization.creator'],
@@ -218,13 +212,16 @@ export class GroupsService {
 
       find_groups.map((group) => {
         if (
-          find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER
+          group.organization.creator &&
+          group.organization.creator.id == user_id
         ) {
           groups_result.push(group);
         } else if (group.users.find((user) => user.id == user_id)) {
           groups_result.push(group);
         }
       });
+
+      // console.log(groups_result,'ress')
 
       return groups_result.sort(
         (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
@@ -237,7 +234,7 @@ export class GroupsService {
 
   async getGroupsByOrg(organization_id: string) {
     return this.groupsRepository.find({
-      relations: ['user.organization'],
+      relations:['user.organization'],
       where: {
         organization: {
           id: organization_id,
@@ -251,7 +248,7 @@ export class GroupsService {
     new_group_id: string,
     old_group_id: string,
   ) {
-    // console.log(old_group_id, guest_user_id, 'dadasa')
+    console.log(old_group_id, guest_user_id, 'dadasa')
     //removed here
     await this.removeUserFromGroup(old_group_id, guest_user_id);
     //add here
@@ -261,7 +258,7 @@ export class GroupsService {
         id: new_group_id,
       },
     });
-    // console.log(find_new_group.name,' bnacck to admin')
+    console.log(find_new_group.name,' bnacck to admin')
     const find_user = await this.userRepository.findOne({
       relations: ['organizations_added_in'],
       where: {
@@ -277,8 +274,13 @@ export class GroupsService {
     user_role: UserRoleEnum,
     old_group_id: string,
   ) {
-    console.log(user_id, user_role, old_group_id);
-    //  const old_group_id =  find_user.groups[0].id
+    console.log(user_id,user_role, old_group_id)
+    const find_user = await this.userRepository.findOne({
+      where: {
+        id: user_id
+      }
+    })
+  //  const old_group_id =  find_user.groups[0].id
     const update_user = await this.userRepository.update(
       {
         id: user_id,
@@ -292,7 +294,7 @@ export class GroupsService {
         name: 'Admin',
       },
     });
-    // console.log(find_admin_group.id, 'updatesss')
+    console.log(find_admin_group.id, 'updatesss')
     if (update_user.affected > 0) {
       if (user_role == UserRoleEnum.ADMIN) {
         // console.log(find_admin_group.id)

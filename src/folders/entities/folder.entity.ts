@@ -22,9 +22,6 @@ export class Folder {
   @Column({ nullable: false })
   name: string;
 
-  @Column({ default: '' })
-  display_name: string;
-
   @ManyToOne(() => Folder, { nullable: true, onDelete: 'CASCADE' })
   parentFolder: Folder;
 

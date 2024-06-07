@@ -70,8 +70,8 @@ export class File {
   })
   folder: Folder;
 
-  @OneToMany(() => FileVersion, (fileVersion) => fileVersion.file, {
-    cascade: true,
+  @OneToMany(() => FileVersion, fileVersion => fileVersion.file, {
+      cascade: true,
   })
   versions: FileVersion[];
 

@@ -130,9 +130,8 @@ export class InvitesService {
       const existing_number = await this.userRepository.findOne({
         where: { phone_number },
       });
-      if (existing_number)
-        throw new ConflictException('phone number already taken');
-
+      if (existing_number) throw new ConflictException('phone number already taken');
+      
       const hashedPassword = await bcrypt.hash(password, 10);
       password = hashedPassword;
       const full_name = `${first_name} ${last_name}`;

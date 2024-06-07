@@ -25,7 +25,7 @@ export class PermissionService {
         {
           type: FilePermissionEnum.DOWNLOAD_ORIGINAL,
           status: true,
-        },
+        }
       ];
       return await this.permissionRepo.save(new_permissions);
     } catch (error) {

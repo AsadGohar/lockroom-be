@@ -32,6 +32,6 @@ import { OTPService } from 'src/otp/otp.service';
   ],
   controllers: [UsersController],
   providers: [UsersService, AuditLogsSerivce, OTPService],
-  exports: [UsersService],
+  exports: [UsersService]
 })
 export class UsersModule {}
