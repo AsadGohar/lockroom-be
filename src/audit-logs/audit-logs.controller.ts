@@ -7,9 +7,11 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+
 import { AuditLogsSerivce } from './audit-logs.service';
 import { UploadService } from 'src/uploads/uploads.service';
 import { AuthGuard } from 'src/guards/auth.guard';
+
 @Controller('audit')
 export class AuditLogsController {
   constructor(
@@ -57,7 +59,7 @@ export class AuditLogsController {
     return this.auditLogsService.getStats(organization_id, date);
   }
 
-  @Get('')
+  @Get('report/:organization_id')
   async getFile(@Param('organization_id') organization_id: string) {
     return await this.auditLogsService.exportDataToExcel(organization_id);
   }
