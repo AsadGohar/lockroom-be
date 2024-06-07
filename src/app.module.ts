@@ -31,6 +31,7 @@ import { AuditLogs } from './audit-logs/entities/audit-logs.entities';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { FileVersionModule } from './file-version/file-version.module';
 import { FileVersion } from './file-version/entities/file-version.entity';
+import { RolesGuard } from './guards/role.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -88,6 +89,6 @@ import { FileVersion } from './file-version/entities/file-version.entity';
     FileVersionModule,
   ],
   controllers: [AppController, MailController, GroupFilesPermissionsController],
-  providers: [AppService, EmailService, JwtService],
+  providers: [AppService, EmailService, JwtService, RolesGuard],
 })
 export class AppModule {}

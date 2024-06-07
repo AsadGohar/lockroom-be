@@ -293,7 +293,7 @@ export class FilesService {
     file_ids: string[],
   ) {
     const folder_files = {
-      name: folder.name,
+      name: folder.display_name,
       id: folder.id,
       type: 'folder',
       index: folder.tree_index,
@@ -728,5 +728,15 @@ export class FilesService {
       return { message: 'file deleted successfully' };
     }
     return { message: 'failed to delete file' };
+  }
+
+  async restore(id: string) {
+    const restore = await this.update(id, {
+      is_deleted: false,
+    });
+    if (restore) {
+      return { message: 'file restored successfully' };
+    }
+    return { message: 'failed to restore file' };
   }
 }
