@@ -203,9 +203,9 @@ export class GroupsService {
 
       const find_user = await this.userRepository.findOne({
         where: {
-          id: user_id
-        }
-      })
+          id: user_id,
+        },
+      });
       const groups_result = [];
       const find_groups = await this.groupsRepository.find({
         relations: ['users', 'organization.creator'],
