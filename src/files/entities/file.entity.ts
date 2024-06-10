@@ -43,6 +43,9 @@ export class File {
   @Column({ nullable: false })
   tree_index: string;
 
+  @Column({ nullable: false })
+  display_tree_index: string;
+
   @Column({ nullable: true })
   extension: string;
 

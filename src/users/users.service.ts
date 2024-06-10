@@ -15,7 +15,6 @@ import { Folder } from 'src/folders/entities/folder.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
-// import { verificationTemplate } from 'src/utils/email.templates';
 import { decodeJwtResponse } from 'src/utils/jwt.utils';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
@@ -41,7 +40,6 @@ export class UsersService {
     private readonly inviteRepository: Repository<Invite>,
     @InjectRepository(AuditLogs)
     private readonly auditRepository: Repository<AuditLogs>,
-
     private readonly jwtService: JwtService,
     private readonly auditService: AuditLogsSerivce,
     private readonly otpService: OTPService,
@@ -63,9 +61,7 @@ export class UsersService {
         throw new ConflictException('phone number already taken');
 
       const find_invites = await this.inviteRepository.find({
-        where: {
-          sent_to: createUserDto.email,
-        },
+        where: { sent_to: createUserDto.email },
       });
       if (find_invites.length > 0)
         throw new ConflictException(
@@ -101,17 +97,11 @@ export class UsersService {
       });
 
       const new_admin_group = await this.groupsRepository.save(
-        this.groupsRepository.create({
-          name: 'Admin',
-          created_by: user,
-        }),
+        this.groupsRepository.create({ name: 'Admin', created_by: user }),
       );
 
       const new_associate_group = await this.groupsRepository.save(
-        this.groupsRepository.create({
-          name: 'Associates',
-          created_by: user,
-        }),
+        this.groupsRepository.create({ name: 'Associates', created_by: user }),
       );
       const new_org = this.orgRepository.create({
         name: 'ORG-' + user.id.slice(0, 5),
@@ -131,21 +121,8 @@ export class UsersService {
         organization: saveOrg,
         absolute_path: '/Home',
         display_name: 'Home',
+        display_tree_index: '1',
       });
-
-      // const mail = {
-      //   to: user.email,
-      //   subject: 'Verify Email',
-      //   from:
-      //     String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
-      //   text: 'Verify',
-      //   html: verificationTemplate(
-      //     String(user.first_name).toUpperCase(),
-      //     `${process.env.FE_HOST}/thank-you/verify-email?customer=${access_token}`,
-      //   ),
-      // };
-
-      // await sendEmailUtil(mail);
 
       return {
         user: { ...user, organization_created: saveOrg },
@@ -202,9 +179,7 @@ export class UsersService {
 
         const organizations = await this.orgRepository.find({
           relations: ['users', 'creator'],
-          where: {
-            id: In(orgs),
-          },
+          where: { id: In(orgs) },
         });
 
         if (user.two_fa_type == 'sms') {
@@ -239,9 +214,7 @@ export class UsersService {
 
         const organizations = await this.orgRepository.find({
           relations: ['users', 'creator'],
-          where: {
-            id: In(orgs),
-          },
+          where: { id: In(orgs) },
         });
 
         if (user.two_fa_type == 'sms') {
@@ -274,9 +247,7 @@ export class UsersService {
 
       const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in', 'organization_created'],
-        where: {
-          email: user.email,
-        },
+        where: { email: user.email },
       });
 
       if (find_user) {
@@ -295,9 +266,7 @@ export class UsersService {
         });
         const organizations = await this.orgRepository.find({
           relations: ['users', 'creator'],
-          where: {
-            id: In(orgs),
-          },
+          where: { id: In(orgs) },
         });
         const query = await this.folderRepository
           .createQueryBuilder('folder')
@@ -313,8 +282,6 @@ export class UsersService {
           .groupBy('folder.id, user.id')
           .orderBy('folder.createdAt', 'ASC')
           .getRawMany();
-
-        // this,this.folderRepository.
 
         const payload = {
           user_id: find_user.id,
@@ -337,9 +304,7 @@ export class UsersService {
         };
       }
       const find_invites = await this.inviteRepository.find({
-        where: {
-          sent_to: user?.email,
-        },
+        where: { sent_to: user?.email },
       });
       if (find_invites.length > 0)
         throw new ConflictException(
@@ -363,18 +328,12 @@ export class UsersService {
         .leftJoin('folder.sub_folders', 'sub_folder')
         .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
         .where('user.id = :user_id', { user_id: new_user.id })
-        // .andWhere('folder.organization.id = :organizationId', {
-        //   organizationId: organization_id,
-        // })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
       const new_group_admin = await this.groupsRepository.save(
-        this.groupsRepository.create({
-          name: 'Admin',
-          created_by: new_user,
-        }),
+        this.groupsRepository.create({ name: 'Admin', created_by: new_user }),
       );
       const new_group_associates = await this.groupsRepository.save(
         this.groupsRepository.create({
@@ -407,6 +366,7 @@ export class UsersService {
         organization: saveOrg,
         absolute_path: '/Home',
         display_name: 'Home',
+        display_tree_index: '1',
       });
       return {
         access_token,
@@ -429,9 +389,7 @@ export class UsersService {
     try {
       if (user_id) {
         const find_user = await this.userRepository.findOne({
-          where: {
-            id: user_id,
-          },
+          where: { id: user_id },
         });
         if (!find_user) throw new NotFoundException('user not found');
         find_user.is_email_verified = true;
@@ -448,9 +406,7 @@ export class UsersService {
       if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in', 'organization_created'],
-        where: {
-          id: user_id,
-        },
+        where: { id: user_id },
       });
 
       if (!find_user) {
@@ -485,9 +441,7 @@ export class UsersService {
       if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['groups'],
-        where: {
-          id: user_id,
-        },
+        where: { id: user_id },
       });
       if (!find_user)
         throw new NotFoundException({
@@ -499,11 +453,7 @@ export class UsersService {
         find_user.role == UserRoleEnum.OWNER
       ) {
         return await this.groupsRepository.find({
-          where: {
-            organization: {
-              id: organization_id,
-            },
-          },
+          where: { organization: { id: organization_id } },
         });
       }
       return find_user.groups;
@@ -524,14 +474,11 @@ export class UsersService {
   async verifyOTP(otp: string, user_id: string) {
     const find_user = await this.userRepository.findOne({
       relations: ['organizations_added_in', 'groups'],
-      where: {
-        id: user_id,
-      },
+      where: { id: user_id },
     });
     if (find_user && find_user.generated_otp.length > 0) {
       if (find_user.generated_otp == otp) {
         if (find_user.role == UserRoleEnum.GUEST) {
-          // console.log(find_user.generated_otp == otp,'go bad')
           const audit = this.auditRepository.create({
             file: null,
             organization: find_user.organizations_added_in[0],
@@ -539,18 +486,12 @@ export class UsersService {
             group: find_user.groups[0],
             type: 'login',
           });
-          // console.log(audit,'auddd')
           const add_audit_record = await this.auditRepository.save(audit);
           if (add_audit_record) {
-            // console.log('hereee in audit')
-            return {
-              success: true,
-            };
+            return { success: true };
           }
         }
-        return {
-          success: true,
-        };
+        return { success: true };
       }
       console.log('heeress');
       return new UnauthorizedException('OTP is invalid');
@@ -561,19 +502,14 @@ export class UsersService {
 
   async verifyPhone(otp: string, user_id: string) {
     const find_user = await this.userRepository.findOne({
-      where: {
-        id: user_id,
-      },
+      where: { id: user_id },
     });
     if (find_user && find_user.generated_otp.length > 0) {
       if (find_user.generated_otp == otp) {
-        console.log('here recognized');
         find_user.is_phone_number_verified = true;
         await this.userRepository.save(find_user);
         console.log(find_user);
-        return {
-          success: true,
-        };
+        return { success: true };
       }
       return new UnauthorizedException('OTP is invalid');
     } else {
@@ -583,9 +519,7 @@ export class UsersService {
 
   async resendOTP(user_id: string) {
     const find_user = await this.userRepository.findOne({
-      where: {
-        id: user_id,
-      },
+      where: { id: user_id },
     });
     if (find_user) {
       const otp = String(this.otpService.generateOTP());
@@ -600,9 +534,7 @@ export class UsersService {
   async generateQRcode(user_id: string) {
     const secret = authenticator.generateSecret(20);
     const find_user = await this.userRepository.findOne({
-      where: {
-        id: user_id,
-      },
+      where: { id: user_id },
     });
     const otpAuthURL = authenticator.keyuri(
       find_user.email,
@@ -616,18 +548,13 @@ export class UsersService {
   }
 
   async verifyAuthenticatorCode(code: string, user_id: string) {
-    // console.log(code, 'code');
     const find_user = await this.userRepository.findOne({
-      where: {
-        id: user_id,
-      },
+      where: { id: user_id },
     });
-    // console.log(find_user.qr_code_secret, secret);
     const verify = authenticator.verify({
       token: code,
       secret: find_user.qr_code_secret,
     });
-    // console.log(verify, 'ver');
     if (verify) {
       find_user.two_fa_type = 'authenticator';
       await this.userRepository.save(find_user);
@@ -638,9 +565,7 @@ export class UsersService {
 
   async setAuthenticator(two_fa_type: string, user_id: string) {
     const find_user = await this.userRepository.findOne({
-      where: {
-        id: user_id,
-      },
+      where: { id: user_id },
     });
     if (find_user) {
       find_user.two_fa_type = two_fa_type;
