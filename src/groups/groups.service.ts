@@ -218,7 +218,8 @@ export class GroupsService {
 
       find_groups.map((group) => {
         if (
-          find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER
+          find_user.role == UserRoleEnum.ADMIN ||
+          find_user.role == UserRoleEnum.OWNER
         ) {
           groups_result.push(group);
         } else if (group.users.find((user) => user.id == user_id)) {
