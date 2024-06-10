@@ -30,7 +30,6 @@ export class FilesService {
     private readonly groupRepository: Repository<Group>,
     @InjectRepository(FileVersion)
     private readonly fileVersionRepository: Repository<FileVersion>,
-
     private readonly fpService: FilesPermissionsService,
     private readonly folderService: FoldersService,
     private readonly gfpService: GroupFilesPermissionsService,
@@ -67,12 +66,7 @@ export class FilesService {
       if (!find_folder) throw new NotFoundException('folder not found');
 
       const find_file_same_name = await this.fileRepository.find({
-        where: {
-          folder: {
-            id: find_folder.id,
-          },
-          original_name: name,
-        },
+        where: { folder: { id: find_folder.id }, original_name: name },
       });
 
       const original_name = name; // to be saved without copy indexing
@@ -83,17 +77,11 @@ export class FilesService {
       }
 
       const all_child_files = await this.fileRepository.find({
-        where: {
-          folder: {
-            id: folder_id,
-          },
-        },
+        where: { folder: { id: folder_id } },
       });
 
       const all_child_folders = await this.foldersRepository.find({
-        where: {
-          parent_folder_id: folder_id,
-        },
+        where: { parent_folder_id: folder_id },
       });
 
       const current_tree_index = `${find_folder.tree_index}.`;
@@ -110,6 +98,7 @@ export class FilesService {
         user: find_user,
         folder: find_folder,
         tree_index: current_tree_index + next,
+        display_tree_index: find_folder.display_tree_index + '.' + next,
         organization,
         current_version_id: 0,
         mime_type: mime_type || '',
@@ -133,11 +122,7 @@ export class FilesService {
       const new_saved_file = await this.fileRepository.save(saved_file);
 
       const find_groups = await this.groupRepository.find({
-        where: {
-          organization: {
-            id: organization_id,
-          },
-        },
+        where: { organization: { id: organization_id } },
       });
 
       const file_permissions = [];
@@ -171,12 +156,7 @@ export class FilesService {
       if (!organization_id) throw new NotFoundException('Missing Fields');
       return this.fileRepository.find({
         relations: ['folder'],
-        where: {
-          is_deleted: false,
-          organization: {
-            id: organization_id,
-          },
-        },
+        where: { is_deleted: false, organization: { id: organization_id } },
       });
     } catch (error) {
       throw Error(error);
@@ -199,9 +179,7 @@ export class FilesService {
     if (!id) throw new NotFoundException('Missing Fields');
     const find_user = await this.userRepository.findOne({
       relations: ['groups', 'organizations_added_in'],
-      where: {
-        id: user_id,
-      },
+      where: { id: user_id },
     });
     if (find_user.role == UserRoleEnum.GUEST) {
       const file_permissions = await this.fpService.findFilePermissiosn(
@@ -223,9 +201,7 @@ export class FilesService {
           'organization',
           'versions',
         ],
-        where: {
-          id,
-        },
+        where: { id },
       });
 
       const file_with_url = {
@@ -236,7 +212,6 @@ export class FilesService {
         ).bucket_url,
       };
 
-      // console.log(file.organization.id,find_user.organizations_added_in[0].id, 'orrggggg')
       if (file.organization.id != find_user.organizations_added_in[0].id)
         throw new UnauthorizedException('Unauthorized to View File');
 
@@ -252,9 +227,7 @@ export class FilesService {
     } else {
       const file = await this.fileRepository.findOne({
         relations: ['user', 'versions'],
-        where: {
-          id,
-        },
+        where: { id },
       });
       const file_with_url = {
         ...file,
@@ -281,9 +254,7 @@ export class FilesService {
         'organization',
         'versions',
       ],
-      where: {
-        id,
-      },
+      where: { id },
     });
   }
 
@@ -301,7 +272,6 @@ export class FilesService {
     };
     if (folder.files && folder.files.length > 0) {
       for (const file of folder.files.filter((file) => !file.is_deleted)) {
-        // console.log(file,'dasdsa in here')
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
           group_id,
@@ -319,11 +289,7 @@ export class FilesService {
             id: file.current_version_id,
           },
         });
-        // console.log(file_permissions,view_access_original,view_access_watermark , download_access_original)
-        // console.log(
-        //   file_permissions[0].permission.status,
-        //   file_permissions[0].permission.type,
-        // );
+
         const file_access = {
           type: 'file',
           name: file.name,
@@ -359,9 +325,7 @@ export class FilesService {
         parent_folder_id: parent_folder_id,
         is_deleted: false,
       },
-      order: {
-        tree_index: 'ASC',
-      },
+      order: { tree_index: 'ASC' },
     });
 
     const folder_file_structures = [];
@@ -424,7 +388,6 @@ export class FilesService {
         ...folder_file_structure.children,
         ...result,
       ].sort((a, b) => a.index - b.index);
-      // console.log(file_ids_in_org,'orhgg')
       return { folder_file_structure, file_ids_in_org };
     } catch (error) {
       throw Error(error);
@@ -443,9 +406,7 @@ export class FilesService {
     const data_to_return = [];
 
     const parent_folder = await this.foldersRepository.findOne({
-      where: {
-        id: parent_folder_id,
-      },
+      where: { id: parent_folder_id },
     });
 
     for (let index = 0; index < files_data.length; index++) {
@@ -458,7 +419,6 @@ export class FilesService {
       const file_extension =
         file_name_parts.length > 1 ? file_name_parts.pop() : '';
       if (find_folder) {
-        // console.log('folder found');
         folderIdToPathMap.set(find_folder.id, path);
         const add_file_data = await this.addFileToAFolder(
           file.name,
@@ -520,10 +480,7 @@ export class FilesService {
   ) {
     const file_data = [];
     const find_folder = await this.foldersRepository.findOne({
-      where: {
-        parent_folder_id,
-        name: folder_name,
-      },
+      where: { parent_folder_id, name: folder_name },
     });
 
     if (find_folder) {
@@ -591,7 +548,6 @@ export class FilesService {
       .filter((folder) => folder.trim() !== '');
 
     let currentFolderId = parent_folder_id;
-    console.log('path--------here');
     for (const folderName of folderNames) {
       console.log(folderName, 'name');
       const folder = await this.foldersRepository.findOne({
@@ -624,31 +580,19 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     const find_file = await this.fileRepository.findOne({
-      where: {
-        id: file_id,
-      },
+      where: { id: file_id },
     });
     const update_file = await this.fileRepository.update(
-      {
-        id: file_id,
-      },
-      {
-        file_uploaded_name,
-      },
+      { id: file_id },
+      { file_uploaded_name },
     );
     const update_file_version = await this.fileVersionRepository.update(
-      {
-        id: find_file.current_version_id,
-      },
-      {
-        bucket_url: process.env.S3_BUCKET_BASE_URL + file_uploaded_name,
-      },
+      { id: find_file.current_version_id },
+      { bucket_url: process.env.S3_BUCKET_BASE_URL + file_uploaded_name },
     );
     if (update_file.affected > 0 && update_file_version.affected > 0) {
       const file = await this.fileRepository.findOne({
-        where: {
-          id: file_id,
-        },
+        where: { id: file_id },
       });
       return file;
     }
@@ -666,7 +610,6 @@ export class FilesService {
       parent_folder_id,
       group_id,
     );
-    // console.log(result.file_ids_in_org)
     const update_files_permissions =
       await this.gfpService.newUpdateGroupFilePermissions(
         group_id,
@@ -679,9 +622,7 @@ export class FilesService {
 
   async findFileAndUpdateUrl(file_id: string, new_name: string) {
     const find_file = await this.fileRepository.findOne({
-      where: {
-        id: file_id,
-      },
+      where: { id: file_id },
     });
 
     const new_file_version = await this.fileVersionRepository.save(
@@ -693,22 +634,14 @@ export class FilesService {
 
     find_file.current_version_id = new_file_version.id;
     await this.fileRepository.save(find_file);
-    return {
-      message: 'file url updated',
-      file: find_file,
-    };
+    return { message: 'file url updated', file: find_file };
   }
 
   async update(id: string, properties: any) {
     if (properties?.current_version_id) {
       const find_file_version = await this.fileVersionRepository.findOne({
         relations: ['file'],
-        where: {
-          id: properties?.current_version_id,
-          file: {
-            id,
-          },
-        },
+        where: { id: properties?.current_version_id, file: { id } },
       });
       if (!find_file_version)
         throw new NotFoundException('invalid file version');

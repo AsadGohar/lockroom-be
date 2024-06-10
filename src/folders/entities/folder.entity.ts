@@ -22,7 +22,7 @@ export class Folder {
   @Column({ nullable: false })
   name: string;
 
-  @Column({ default: '' })
+  @Column({ nullable: false })
   display_name: string;
 
   @ManyToOne(() => Folder, { nullable: true, onDelete: 'CASCADE' })
@@ -34,8 +34,14 @@ export class Folder {
   @Column({ nullable: true, default: false })
   is_deleted: boolean;
 
+  @Column({ nullable: true, default: false })
+  this_deleted: boolean;
+
   @Column({ nullable: false })
   tree_index: string;
+
+  @Column({ nullable: false })
+  display_tree_index: string;
 
   @Column({ nullable: false })
   absolute_path: string;

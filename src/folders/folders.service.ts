@@ -77,6 +77,7 @@ export class FoldersService {
       users: [user],
       organization: find_org,
       absolute_path: parent_folder.absolute_path + '/' + name,
+      display_tree_index: parent_folder.display_tree_index + '.' + next,
     });
     const new_folder_1 = {
       ...new_folder,
@@ -85,20 +86,8 @@ export class FoldersService {
       folder_tree_index: new_folder.tree_index,
       folder_createdAt: new_folder.createdAt,
       folder_id: new_folder.id,
+      folder_display_index: new_folder.display_tree_index,
     };
-    // const query = this.foldersRepository
-    //   .createQueryBuilder('folder')
-    //   .leftJoinAndSelect('folder.users', 'user')
-    //   .where('user.id = :user_id', { user_id: user.id });
-
-    if (parent_folder_id) {
-      // query.andWhere('folder.parent_folder_id = :parent_folder_id', {
-      //   parent_folder_id,
-      // });
-    } else {
-      // query.andWhere('folder.parent_folder_id IS NULL');
-    }
-    // const data = await query.getMany();
     parent_folder.sub_folders.push(new_folder);
     const update_parent_folder =
       await this.foldersRepository.save(parent_folder);
@@ -123,7 +112,7 @@ export class FoldersService {
         find_user.role == UserRoleEnum.OWNER
           ? find_user.organization_created.id
           : find_user.organizations_added_in[0].id;
-      const get_files = await this.fileRepository.find({
+      const get_files = await this.fileRepository?.find({
         relations: ['folder', 'versions'],
         where: {
           is_deleted: isDeleted ? true : false,
@@ -139,13 +128,14 @@ export class FoldersService {
           folder_name: file.folder.display_name,
           size: formatBytes(file.size_bytes),
           mime_type: file.mime_type,
-          url: file.versions.find(
+          url: file.versions?.find(
             (versions) => versions.id == file.current_version_id,
           ).bucket_url,
           file_id: file.id,
           extension: file.extension,
           folder_createdAt: file.createdAt,
           id: file.id,
+          folder_display_tree_index: file.display_tree_index,
         };
       });
       const query1 = await this.foldersRepository
@@ -156,8 +146,11 @@ export class FoldersService {
         .where('folder.organization.id = :organizationId', {
           organizationId: organization_id,
         })
-        .andWhere('folder.is_deleted = :isDeleted', {
-          isDeleted: isDeleted ? true : false,
+        .andWhere(`folder.is_deleted = :isDeleted`, {
+          isDeleted: isDeleted || false,
+        })
+        .andWhere(`folder.this_deleted = :isDeleted`, {
+          isDeleted: isDeleted || false,
         })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
@@ -168,11 +161,10 @@ export class FoldersService {
       return { sub_folder_count: data };
     }
     if (find_user.role == UserRoleEnum.GUEST) {
-      const find_group = await this.groupsRepository.find({
+      const find_group = await this.groupsRepository?.find({
         where: { users: { id: find_user.id } },
       });
-      // console.log(find_group,'gruppp')
-      const group_files_permissions = await this.gfpRepository.find({
+      const group_files_permissions = await this.gfpRepository?.find({
         relations: [
           'file_permission.permission',
           'file_permission.file',
@@ -189,7 +181,10 @@ export class FoldersService {
               ]),
               status: true,
             },
-            file: { is_deleted: false, folder: { is_deleted: false } },
+            file: {
+              is_deleted: isDeleted || false,
+              folder: { is_deleted: isDeleted || false },
+            },
           },
         },
       });
@@ -202,12 +197,14 @@ export class FoldersService {
           folder_name: item.file_permission.file.folder.display_name,
           size: formatBytes(item.file_permission.file.size_bytes),
           mime_type: item.file_permission.file.mime_type,
-          url: item.file_permission.file.versions.find(
+          url: item.file_permission.file.versions?.find(
             (versions) => versions.id == current_version,
           ).bucket_url,
           file_id: item.file_permission.file.id,
           folder_createdAt: item.file_permission.file.createdAt,
           id: item.file_permission.file.id,
+          folder_display_tree_index:
+            item?.file_permission?.file?.display_tree_index,
         };
       });
       const query1 = await this.foldersRepository
@@ -218,7 +215,9 @@ export class FoldersService {
         .where('folder.organization.id = :organizationId', {
           organizationId: organization_id,
         })
-        .andWhere('folder.is_deleted = :isDeleted', { isDeleted: false })
+        .andWhere('folder.is_deleted = :isDeleted', {
+          isDeleted: isDeleted || false,
+        })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .addSelect('folder.id', 'id')
@@ -267,7 +266,7 @@ export class FoldersService {
           index: file.tree_index,
           mime_type: file.mime_type,
           file_id: file.id,
-          url: file.versions.find(
+          url: file.versions?.find(
             (version) => version.id == file.current_version_id,
           ).bucket_url,
           extension: file.extension,
@@ -284,17 +283,16 @@ export class FoldersService {
     parent_folder_id: string,
     folder_ids: string[],
   ) {
-    const root_folders = await this.foldersRepository.find({
+    const root_folders = await this.foldersRepository?.find({
       where: {
         organization: { id: organization_id },
         parent_folder_id: parent_folder_id,
-        is_deleted: false,
       },
       relations: ['sub_folders', 'files.organization'],
       order: { tree_index: 'ASC' },
     });
     const folder_file_structures = [];
-    if (root_folders.length > 0) {
+    if (root_folders?.length > 0) {
       for (const root_folder of root_folders) {
         const folder_file_structure =
           await this.buildFolderFileStructure(root_folder);
@@ -334,6 +332,7 @@ export class FoldersService {
     const to_delete = await this.getAllFilesByOrg(org_id, id);
     const sub_folders_ids = to_delete?.folder_ids;
     try {
+      await this.foldersRepository.update(id, { this_deleted: true });
       return await this.foldersRepository.update(
         { id: In([...sub_folders_ids, id]) },
         { is_deleted: true },
@@ -365,6 +364,7 @@ export class FoldersService {
             current_folder?.name + `(${child_folders_in_parent?.length + 1})`,
         });
       }
+      await this.foldersRepository.update(id, { this_deleted: false });
       return await this.foldersRepository.update(
         { id: In([...sub_folders_ids, id]) },
         { is_deleted: false },
@@ -397,8 +397,8 @@ export class FoldersService {
   }
   private sortByFolderTreeIndex(data) {
     data.sort((a, b) => {
-      const indexA = a.folder_tree_index.split('.').map(Number);
-      const indexB = b.folder_tree_index.split('.').map(Number);
+      const indexA = a.folder_display_tree_index.split('.').map(Number);
+      const indexB = b.folder_display_tree_index.split('.').map(Number);
       for (let i = 0; i < Math.max(indexA.length, indexB.length); i++) {
         if (indexA[i] === indexB[i]) continue;
         else return indexA[i] - indexB[i];
@@ -414,15 +414,51 @@ export class FoldersService {
   ) {
     for (let index = 0; index < data.length; index++) {
       const element = data[index];
-      if (element.type === 'folder')
+      if (element.type === 'folder') {
+        const child_folders = await this.foldersRepository.find({
+          where: { parent_folder_id: element.id },
+        });
+        const child_files = await this.fileRepository.find({
+          where: { folder: { id: element?.id } },
+        });
+        if (child_folders?.length > 0) {
+          for (
+            let child_folder_index = 0;
+            child_folder_index < child_folders?.length;
+            child_folder_index++
+          ) {
+            const childFolder = child_folders[child_folder_index];
+            await this.foldersRepository.update(childFolder.id, {
+              display_tree_index:
+                element?.folder_display_tree_index +
+                '.' +
+                child_folder_index +
+                1,
+            });
+          }
+        }
+        if (child_files?.length > 0) {
+          for (
+            let child_file_index = 0;
+            child_file_index < child_files?.length;
+            child_file_index++
+          ) {
+            const child_file = child_files[child_file_index];
+            await this.fileRepository.update(child_file.id, {
+              display_tree_index:
+                element?.folder_display_tree_index + '.' + child_file_index + 1,
+            });
+          }
+        }
         await this.foldersRepository.update(
           { id: element.id },
-          { tree_index: element.folder_tree_index },
+          { display_tree_index: element.folder_display_tree_index },
         );
+      }
       if (element.type === 'file')
         await this.fileRepository.update(
           { id: element.id },
-          { tree_index: element.folder_tree_index },
+          { display_tree_index: element.folder_display_tree_index },
         );
     }
     return {
