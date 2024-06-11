@@ -118,13 +118,18 @@ export class FoldersService {
         find_user.role == UserRoleEnum.OWNER
           ? find_user.organization_created.id
           : find_user.organizations_added_in[0].id;
-      const get_files = await this.fileRepository?.find({
-        relations: ['folder', 'versions'],
-        where: {
-          this_deleted: isDeleted ? true : false,
-          organization: { id: org },
-        },
-      });
+      let get_files: File[];
+      if (isDeleted) {
+        get_files = await this.fileRepository?.find({
+          relations: ['folder', 'versions'],
+          where: { this_deleted: true, organization: { id: org } },
+        });
+      } else {
+        get_files = await this.fileRepository?.find({
+          relations: ['folder', 'versions'],
+          where: { is_deleted: false, organization: { id: org } },
+        });
+      }
       const file_data = get_files.map((file) => {
         return {
           name: file.name,
@@ -143,28 +148,6 @@ export class FoldersService {
           folder_display_tree_index: file.display_tree_index,
         };
       });
-      // const query1 = await this.foldersRepository
-      //   .createQueryBuilder('folder')
-      //   .leftJoinAndSelect('folder.users', 'user')
-      //   .leftJoin('folder.sub_folders', 'sub_folder')
-      //   .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-      //   .where('folder.organization.id = :organizationId', {
-      //     organizationId: organization_id,
-      //   })
-      //   .andWhere('folder.is_partial_restored = :isDeleted', {
-      //     isDeleted: true,
-      //   })
-      //   .andWhere(`folder.is_deleted = :isDeleted`, {
-      //     isDeleted: isDeleted || false,
-      //   })
-      //   .andWhere(`folder.this_deleted = :isDeleted`, {
-      //     isDeleted: isDeleted || false,
-      //   })
-      //   .groupBy('folder.id, user.id')
-      //   .orderBy('folder.createdAt', 'ASC')
-      //   .addSelect('folder.id', 'id')
-      //   .addSelect('folder.id', 'folder_id')
-      //   .getRawMany();
 
       let query1;
 
@@ -400,7 +383,10 @@ export class FoldersService {
     const files_promise = await Promise.all(required_files);
     const files_to_delete = files_promise.flat();
     try {
-      await this.foldersRepository.update(id, { this_deleted: true });
+      await this.foldersRepository.update(id, {
+        this_deleted: true,
+        is_partial_restored: false,
+      });
       await this.fileRepository.update(
         { id: In(files_to_delete?.map((file) => file.id)) },
         { is_deleted: true },
