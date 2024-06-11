@@ -66,11 +66,13 @@ export class GroupsController {
     @Body('new_role') new_role: UserRoleEnum,
     @Body('user_id') user_id: string,
     @Body('old_group_id') old_group_id: string,
+    @Body('org_id') org_id: string,
   ) {
     return this.groupsService.updateUserRoleAndChangeGroup(
       user_id,
       new_role,
       old_group_id,
+      org_id,
     );
   }
 }
