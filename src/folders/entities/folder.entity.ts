@@ -37,6 +37,9 @@ export class Folder {
   @Column({ nullable: true, default: false })
   this_deleted: boolean;
 
+  @Column({ nullable: true, default: false })
+  is_partial_restored: boolean;
+
   @Column({ nullable: false })
   tree_index: string;
 
@@ -45,6 +48,9 @@ export class Folder {
 
   @Column({ nullable: false })
   absolute_path: string;
+
+  @Column({ nullable: false })
+  absolute_path_ids: string;
 
   @OneToMany(() => Folder, (Folder) => Folder.parentFolder)
   sub_folders: Folder[];

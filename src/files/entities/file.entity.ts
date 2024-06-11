@@ -34,6 +34,9 @@ export class File {
   @Column({ nullable: true, default: false })
   is_deleted: boolean;
 
+  @Column({ nullable: true, default: false })
+  this_deleted: boolean;
+
   @Column({ nullable: true })
   mime_type: string;
 
@@ -45,6 +48,9 @@ export class File {
 
   @Column({ nullable: false })
   display_tree_index: string;
+
+  @Column({ nullable: false })
+  absolute_path_ids: string;
 
   @Column({ nullable: true })
   extension: string;
