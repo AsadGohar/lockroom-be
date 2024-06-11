@@ -16,22 +16,25 @@ export class UploadService {
   ) {}
 
   async uploadMultiple(
-    files: any[],
+    files: Array<Express.Multer.File>,
     folder_id: string,
     user_id: string,
     organization_id: string,
   ) {
-    // console.log('here')
     if (files.length > 0) {
       const file_names = [];
-      const file_promises = files.map((file: any) => {
+
+      const file_promises = files.map((file) => {
         const file_name = uuidv4() + '-' + file.originalname;
+
         file_names.push(file_name);
+
         return this.s3Client.send(
           new PutObjectCommand({
             Bucket: 'lockroom',
             Key: file_name,
             Body: file.buffer,
+            ContentType: file.mimetype,
           }),
         );
       });
@@ -40,6 +43,7 @@ export class UploadService {
       if (response) {
         for (let index = 0; index < files.length; index++) {
           const file_name_parts = file_names[index].split('.');
+
           const file_extension =
             file_name_parts.length > 1 ? file_name_parts.pop() : '';
 
@@ -55,6 +59,7 @@ export class UploadService {
           );
         }
       }
+
       return response;
     }
   }
@@ -67,12 +72,13 @@ export class UploadService {
       ContentType:
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     };
+
     return await this.s3Client.send(new PutObjectCommand(params));
   }
 
   async dragAndDrop(files: any[], file_ids: string[]) {
     const file_data = [];
-    // console.log(file_ids,'idsss')
+
     for (let index = 0; index < files.length; index++) {
       const file_name = uuidv4() + '-' + files[index].originalname;
       const upload = await this.s3Client.send(
@@ -97,9 +103,6 @@ export class UploadService {
   async uploadFileAndUpdateUrl(file: any, file_id: string) {
     const new_file = file[0];
     const file_name = uuidv4() + '-' + new_file.originalname;
-    // const find_file = await this.fileService.findOneWithoutUser(file_id);
-    // if (find_file.versions.length >= 5)
-    //   throw new PreconditionFailedException('limit of file versions reached');
     const upload = await this.s3Client.send(
       new PutObjectCommand({
         Bucket: 'lockroom',
@@ -110,9 +113,7 @@ export class UploadService {
     if (upload) {
       return await this.fileService.findFileAndUpdateUrl(file_id, file_name);
     } else {
-      return {
-        message: 'failed to upload file  ',
-      };
+      return { message: 'failed to upload file  ' };
     }
   }
 }
