@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -6,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { Folder } from 'src/folders/entities/folder.entity';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { File } from './entities/file.entity';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
@@ -52,7 +53,6 @@ export class FilesService {
         !folder_id ||
         !user_id ||
         !organization_id ||
-        // !extension ||
         !file_uploaded_name
       )
         throw new NotFoundException('Missing Fields');
@@ -106,45 +106,57 @@ export class FilesService {
         extension,
         file_uploaded_name,
         original_name,
+        absolute_path_ids: '',
       });
 
       const saved_file = await this.fileRepository.save(new_file);
-
-      const new_file_version = this.fileVersionRepository.create({
-        bucket_url,
-        file: saved_file,
-      });
-
-      const save_file_version =
-        await this.fileVersionRepository.save(new_file_version);
-
-      saved_file.current_version_id = save_file_version.id;
-      const new_saved_file = await this.fileRepository.save(saved_file);
-
-      const find_groups = await this.groupRepository.find({
-        where: { organization: { id: organization_id } },
-      });
-
-      const file_permissions = [];
-
-      for (let index = 0; index < find_groups.length; index++) {
-        const fp = await this.fpService.createFilePermissions(saved_file);
-        file_permissions.push({
-          file_permissions: fp,
-          group_name: find_groups[index].name,
+      if (saved_file) {
+        await this.fileRepository.update(saved_file.id, {
+          absolute_path_ids: find_folder.absolute_path_ids,
         });
-      }
+        const updated_file = await this.fileRepository.findOne({
+          where: { id: saved_file?.id },
+        });
+        const new_file_version = this.fileVersionRepository.create({
+          bucket_url,
+          file: updated_file,
+        });
 
-      const new_group_files_permissions =
-        await this.gfpService.createGroupFilePermissionsFoAllGroups(
-          organization_id,
+        const save_file_version =
+          await this.fileVersionRepository.save(new_file_version);
+
+        updated_file.current_version_id = save_file_version.id;
+        const new_saved_file = await this.fileRepository.save(updated_file);
+
+        const find_groups = await this.groupRepository.find({
+          where: { organization: { id: organization_id } },
+        });
+
+        const file_permissions = [];
+
+        for (let index = 0; index < find_groups.length; index++) {
+          const fp = await this.fpService.createFilePermissions(saved_file);
+          file_permissions.push({
+            file_permissions: fp,
+            group_name: find_groups[index].name,
+          });
+        }
+
+        const new_group_files_permissions =
+          await this.gfpService.createGroupFilePermissionsFoAllGroups(
+            organization_id,
+            file_permissions,
+          );
+        return {
           file_permissions,
+          saved_file: new_saved_file,
+          new_group_files_permissions,
+        };
+      } else {
+        throw new BadRequestException(
+          'Something went wrong while creating file',
         );
-      return {
-        file_permissions,
-        saved_file: new_saved_file,
-        new_group_files_permissions,
-      };
+      }
     } catch (error) {
       console.log(error);
       throw Error(error);
@@ -654,8 +666,9 @@ export class FilesService {
   }
 
   async softDelete(id: string) {
-    const soft_delete = await this.update(id, {
+    const soft_delete = await this.fileRepository.update(id, {
       is_deleted: true,
+      this_deleted: true,
     });
     if (soft_delete) {
       return { message: 'file deleted successfully' };
@@ -664,8 +677,20 @@ export class FilesService {
   }
 
   async restore(id: string) {
-    const restore = await this.update(id, {
+    const file = await this.fileRepository.findOne({
+      where: { id },
+      relations: ['folder'],
+    });
+    if (file?.folder?.is_deleted) {
+      const folders_to_restore = file.absolute_path_ids?.split('/')?.slice(1);
+      await this.foldersRepository.update(
+        { id: In(folders_to_restore) },
+        { is_partial_restored: true },
+      );
+    }
+    const restore = await this.fileRepository.update(id, {
       is_deleted: false,
+      this_deleted: false,
     });
     if (restore) {
       return { message: 'file restored successfully' };
