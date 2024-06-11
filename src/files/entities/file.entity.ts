@@ -34,7 +34,7 @@ export class File {
   @Column({ nullable: true, default: false })
   is_deleted: boolean;
 
-  @Column({ nullable: true, default: false })
+  @Column({ nullable: true })
   this_deleted: boolean;
 
   @Column({ nullable: true })
