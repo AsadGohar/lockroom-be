@@ -130,13 +130,17 @@ export class InvitesService {
         relations: ['users'],
         where: { id: invite.organization.id },
       });
-      const role = UserRoleEnum.GUEST;
+
       invite.status = 'accepted';
       await this.inviteRepository.save(invite);
       const find_group = await this.groupRepository.findOne({
         relations: ['users'],
         where: { id: invite.group.id },
       });
+      const role =
+        find_group?.name?.toLocaleLowerCase() === UserRoleEnum.ADMIN
+          ? UserRoleEnum.ADMIN
+          : UserRoleEnum.GUEST;
       const new_user = this.userRepository.create({
         email,
         password,
