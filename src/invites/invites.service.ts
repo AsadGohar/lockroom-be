@@ -154,6 +154,11 @@ export class InvitesService {
       });
       await this.groupRepository.save(find_group);
       await this.userRepository.save(new_user);
+      await this.inviteRepository.delete({
+        sent_to: email,
+        organization: { id: find_org.id },
+      });
+
       return { status: true };
     } catch (error) {
       console.log(error);
