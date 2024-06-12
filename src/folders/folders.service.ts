@@ -402,6 +402,7 @@ export class FoldersService {
   async restore(id: string, org_id: string) {
     const to_restore = await this.getAllFilesByOrg(org_id, id);
     const sub_folders_ids = to_restore?.folder_ids;
+
     const required_files = [...sub_folders_ids, id].map(async (folder_id) => {
       const file = await this.fileRepository.find({
         where: { folder: { id: folder_id } },
@@ -415,6 +416,13 @@ export class FoldersService {
     const current_folder = await this.foldersRepository.findOne({
       where: { id },
     });
+    const folders_to_restore = current_folder.absolute_path_ids
+      ?.split('/')
+      ?.slice(1);
+    await this.foldersRepository.update(
+      { id: In(folders_to_restore) },
+      { is_partial_restored: true },
+    );
     const child_folders_in_parent = await this.foldersRepository.find({
       where: {
         parent_folder_id: current_folder?.parent_folder_id,
