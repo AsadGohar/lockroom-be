@@ -123,11 +123,11 @@ export class UsersService {
         absolute_path: '/Home',
         display_name: 'Home',
         display_tree_index: '1',
+        absolute_path_ids: '',
       });
 
       if (folder) {
         await this.folderRepository.update(folder.id, {
-          ...folder,
           absolute_path_ids: `/${folder.id}`,
         });
 
@@ -381,7 +381,6 @@ export class UsersService {
         display_tree_index: '1',
         absolute_path_ids: '',
       });
-      console.log('folder', folder);
       if (folder) {
         await this.folderRepository.update(folder.id, {
           absolute_path_ids: `/${folder.id}`,
