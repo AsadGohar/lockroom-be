@@ -105,7 +105,7 @@ export class FoldersService {
   async findAllByOrganization(
     organization_id: string,
     user_id: string,
-    isDeleted?: boolean,
+    is_deleted?: boolean,
   ) {
     if (!organization_id || !user_id)
       throw new NotFoundException('Missing Fields');
@@ -119,7 +119,7 @@ export class FoldersService {
           ? find_user.organization_created.id
           : find_user.organizations_added_in[0].id;
       let get_files: File[];
-      if (isDeleted) {
+      if (is_deleted) {
         get_files = await this.fileRepository?.find({
           relations: ['folder', 'versions'],
           where: { this_deleted: true, organization: { id: org } },
@@ -151,7 +151,7 @@ export class FoldersService {
 
       let query1;
 
-      if (isDeleted) {
+      if (is_deleted) {
         query1 = await this.foldersRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
@@ -160,11 +160,11 @@ export class FoldersService {
           .where('folder.organization.id = :organizationId', {
             organizationId: organization_id,
           })
-          .andWhere(`folder.is_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+          .andWhere(`folder.is_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
-          .andWhere(`folder.this_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+          .andWhere(`folder.this_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
           .orWhere('folder.is_partial_restored IS NULL')
           .groupBy('folder.id, user.id')
@@ -181,11 +181,11 @@ export class FoldersService {
           .where('folder.organization.id = :organizationId', {
             organizationId: organization_id,
           })
-          .andWhere(`folder.is_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+          .andWhere(`folder.is_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
-          .andWhere(`folder.this_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+          .andWhere(`folder.this_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
           .orWhere('folder.is_partial_restored = :isPartialRestored', {
             isPartialRestored: true,
@@ -223,8 +223,7 @@ export class FoldersService {
               status: true,
             },
             file: {
-              is_deleted: isDeleted || false,
-              folder: { is_deleted: isDeleted || false },
+              is_deleted: false,
             },
           },
         },
@@ -256,8 +255,14 @@ export class FoldersService {
         .where('folder.organization.id = :organizationId', {
           organizationId: organization_id,
         })
-        .andWhere('folder.is_deleted = :isDeleted', {
-          isDeleted: isDeleted || false,
+        .andWhere(`folder.is_deleted = :is_deleted`, {
+          is_deleted: is_deleted || false,
+        })
+        .andWhere(`folder.this_deleted = :is_deleted`, {
+          is_deleted: is_deleted || false,
+        })
+        .orWhere('folder.is_partial_restored = :is_partial_restored', {
+          is_partial_restored: true,
         })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
