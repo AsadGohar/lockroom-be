@@ -125,7 +125,7 @@ export class AuditLogsSerivce {
         });
       }
       const group_rankings = await group_rankings_query.getRawMany();
-      const user_rankings = await user_rankings_query.limit(4).getRawMany();
+      const user_rankings = await user_rankings_query.getRawMany();
       const document_rankings = await document_rankings_query.getRawMany();
       const createObjs = (
         name: string,
@@ -156,7 +156,9 @@ export class AuditLogsSerivce {
             users.push(user);
           }
         });
-        data.push(createObjs(group.group_name, group, docs, users));
+        data.push(
+          createObjs(group.group_name, group, docs, users?.slice(0, 3)),
+        );
       });
       //sorting documnents
       data.forEach((data_item) => {
