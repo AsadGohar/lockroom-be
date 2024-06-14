@@ -14,7 +14,6 @@ import * as bcrypt from 'bcrypt';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { PartialInviteDto } from './dto/partial-invite.dto';
 import { UserRoleEnum } from 'src/types/enums';
-import { PartialInviteDto } from './dto/partial-invite.dto';
 @Injectable()
 export class InvitesService {
   constructor(
