@@ -24,7 +24,7 @@ export class FileDto {
   @IsNotEmpty()
   id: string;
 
-   @IsString()
+  @IsString()
   @IsNotEmpty()
   group_id: string;
 }

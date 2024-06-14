@@ -20,12 +20,13 @@ import { decodeJwtResponse } from 'src/utils/jwt.utils';
 import { Invite } from 'src/invites/entities/invite.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
+import { PartialUserDto } from './dto/partial-user.dto';
+// import { sendSMS } from 'src/utils/otp.utils';
 import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
 import { OTPService } from 'src/otp/otp.service';
 import { UserRoleEnum } from 'src/types/enums';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
-import { PartialUserDto } from './dto/partial-user.dto';
 // import { sendSMS } from 'src/utils/otp.utils';
 @Injectable()
 export class UsersService {
@@ -231,6 +232,13 @@ export class UsersService {
           where: { id: In(orgs) },
         });
 
+        await this.auditService.create({
+          user_id: user.id,
+          organization_id: user.organizations_added_in[0].id,
+          file_id: null,
+          type: 'login',
+        });
+
         if (user.two_fa_type == 'sms') {
           const otp = this.otpService.generateOTP();
           user.generated_otp = String(otp);
@@ -267,14 +275,12 @@ export class UsersService {
       if (find_user) {
         const orgs = [];
         if (find_user.role == UserRoleEnum.GUEST) {
-          await this.auditService.create(
-           {
-            file_id:null,
+          await this.auditService.create({
+            file_id: null,
             user_id: find_user.id,
             organization_id: find_user.organizations_added_in[0].id,
             type: 'login',
-           }
-          );
+          });
         }
         orgs.push(find_user?.organization_created?.id);
         find_user.organizations_added_in.map((org) => {

@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { AuthGuard } from 'src/guards/auth.guard';
-import { UserRoleEnum } from 'src/types/enums';
 import { PartialGroupDto } from './dto/partial-group.dto';
+import { UserRoleEnum } from 'src/types/enums';
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}

@@ -13,8 +13,9 @@ import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
-import { UserRoleEnum, FilePermissionEnum } from 'src/types/enums';
 import { PartialFolderDto } from './dto/partial-folder.dto';
+import { UserRoleEnum, FilePermissionEnum } from 'src/types/enums';
+
 @Injectable()
 export class FoldersService {
   constructor(
@@ -372,8 +373,11 @@ export class FoldersService {
       throw Error(error);
     }
   }
-  async softDelete(id: string, org_id: string) {
-    const to_delete = await this.getAllFilesByOrg(org_id, id);
+
+  async softDelete(dto: PartialFolderDto) {
+    const { id, organization_id } = dto;
+    const to_delete = await this.getAllFilesByOrg(organization_id, id);
+
     const sub_folders_ids = to_delete?.folder_ids;
     const required_files = [...sub_folders_ids, id].map(async (folder_id) => {
       const file = await this.fileRepository.find({

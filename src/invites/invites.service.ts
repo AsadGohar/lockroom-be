@@ -12,6 +12,7 @@ import { Group } from 'src/groups/entities/group.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import { PartialInviteDto } from './dto/partial-invite.dto';
 import { UserRoleEnum } from 'src/types/enums';
 import { PartialInviteDto } from './dto/partial-invite.dto';
 @Injectable()

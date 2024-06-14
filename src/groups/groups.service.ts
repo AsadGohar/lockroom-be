@@ -12,9 +12,9 @@ import { EmailService } from 'src/email/email.service';
 import { inviteTemplate } from 'src/utils/email.templates';
 import { FilesService } from 'src/files/files.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
+import { PartialGroupDto } from './dto/partial-group.dto';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { UserRoleEnum } from 'src/types/enums';
-import { PartialGroupDto } from './dto/partial-group.dto';
 @Injectable()
 export class GroupsService {
   constructor(

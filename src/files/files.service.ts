@@ -568,6 +568,7 @@ export class FilesService {
           },
           user_id,
         );
+
         console.log(
           'CREATED FOLDER',
           create_folder.new_folder.name,
