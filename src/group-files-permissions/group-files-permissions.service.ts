@@ -237,12 +237,13 @@ export class GroupFilesPermissionsService {
             );
           return {
             update_reverse_permissions,
-            message: status ? 'enabled view on file' : 'disabled view on file',
+            message: 'Permission updated',
+            // message: status ? 'enabled view on file' : 'disabled view on file',
           };
         }
         return {
           update_permissions,
-          message: status ? 'enabled view on file' : 'disabled view on file',
+          message: 'Permission updated',
         };
       }
       return { message: 'failed to update permissions' };
