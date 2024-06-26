@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -79,6 +80,7 @@ export class FoldersService {
       absolute_path: parent_folder.absolute_path + '/' + name,
       display_tree_index: parent_folder.display_tree_index + '.' + next,
       absolute_path_ids: '',
+      color: '#fec81e',
     });
     await this.foldersRepository.update(new_folder.id, {
       absolute_path_ids: parent_folder.absolute_path_ids + '/' + new_folder.id,
@@ -551,5 +553,10 @@ export class FoldersService {
       success: true,
       new_data: await this.findAllByOrganization(organization_id, user_id),
     };
+  }
+
+  async updateFolderColor(folder_id: string, color: string) {
+    if (!folder_id || !color) throw new BadRequestException('Missing fields');
+    return await this.foldersRepository.update(folder_id, { color });
   }
 }
