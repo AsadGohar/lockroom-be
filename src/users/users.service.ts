@@ -5,6 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
   NotImplementedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -113,7 +114,7 @@ export class UsersService {
 
       const saveOrg = await this.orgRepository.save(new_org);
 
-      await this.folderRepository.save({
+      const folder = await this.folderRepository.save({
         name: 'Home',
         parent_folder_id: null,
         tree_index: '1',
@@ -122,15 +123,26 @@ export class UsersService {
         absolute_path: '/Home',
         display_name: 'Home',
         display_tree_index: '1',
+        absolute_path_ids: '',
       });
 
-      return {
-        user: { ...user, organization_created: saveOrg },
-        access_token,
-        files_count: 1,
-        id: user.id,
-        organizations: [saveOrg],
-      };
+      if (folder) {
+        await this.folderRepository.update(folder.id, {
+          absolute_path_ids: `/${folder.id}`,
+        });
+
+        return {
+          user: { ...user, organization_created: saveOrg },
+          access_token,
+          files_count: 1,
+          id: user.id,
+          organizations: [saveOrg],
+        };
+      } else {
+        throw new BadRequestException(
+          'Something went wrong while creating folders',
+        );
+      }
     } catch (error) {
       console.log(error, 'err');
       throw new InternalServerErrorException(
@@ -367,16 +379,26 @@ export class UsersService {
         absolute_path: '/Home',
         display_name: 'Home',
         display_tree_index: '1',
+        absolute_path_ids: '',
       });
-      return {
-        access_token,
-        folders: [folder],
-        files_count: 1,
-        id: new_user.id,
-        sub_folder_count: query1,
-        user: { ...new_user, organization_created: saveOrg },
-        organizations: [saveOrg],
-      };
+      if (folder) {
+        await this.folderRepository.update(folder.id, {
+          absolute_path_ids: `/${folder.id}`,
+        });
+        return {
+          access_token,
+          folders: [folder],
+          files_count: 1,
+          id: new_user.id,
+          sub_folder_count: query1,
+          user: { ...new_user, organization_created: saveOrg },
+          organizations: [saveOrg],
+        };
+      } else {
+        throw new BadRequestException(
+          'Something went wrong while creating folders',
+        );
+      }
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException(

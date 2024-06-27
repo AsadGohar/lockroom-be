@@ -26,11 +26,9 @@ export class InvitesService {
     private readonly orgRepository: Repository<Organization>,
     private readonly jwtService: JwtService,
   ) {}
-
   async findAll() {
     await this.inviteRepository.find();
   }
-
   async findBySenderId(sender_id: string) {
     return this.inviteRepository
       .createQueryBuilder('invite')
@@ -38,7 +36,6 @@ export class InvitesService {
       .where('sender.id = :user_id', { user_id: sender_id })
       .getMany();
   }
-
   async sendInvitesBySenderId(
     sender_id: string,
     emails: string[],
@@ -48,20 +45,14 @@ export class InvitesService {
     if (!sender_id || !group_id || !organization_id || !emails)
       throw new NotFoundException('Missing Fields');
     const findUser = await this.userRepository.findOne({
-      where: {
-        id: sender_id,
-      },
+      where: { id: sender_id },
     });
     const findGroup = await this.groupRepository.findOne({
-      where: {
-        id: group_id,
-      },
+      where: { id: group_id },
     });
     const findOrg = await this.orgRepository.findOne({
       relations: ['users'],
-      where: {
-        id: organization_id,
-      },
+      where: { id: organization_id },
     });
     const invites = emails.map((email) => {
       return {
@@ -75,7 +66,6 @@ export class InvitesService {
     const invitesDB = await this.inviteRepository.save(invites);
     return { user: findUser, invites: invitesDB };
   }
-
   async getEmailByToken(jwt_token: string) {
     try {
       const resp = await this.jwtService.verify(jwt_token, {
@@ -84,9 +74,7 @@ export class InvitesService {
       if (resp) {
         const findInvite = await this.inviteRepository.findOne({
           relations: ['organization'],
-          where: {
-            id: resp.invite_id,
-          },
+          where: { id: resp.invite_id },
         });
         if (!findInvite) throw new NotFoundException('user not found');
         console.log();
@@ -100,7 +88,6 @@ export class InvitesService {
       throw Error(error);
     }
   }
-
   async addInvitedUser(
     email: string,
     password: string,
@@ -121,47 +108,39 @@ export class InvitesService {
         throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in'],
-        where: {
-          email: email,
-        },
+        where: { email: email },
       });
       if (find_user) throw new ConflictException('User Already Exists');
-
       const existing_number = await this.userRepository.findOne({
         where: { phone_number },
       });
       if (existing_number)
         throw new ConflictException('phone number already taken');
-
       const hashedPassword = await bcrypt.hash(password, 10);
       password = hashedPassword;
       const full_name = `${first_name} ${last_name}`;
-
       const resp = await this.jwtService.verify(jwt_token, {
         secret: process.env.JWT_SECRET,
       });
       const invite = await this.inviteRepository.findOne({
         relations: ['organization', 'group'],
-        where: {
-          id: resp.invite_id,
-        },
+        where: { id: resp.invite_id },
       });
       const find_org = await this.orgRepository.findOne({
         relations: ['users'],
-        where: {
-          id: invite.organization.id,
-        },
+        where: { id: invite.organization.id },
       });
-      const role = UserRoleEnum.GUEST;
 
       invite.status = 'accepted';
       await this.inviteRepository.save(invite);
       const find_group = await this.groupRepository.findOne({
         relations: ['users'],
-        where: {
-          id: invite.group.id,
-        },
+        where: { id: invite.group.id },
       });
+      const role =
+        find_group?.name?.toLocaleLowerCase() === UserRoleEnum.ADMIN
+          ? UserRoleEnum.ADMIN
+          : UserRoleEnum.GUEST;
       const new_user = this.userRepository.create({
         email,
         password,
@@ -175,15 +154,7 @@ export class InvitesService {
       });
       await this.groupRepository.save(find_group);
       await this.userRepository.save(new_user);
-      return {
-        status: true,
-      };
-      // if(saved_user){
-      //   console.log('saved', saved_user)
-      //   find_org.users = [...find_org.users, saved_user];
-      //   await this.orgRepository.save(find_org);
-      //   return saved_user;
-      // }
+      return { status: true };
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException(

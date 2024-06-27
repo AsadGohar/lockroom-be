@@ -79,6 +79,10 @@ export class FoldersService {
       organization: find_org,
       absolute_path: parent_folder.absolute_path + '/' + name,
       display_tree_index: parent_folder.display_tree_index + '.' + next,
+      absolute_path_ids: '',
+    });
+    await this.foldersRepository.update(new_folder.id, {
+      absolute_path_ids: parent_folder.absolute_path_ids + '/' + new_folder.id,
     });
     const new_folder_1 = {
       ...new_folder,
@@ -88,6 +92,8 @@ export class FoldersService {
       folder_createdAt: new_folder.createdAt,
       folder_id: new_folder.id,
       folder_display_index: new_folder.display_tree_index,
+      folder_absolute_path_ids:
+        parent_folder.absolute_path_ids + '/' + new_folder.id,
     };
     parent_folder.sub_folders.push(new_folder);
     const update_parent_folder =
@@ -113,14 +119,18 @@ export class FoldersService {
         find_user.role == UserRoleEnum.OWNER
           ? find_user.organization_created.id
           : find_user.organizations_added_in[0].id;
-      const get_files = await this.fileRepository?.find({
-        relations: ['folder', 'versions'],
-        where: {
-          is_deleted: isDeleted ? true : false,
-          organization: { id: org },
-          folder: { is_deleted: false },
-        },
-      });
+      let get_files: File[];
+      if (isDeleted) {
+        get_files = await this.fileRepository?.find({
+          relations: ['folder', 'versions'],
+          where: { this_deleted: true, organization: { id: org } },
+        });
+      } else {
+        get_files = await this.fileRepository?.find({
+          relations: ['folder', 'versions'],
+          where: { is_deleted: false, organization: { id: org } },
+        });
+      }
       const file_data = get_files.map((file) => {
         return {
           name: file.name,
@@ -131,7 +141,7 @@ export class FoldersService {
           mime_type: file.mime_type,
           url: file.versions?.find(
             (versions) => versions.id == file.current_version_id,
-          ).bucket_url,
+          )?.bucket_url,
           file_id: file.id,
           extension: file.extension,
           folder_createdAt: file.createdAt,
@@ -139,25 +149,56 @@ export class FoldersService {
           folder_display_tree_index: file.display_tree_index,
         };
       });
-      const query1 = await this.foldersRepository
-        .createQueryBuilder('folder')
-        .leftJoinAndSelect('folder.users', 'user')
-        .leftJoin('folder.sub_folders', 'sub_folder')
-        .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-        .where('folder.organization.id = :organizationId', {
-          organizationId: organization_id,
-        })
-        .andWhere(`folder.is_deleted = :isDeleted`, {
-          isDeleted: isDeleted || false,
-        })
-        .andWhere(`folder.this_deleted = :isDeleted`, {
-          isDeleted: isDeleted || false,
-        })
-        .groupBy('folder.id, user.id')
-        .orderBy('folder.createdAt', 'ASC')
-        .addSelect('folder.id', 'id')
-        .addSelect('folder.id', 'folder_id')
-        .getRawMany();
+
+      let query1;
+
+      if (isDeleted) {
+        query1 = await this.foldersRepository
+          .createQueryBuilder('folder')
+          .leftJoinAndSelect('folder.users', 'user')
+          .leftJoin('folder.sub_folders', 'sub_folder')
+          .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
+          .where('folder.organization.id = :organizationId', {
+            organizationId: organization_id,
+          })
+          .andWhere(`folder.is_deleted = :isDeleted`, {
+            isDeleted: isDeleted || false,
+          })
+          .andWhere(`folder.this_deleted = :isDeleted`, {
+            isDeleted: isDeleted || false,
+          })
+          .orWhere('folder.is_partial_restored IS NULL')
+          .groupBy('folder.id, user.id')
+          .orderBy('folder.createdAt', 'ASC')
+          .addSelect('folder.id', 'id')
+          .addSelect('folder.id', 'folder_id')
+          .getRawMany();
+      } else {
+        query1 = await this.foldersRepository
+          .createQueryBuilder('folder')
+          .leftJoinAndSelect('folder.users', 'user')
+          .leftJoin('folder.sub_folders', 'sub_folder')
+          .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
+          .where('folder.organization.id = :organizationId', {
+            organizationId: organization_id,
+          })
+          .andWhere(`folder.is_deleted = :isDeleted`, {
+            isDeleted: isDeleted || false,
+          })
+          .andWhere(`folder.this_deleted = :isDeleted`, {
+            isDeleted: isDeleted || false,
+          })
+          .orWhere('folder.is_partial_restored = :isPartialRestored', {
+            isPartialRestored: true,
+          })
+          .orWhere('folder.is_partial_restored IS NULL')
+          .groupBy('folder.id, user.id')
+          .orderBy('folder.createdAt', 'ASC')
+          .addSelect('folder.id', 'id')
+          .addSelect('folder.id', 'folder_id')
+          .getRawMany();
+      }
+
       const data = this.sortByFolderTreeIndex([...query1, ...file_data]);
       return { sub_folder_count: data };
     }
@@ -332,8 +373,25 @@ export class FoldersService {
   async softDelete(id: string, org_id: string) {
     const to_delete = await this.getAllFilesByOrg(org_id, id);
     const sub_folders_ids = to_delete?.folder_ids;
+    const required_files = [...sub_folders_ids, id].map(async (folder_id) => {
+      const file = await this.fileRepository.find({
+        where: { folder: { id: folder_id } },
+      });
+      if (file) {
+        return file;
+      }
+    });
+    const files_promise = await Promise.all(required_files);
+    const files_to_delete = files_promise.flat();
     try {
-      await this.foldersRepository.update(id, { this_deleted: true });
+      await this.foldersRepository.update(id, {
+        this_deleted: true,
+        is_partial_restored: false,
+      });
+      await this.fileRepository.update(
+        { id: In(files_to_delete?.map((file) => file.id)) },
+        { is_deleted: true },
+      );
       return await this.foldersRepository.update(
         { id: In([...sub_folders_ids, id]) },
         { is_deleted: true },
@@ -345,6 +403,16 @@ export class FoldersService {
   async restore(id: string, org_id: string) {
     const to_restore = await this.getAllFilesByOrg(org_id, id);
     const sub_folders_ids = to_restore?.folder_ids;
+    const required_files = [...sub_folders_ids, id].map(async (folder_id) => {
+      const file = await this.fileRepository.find({
+        where: { folder: { id: folder_id } },
+      });
+      if (file) {
+        return file;
+      }
+    });
+    const files_promise = await Promise.all(required_files);
+    const files_to_delete = files_promise.flat();
     const current_folder = await this.foldersRepository.findOne({
       where: { id },
     });
@@ -366,6 +434,10 @@ export class FoldersService {
         });
       }
       await this.foldersRepository.update(id, { this_deleted: false });
+      await this.fileRepository.update(
+        { id: In(files_to_delete?.map((file) => file.id)) },
+        { is_deleted: false },
+      );
       return await this.foldersRepository.update(
         { id: In([...sub_folders_ids, id]) },
         { is_deleted: false },
