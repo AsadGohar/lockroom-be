@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -80,6 +81,7 @@ export class FoldersService {
       absolute_path: parent_folder.absolute_path + '/' + name,
       display_tree_index: parent_folder.display_tree_index + '.' + next,
       absolute_path_ids: '',
+      color: '#fec81e',
     });
     await this.foldersRepository.update(new_folder.id, {
       absolute_path_ids: parent_folder.absolute_path_ids + '/' + new_folder.id,
@@ -106,7 +108,7 @@ export class FoldersService {
   async findAllByOrganization(
     organization_id: string,
     user_id: string,
-    isDeleted?: boolean,
+    is_deleted?: boolean,
   ) {
     if (!organization_id || !user_id)
       throw new NotFoundException('Missing Fields');
@@ -120,7 +122,7 @@ export class FoldersService {
           ? find_user.organization_created.id
           : find_user.organizations_added_in[0].id;
       let get_files: File[];
-      if (isDeleted) {
+      if (is_deleted) {
         get_files = await this.fileRepository?.find({
           relations: ['folder', 'versions'],
           where: { this_deleted: true, organization: { id: org } },
@@ -152,7 +154,7 @@ export class FoldersService {
 
       let query1;
 
-      if (isDeleted) {
+      if (is_deleted) {
         query1 = await this.foldersRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
@@ -161,11 +163,11 @@ export class FoldersService {
           .where('folder.organization.id = :organizationId', {
             organizationId: organization_id,
           })
-          .andWhere(`folder.is_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+          .andWhere(`folder.is_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
-          .andWhere(`folder.this_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+          .andWhere(`folder.this_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
           .orWhere('folder.is_partial_restored IS NULL')
           .groupBy('folder.id, user.id')
@@ -182,11 +184,11 @@ export class FoldersService {
           .where('folder.organization.id = :organizationId', {
             organizationId: organization_id,
           })
-          .andWhere(`folder.is_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+          .andWhere(`folder.is_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
-          .andWhere(`folder.this_deleted = :isDeleted`, {
-            isDeleted: isDeleted || false,
+          .andWhere(`folder.this_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
           .orWhere('folder.is_partial_restored = :isPartialRestored', {
             isPartialRestored: true,
@@ -224,8 +226,7 @@ export class FoldersService {
               status: true,
             },
             file: {
-              is_deleted: isDeleted || false,
-              folder: { is_deleted: isDeleted || false },
+              is_deleted: false,
             },
           },
         },
@@ -257,8 +258,14 @@ export class FoldersService {
         .where('folder.organization.id = :organizationId', {
           organizationId: organization_id,
         })
-        .andWhere('folder.is_deleted = :isDeleted', {
-          isDeleted: isDeleted || false,
+        .andWhere(`folder.is_deleted = :is_deleted`, {
+          is_deleted: is_deleted || false,
+        })
+        .andWhere(`folder.this_deleted = :is_deleted`, {
+          is_deleted: is_deleted || false,
+        })
+        .orWhere('folder.is_partial_restored = :is_partial_restored', {
+          is_partial_restored: true,
         })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
@@ -403,6 +410,7 @@ export class FoldersService {
   async restore(id: string, org_id: string) {
     const to_restore = await this.getAllFilesByOrg(org_id, id);
     const sub_folders_ids = to_restore?.folder_ids;
+
     const required_files = [...sub_folders_ids, id].map(async (folder_id) => {
       const file = await this.fileRepository.find({
         where: { folder: { id: folder_id } },
@@ -416,6 +424,13 @@ export class FoldersService {
     const current_folder = await this.foldersRepository.findOne({
       where: { id },
     });
+    const folders_to_restore = current_folder.absolute_path_ids
+      ?.split('/')
+      ?.slice(1);
+    await this.foldersRepository.update(
+      { id: In(folders_to_restore) },
+      { is_partial_restored: true },
+    );
     const child_folders_in_parent = await this.foldersRepository.find({
       where: {
         parent_folder_id: current_folder?.parent_folder_id,
@@ -480,63 +495,69 @@ export class FoldersService {
     });
     return data;
   }
+
+  private async updateDisplayTreeIndex(
+    parentId: string,
+    parentDisplayTreeIndex: string,
+  ) {
+    const child_folders = await this.foldersRepository.find({
+      where: { parent_folder_id: parentId },
+    });
+    const child_files = await this.fileRepository.find({
+      where: { folder: { id: parentId } },
+    });
+
+    for (let index = 0; index < child_folders.length; index++) {
+      const child_folder = child_folders[index];
+      const new_display_tree_index = `${parentDisplayTreeIndex}.${index + 1}`;
+      await this.foldersRepository.update(child_folder.id, {
+        display_tree_index: new_display_tree_index,
+      });
+
+      await this.updateDisplayTreeIndex(
+        child_folder.id,
+        new_display_tree_index,
+      );
+    }
+
+    for (let index = 0; index < child_files.length; index++) {
+      const childFile = child_files[index];
+      const new_display_tree_index = `${parentDisplayTreeIndex}.${index + 1}`;
+      await this.fileRepository.update(childFile.id, {
+        display_tree_index: new_display_tree_index,
+      });
+    }
+  }
+
   async rearrangeFolderAndFiles(
     data: any[],
     organization_id: string,
     user_id: string,
   ) {
-    for (let index = 0; index < data.length; index++) {
-      const element = data[index];
+    for (const element of data) {
       if (element.type === 'folder') {
-        const child_folders = await this.foldersRepository.find({
-          where: { parent_folder_id: element.id },
-        });
-        const child_files = await this.fileRepository.find({
-          where: { folder: { id: element?.id } },
-        });
-        if (child_folders?.length > 0) {
-          for (
-            let child_folder_index = 0;
-            child_folder_index < child_folders?.length;
-            child_folder_index++
-          ) {
-            const childFolder = child_folders[child_folder_index];
-            await this.foldersRepository.update(childFolder.id, {
-              display_tree_index:
-                element?.folder_display_tree_index +
-                '.' +
-                child_folder_index +
-                1,
-            });
-          }
-        }
-        if (child_files?.length > 0) {
-          for (
-            let child_file_index = 0;
-            child_file_index < child_files?.length;
-            child_file_index++
-          ) {
-            const child_file = child_files[child_file_index];
-            await this.fileRepository.update(child_file.id, {
-              display_tree_index:
-                element?.folder_display_tree_index + '.' + child_file_index + 1,
-            });
-          }
-        }
-        await this.foldersRepository.update(
-          { id: element.id },
-          { display_tree_index: element.folder_display_tree_index },
+        await this.updateDisplayTreeIndex(
+          element.id,
+          element.folder_display_tree_index,
         );
+        await this.foldersRepository.update(element.id, {
+          display_tree_index: element.folder_display_tree_index,
+        });
+      } else if (element.type === 'file') {
+        await this.fileRepository.update(element.id, {
+          display_tree_index: element.folder_display_tree_index,
+        });
       }
-      if (element.type === 'file')
-        await this.fileRepository.update(
-          { id: element.id },
-          { display_tree_index: element.folder_display_tree_index },
-        );
     }
+
     return {
       success: true,
       new_data: await this.findAllByOrganization(organization_id, user_id),
     };
+  }
+
+  async updateFolderColor(folder_id: string, color: string) {
+    if (!folder_id || !color) throw new BadRequestException('Missing fields');
+    return await this.foldersRepository.update(folder_id, { color });
   }
 }

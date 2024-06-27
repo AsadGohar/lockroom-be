@@ -65,8 +65,10 @@ export class GroupsService {
       );
       return saved_group;
     } catch (error) {
-      console.log(error, 'err');
-      throw Error(error);
+      console.log(error?.response?.message, 'err');
+      throw new ConflictException(
+        error?.response?.message || 'Something went wrong!',
+      );
     }
   }
   async addUserToAGroup(

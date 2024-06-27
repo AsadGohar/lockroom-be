@@ -124,6 +124,7 @@ export class UsersService {
         display_name: 'Home',
         display_tree_index: '1',
         absolute_path_ids: '',
+        color: '#fec81e',
       });
 
       if (folder) {
@@ -380,6 +381,7 @@ export class UsersService {
         display_name: 'Home',
         display_tree_index: '1',
         absolute_path_ids: '',
+        color: '#fec81e',
       });
       if (folder) {
         await this.folderRepository.update(folder.id, {

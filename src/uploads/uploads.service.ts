@@ -76,7 +76,7 @@ export class UploadService {
     return await this.s3Client.send(new PutObjectCommand(params));
   }
 
-  async dragAndDrop(files: any[], file_ids: string[]) {
+  async dragAndDrop(files: Array<Express.Multer.File>, file_ids: string[]) {
     const file_data = [];
 
     for (let index = 0; index < files.length; index++) {
@@ -86,6 +86,7 @@ export class UploadService {
           Bucket: 'lockroom',
           Key: file_name,
           Body: files[index].buffer,
+          ContentType: files[index].mimetype,
         }),
       );
       if (upload) {
@@ -100,7 +101,7 @@ export class UploadService {
     return file_data;
   }
 
-  async uploadFileAndUpdateUrl(file: any, file_id: string) {
+  async uploadFileAndUpdateUrl(file: Express.Multer.File, file_id: string) {
     const new_file = file[0];
     const file_name = uuidv4() + '-' + new_file.originalname;
     const upload = await this.s3Client.send(
@@ -108,6 +109,7 @@ export class UploadService {
         Bucket: 'lockroom',
         Key: file_name,
         Body: new_file.buffer,
+        ContentType: new_file.mimetype,
       }),
     );
     if (upload) {

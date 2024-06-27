@@ -198,12 +198,15 @@ export class FilesService {
         id,
         find_user.groups[0].id,
       );
+
       const view_access_original =
         file_permissions[FilePermissionEnum.VIEW_ORIGINAL];
       const view_access_watermark =
         file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
       const download_access_original =
         file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
+      const download_access_watermark =
+        file_permissions[FilePermissionEnum.DOWNLOAD_WATERMARKED];
 
       const file = await this.fileRepository.findOne({
         relations: [
@@ -235,6 +238,7 @@ export class FilesService {
         view_access_original,
         view_access_watermark,
         download_access_original,
+        download_access_watermark,
       };
     } else {
       const file = await this.fileRepository.findOne({
@@ -295,6 +299,8 @@ export class FilesService {
           file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
         const download_access_original =
           file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
+        const download_access_watermark =
+          file_permissions[FilePermissionEnum.DOWNLOAD_WATERMARKED];
 
         const current_file_details = await this.fileVersionRepository.findOne({
           where: {
@@ -308,6 +314,7 @@ export class FilesService {
           has_view_access_original: view_access_original,
           has_view_access_watermark: view_access_watermark,
           has_download_access_original: download_access_original,
+          has_download_access_watermark: download_access_watermark,
           index: file.tree_index,
           mime_type: file.mime_type,
           file_id: file.id,

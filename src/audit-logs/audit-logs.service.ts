@@ -5,10 +5,8 @@ import { AuditLogs } from './entities/audit-logs.entities';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { User } from 'src/users/entities/user.entity';
-// import { createExcelWorkbook } from 'src/utils/excel.utils';
 import { subMonths, format, subDays } from 'date-fns';
 import { ConfigService } from '@nestjs/config';
-import { S3Client } from '@aws-sdk/client-s3';
 @Injectable()
 export class AuditLogsSerivce {
   constructor(
@@ -22,9 +20,6 @@ export class AuditLogsSerivce {
     private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService,
   ) {}
-  private readonly s3Client = new S3Client({
-    region: this.configService.getOrThrow('AWS_S3_REGION'),
-  });
   async create(
     file_id: string | null,
     user_id: string,
@@ -61,12 +56,11 @@ export class AuditLogsSerivce {
       throw new Error(error);
     }
   }
-
   async getStats(organization_id: string, date: any) {
     try {
       if (!organization_id || !date)
         throw new NotFoundException('Missing Fields');
-      let startDate;
+      let startDate: any;
       if (date.type == 'days') startDate = subDays(new Date(), date.value);
       else if (date.type == 'months')
         startDate = subMonths(new Date(), date.value);
@@ -125,7 +119,7 @@ export class AuditLogsSerivce {
         });
       }
       const group_rankings = await group_rankings_query.getRawMany();
-      const user_rankings = await user_rankings_query.limit(4).getRawMany();
+      const user_rankings = await user_rankings_query.getRawMany();
       const document_rankings = await document_rankings_query.getRawMany();
       const createObjs = (
         name: string,
@@ -156,8 +150,9 @@ export class AuditLogsSerivce {
             users.push(user);
           }
         });
-        // console.log(docs,'docc')
-        data.push(createObjs(group.group_name, group, docs, users));
+        data.push(
+          createObjs(group.group_name, group, docs, users?.slice(0, 3)),
+        );
       });
       //sorting documnents
       data.forEach((data_item) => {
@@ -175,11 +170,9 @@ export class AuditLogsSerivce {
       throw Error(error);
     }
   }
-
   async findAll() {
     return await this.auditLogsRepository.find({ relations: ['user'] });
   }
-
   async findOne(id: string) {
     try {
       if (!id) throw new NotFoundException('Missing Fields');
@@ -191,7 +184,6 @@ export class AuditLogsSerivce {
       throw Error(error);
     }
   }
-
   async exportDataToExcel(organization_id: string) {
     if (!organization_id) throw new NotFoundException('Missing Fields');
     const audit_logs = await this.auditLogsRepository.find({
