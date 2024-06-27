@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroupFilesPermissions } from './entities/group-files-permissions.entity';
@@ -155,10 +155,41 @@ export class GroupFilesPermissionsService {
         },
       });
 
+      const find_existing_permissions = await this.groupFilePermRepo.find({
+        where: {
+          file_permission: {
+            permission: {
+              status: true,
+              type: In([
+                FilePermissionEnum.VIEW_ORIGINAL,
+                FilePermissionEnum.DOWNLOAD_WATERMARKED,
+              ]),
+            },
+            file: {
+              id: In(file_ids),
+            },
+          },
+          group: { id: group_id },
+        },
+        relations: ['group', 'file_permission.permission'],
+      });
+
+      if (
+        (type === FilePermissionEnum.DOWNLOAD_WATERMARKED ||
+          type === FilePermissionEnum.VIEW_ORIGINAL) &&
+        find_existing_permissions?.length > 0 &&
+        status
+      ) {
+        return new ConflictException(
+          `${type === FilePermissionEnum.DOWNLOAD_WATERMARKED ? 'Enable view watermark' : 'Disable download watermark'} first`,
+        );
+      }
+
       const permission_ids = [];
       find_group_files_permissions.map((gfp) => {
         permission_ids.push(gfp.file_permission.permission.id);
       });
+
       const update_permissions = await this.permissionRepository.update(
         {
           id: In(permission_ids),
@@ -171,7 +202,9 @@ export class GroupFilesPermissionsService {
         if (
           status &&
           (type == FilePermissionEnum.VIEW_ORIGINAL ||
-            type == FilePermissionEnum.VIEW_WATERMARKED)
+            type == FilePermissionEnum.VIEW_WATERMARKED ||
+            type == FilePermissionEnum.DOWNLOAD_ORIGINAL ||
+            type == FilePermissionEnum.DOWNLOAD_WATERMARKED)
         ) {
           const find_reverse_permission = await this.groupFilePermRepo.find({
             relations: ['group', 'file_permission.permission'],
@@ -204,12 +237,13 @@ export class GroupFilesPermissionsService {
             );
           return {
             update_reverse_permissions,
-            message: status ? 'enabled view on file' : 'disabled view on file',
+            message: 'Permission updated',
+            // message: status ? 'enabled view on file' : 'disabled view on file',
           };
         }
         return {
           update_permissions,
-          message: status ? 'enabled view on file' : 'disabled view on file',
+          message: 'Permission updated',
         };
       }
       return { message: 'failed to update permissions' };
@@ -239,6 +273,10 @@ export class GroupFilesPermissionsService {
       return FilePermissionEnum.VIEW_WATERMARKED;
     } else if (permission == FilePermissionEnum.VIEW_WATERMARKED) {
       return FilePermissionEnum.VIEW_ORIGINAL;
+    } else if (permission == FilePermissionEnum.DOWNLOAD_ORIGINAL) {
+      return FilePermissionEnum.DOWNLOAD_WATERMARKED;
+    } else if (permission == FilePermissionEnum.DOWNLOAD_WATERMARKED) {
+      return FilePermissionEnum.DOWNLOAD_ORIGINAL;
     }
   }
 }

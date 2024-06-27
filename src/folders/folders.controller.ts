@@ -10,6 +10,9 @@ import {
 import { FoldersService } from './folders.service';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { PartialFolderDto } from './dto/partial-folder.dto';
+import { RolesGuard } from 'src/guards/role.guard';
+import { Roles } from 'src/guards/role.decorator';
+import { UserRoleEnum } from 'src/types/enums';
 
 @Controller('folders')
 export class FoldersController {
@@ -81,5 +84,16 @@ export class FoldersController {
       organization_id,
       request.decoded_data.user_id,
     );
+  }
+
+  @UseGuards(AuthGuard)
+  @UseGuards(RolesGuard)
+  @Roles([UserRoleEnum.ADMIN, UserRoleEnum.OWNER])
+  @Patch('update-folder-color')
+  updateFolderColor(
+    @Body('folder_id') folder_id: string,
+    @Body('color') color: string,
+  ) {
+    return this.foldersService.updateFolderColor(folder_id, color);
   }
 }

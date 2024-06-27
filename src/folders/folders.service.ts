@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -81,6 +82,7 @@ export class FoldersService {
       absolute_path: parent_folder.absolute_path + '/' + name,
       display_tree_index: parent_folder.display_tree_index + '.' + next,
       absolute_path_ids: '',
+      color: '#fec81e',
     });
     await this.foldersRepository.update(new_folder.id, {
       absolute_path_ids: parent_folder.absolute_path_ids + '/' + new_folder.id,
@@ -161,11 +163,11 @@ export class FoldersService {
           .where('folder.organization.id = :organizationId', {
             organizationId: organization_id,
           })
-          .andWhere(`folder.is_deleted = :isDeleted`, {
-            isDeleted: is_deleted || false,
+          .andWhere(`folder.is_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
-          .andWhere(`folder.this_deleted = :isDeleted`, {
-            isDeleted: is_deleted || false,
+          .andWhere(`folder.this_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
           .orWhere('folder.is_partial_restored IS NULL')
           .groupBy('folder.id, user.id')
@@ -182,11 +184,11 @@ export class FoldersService {
           .where('folder.organization.id = :organizationId', {
             organizationId: organization_id,
           })
-          .andWhere(`folder.is_deleted = :isDeleted`, {
-            isDeleted: is_deleted || false,
+          .andWhere(`folder.is_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
-          .andWhere(`folder.this_deleted = :isDeleted`, {
-            isDeleted: is_deleted || false,
+          .andWhere(`folder.this_deleted = :is_deleted`, {
+            is_deleted: is_deleted || false,
           })
           .orWhere('folder.is_partial_restored = :isPartialRestored', {
             isPartialRestored: true,
@@ -224,8 +226,7 @@ export class FoldersService {
               status: true,
             },
             file: {
-              is_deleted: is_deleted || false,
-              folder: { is_deleted: is_deleted || false },
+              is_deleted: false,
             },
           },
         },
@@ -257,8 +258,14 @@ export class FoldersService {
         .where('folder.organization.id = :organizationId', {
           organizationId: organization_id,
         })
-        .andWhere('folder.is_deleted = :isDeleted', {
-          isDeleted: is_deleted || false,
+        .andWhere(`folder.is_deleted = :is_deleted`, {
+          is_deleted: is_deleted || false,
+        })
+        .andWhere(`folder.this_deleted = :is_deleted`, {
+          is_deleted: is_deleted || false,
+        })
+        .orWhere('folder.is_partial_restored = :is_partial_restored', {
+          is_partial_restored: true,
         })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
@@ -552,5 +559,10 @@ export class FoldersService {
       success: true,
       new_data: await this.findAllByOrganization({ organization_id }, user_id),
     };
+  }
+
+  async updateFolderColor(folder_id: string, color: string) {
+    if (!folder_id || !color) throw new BadRequestException('Missing fields');
+    return await this.foldersRepository.update(folder_id, { color });
   }
 }

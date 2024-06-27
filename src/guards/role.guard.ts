@@ -11,7 +11,7 @@ export class RolesGuard implements CanActivate {
     private readonly userService: UsersService,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.get<UserRoleEnum[]>(
       'roles',
       context.getHandler(),
@@ -21,8 +21,10 @@ export class RolesGuard implements CanActivate {
     const authorization = request.headers.authorization;
     const authToken = authorization.replace(/bearer/gim, '').trim();
     const user: any = jwtDecode(authToken);
-    const userRole = user?.role;
+    const find_user = await this.userService.findOne({ id: user?.user_id });
 
-    return requiredRoles?.includes(userRole) ? true : false;
+    return requiredRoles?.includes(find_user?.role as UserRoleEnum)
+      ? true
+      : false;
   }
 }

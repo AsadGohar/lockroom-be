@@ -19,12 +19,16 @@ export class PermissionService {
           status: true,
         },
         {
+          type: FilePermissionEnum.DOWNLOAD_ORIGINAL,
+          status: true,
+        },
+        {
           type: FilePermissionEnum.VIEW_WATERMARKED,
           status: false,
         },
         {
-          type: FilePermissionEnum.DOWNLOAD_ORIGINAL,
-          status: true,
+          type: FilePermissionEnum.DOWNLOAD_WATERMARKED,
+          status: false,
         },
       ];
       return await this.permissionRepo.save(new_permissions);
