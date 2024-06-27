@@ -13,3 +13,16 @@ export function formatBytes(bytes: number): string {
     return `${(bytes / gigabyte).toFixed(2)} GB`;
   }
 }
+
+export function getNextDate(days) {
+  const currentDate = new Date();
+  currentDate.setDate(currentDate.getDate() + days);
+  return currentDate;
+}
+
+export function isDateMoreThanSubscription(targetDate, subscriptionPeriodInDays) {
+  const currentDate: any = new Date();
+  const difference = currentDate.getTime() - targetDate.getTime();
+  const daysDifference = Math.round(difference / (1000 * 60 * 60 * 24));
+  return daysDifference >= subscriptionPeriodInDays;
+}
