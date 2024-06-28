@@ -14,10 +14,7 @@ export class SubscriptionsService {
   ) {}
 
   async create(createSubscriptionDto: CreateSubscriptionPlanDto) {
-    const new_subscription = this.subscriptionsRepository.create({
-      type: createSubscriptionDto.type,
-      days: createSubscriptionDto.days,
-    });
+    const new_subscription = this.subscriptionsRepository.create(createSubscriptionDto);
     return await this.subscriptionsRepository.save(new_subscription);
   }
 

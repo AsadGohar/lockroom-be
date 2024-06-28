@@ -5,16 +5,19 @@ import {
   BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
+  ManyToOne,
+  OneToMany
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { SubscriptionTypeEnum } from 'src/types/enums';
 import { User } from 'src/users/entities/user.entity';
-
 @Entity()
 export class SubscriptionPlans {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column()
+  name: string;
 
   @Column({ type: 'enum', enum: SubscriptionTypeEnum, default: SubscriptionTypeEnum.TRIAL })
   type: string;

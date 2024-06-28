@@ -8,7 +8,6 @@ import { AuthGuard } from 'src/guards/auth.guard';
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
-  @UseGuards(AuthGuard)
   @Post()
   create(@Body() createSubscriptionDto: CreateSubscriptionPlanDto) {
     return this.subscriptionsService.create(createSubscriptionDto);

@@ -82,6 +82,8 @@ export class UsersService {
 
       const find_subscription = await this.subscriptionService.findOneByType(SubscriptionTypeEnum.TRIAL)
 
+      console.log(find_subscription,'subbbb')
+
       const calculate_trial_end_date = getNextDate(find_subscription.days)
 
       const create_user = this.userRepository.create({

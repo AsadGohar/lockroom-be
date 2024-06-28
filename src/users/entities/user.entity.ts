@@ -9,6 +9,7 @@ import {
   OneToMany,
   UpdateDateColumn,
   OneToOne,
+  ManyToOne
 } from 'typeorm';
 import { Folder } from '../../folders/entities/folder.entity';
 import { v4 as uuidv4 } from 'uuid';
@@ -115,7 +116,7 @@ export class User {
   @OneToMany(() => AuditLogs, (auditLog) => auditLog.user)
   audit_log: AuditLogs[];
 
-  @OneToMany(() => SubscriptionPlans, subscription => subscription.user)
+  @ManyToOne(() => SubscriptionPlans, subscription => subscription.user)
   subscription: SubscriptionPlans;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
