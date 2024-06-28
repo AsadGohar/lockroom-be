@@ -162,6 +162,8 @@ export class AuditLogsSerivce {
       });
       //sorting total
       data.sort((a, b) => parseInt(b.total) - parseInt(a.total));
+
+      // console.log(data,'dastad')
       return { data };
     } catch (error) {
       console.log(error);

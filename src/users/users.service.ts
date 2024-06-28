@@ -23,8 +23,10 @@ import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
 import { OTPService } from 'src/otp/otp.service';
-import { UserRoleEnum } from 'src/types/enums';
+import { SubscriptionTypeEnum, UserRoleEnum } from 'src/types/enums';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
+import { getNextDate, isDateMoreThanSubscription } from 'src/utils/converts.utils';
 
 @Injectable()
 export class UsersService {
@@ -41,9 +43,11 @@ export class UsersService {
     private readonly inviteRepository: Repository<Invite>,
     @InjectRepository(AuditLogs)
     private readonly auditRepository: Repository<AuditLogs>,
+
     private readonly jwtService: JwtService,
     private readonly auditService: AuditLogsSerivce,
     private readonly otpService: OTPService,
+    private readonly subscriptionService: SubscriptionsService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -76,6 +80,12 @@ export class UsersService {
 
       const otp = String(this.otpService.generateOTP());
 
+      const find_subscription = await this.subscriptionService.findOneByType(SubscriptionTypeEnum.TRIAL)
+
+      console.log(find_subscription,'subbbb')
+
+      const calculate_trial_end_date = getNextDate(find_subscription.days)
+
       const create_user = this.userRepository.create({
         email: createUserDto.email,
         password: createUserDto.password,
@@ -85,6 +95,9 @@ export class UsersService {
         phone_number: createUserDto.phone_number,
         full_name: createUserDto.full_name,
         generated_otp: otp,
+        subscription: find_subscription,
+        subscription_start_date: new Date(),
+        subscription_end_date:calculate_trial_end_date
       });
 
       await this.otpService.sendSMSService(createUserDto.phone_number, otp);
@@ -158,6 +171,7 @@ export class UsersService {
         relations: [
           'organizations_added_in.groups',
           'organization_created.groups',
+          'subscription'
         ],
         where: { email },
       });
@@ -167,12 +181,21 @@ export class UsersService {
       if (!user) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
-      if (user.sso_login && user.sso_type == 'google')
+
+      if(isDateMoreThanSubscription(user.subscription_end_date, user.subscription.days)){
+        throw new UnauthorizedException('Your trial has expired');
+      }
+
+      if (user.sso_login && user.sso_type == 'google'){
         throw new UnauthorizedException('Login with Google');
+      }
+
       const passwordMatched = await bcrypt.compare(password, user.password);
+
       if (!passwordMatched) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
+
       if (user.role == UserRoleEnum.ADMIN || user.role == UserRoleEnum.OWNER) {
         const payload = {
           user_id: user.id,
@@ -211,6 +234,7 @@ export class UsersService {
           organizations,
         };
       }
+
       if (user.role == UserRoleEnum.GUEST) {
         const payload = {
           user_id: user.id,
@@ -259,11 +283,15 @@ export class UsersService {
       if (!user) throw new UnauthorizedException('token invalid');
 
       const find_user = await this.userRepository.findOne({
-        relations: ['organizations_added_in', 'organization_created'],
+        relations: ['organizations_added_in', 'organization_created', 'subscription'],
         where: { email: user.email },
       });
 
       if (find_user) {
+
+        if(isDateMoreThanSubscription(find_user.subscription_end_date, find_user.subscription.days )){
+          throw new UnauthorizedException('Your trial has expired');
+        }
         const orgs = [];
         if (find_user.role == UserRoleEnum.GUEST) {
           await this.auditService.create(

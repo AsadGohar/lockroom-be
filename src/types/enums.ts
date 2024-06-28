@@ -10,3 +10,9 @@ export enum UserRoleEnum {
   ADMIN = 'admin',
   GUEST = 'guest',
 }
+
+export enum SubscriptionTypeEnum {
+  TRIAL = 'trial',
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+}
