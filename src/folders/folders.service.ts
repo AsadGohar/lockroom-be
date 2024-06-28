@@ -28,6 +28,7 @@ export class FoldersService {
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
+    
     private readonly userService: UsersService,
   ) {}
   async create(
