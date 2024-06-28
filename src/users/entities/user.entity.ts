@@ -9,6 +9,7 @@ import {
   OneToMany,
   UpdateDateColumn,
   OneToOne,
+  ManyToOne
 } from 'typeorm';
 import { Folder } from '../../folders/entities/folder.entity';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +18,7 @@ import { Group } from '../..//groups/entities/group.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 import { UserRoleEnum } from 'src/types/enums';
 import { UserViewType } from '../user.view-type.enum';
 
@@ -76,6 +78,12 @@ export class User {
   @Column({ default: '' })
   generated_otp: string;
 
+  @Column({ nullable: true })
+  subscription_start_date: Date;
+
+  @Column({ nullable: true })
+  subscription_end_date: Date;
+
   @OneToOne(() => Organization, (organisation) => organisation.creator)
   organization_created: Organization;
 
@@ -107,6 +115,9 @@ export class User {
 
   @OneToMany(() => AuditLogs, (auditLog) => auditLog.user)
   audit_log: AuditLogs[];
+
+  @ManyToOne(() => SubscriptionPlans, subscription => subscription.user)
+  subscription: SubscriptionPlans;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

@@ -13,6 +13,8 @@ import { File } from 'src/files/entities/file.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { OTPService } from 'src/otp/otp.service';
+import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
+import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -28,10 +30,11 @@ import { OTPService } from 'src/otp/otp.service';
       Organization,
       File,
       AuditLogs,
+      SubscriptionPlans
     ]),
   ],
   controllers: [UsersController],
-  providers: [UsersService, AuditLogsSerivce, OTPService],
+  providers: [UsersService, AuditLogsSerivce, OTPService, SubscriptionsService],
   exports: [UsersService],
 })
 export class UsersModule {}

@@ -24,6 +24,8 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { EmailService } from 'src/email/email.service';
 import { OTPService } from 'src/otp/otp.service';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
+import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
+import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
 
 @Module({
   imports: [
@@ -39,6 +41,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
       Invite,
       AuditLogs,
       FileVersion,
+      SubscriptionPlans
     ]),
   ],
   controllers: [FilesController],
@@ -55,6 +58,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
     AuditLogsSerivce,
     EmailService,
     OTPService,
+    SubscriptionsService
   ],
   exports: [FilesService],
 })
