@@ -23,6 +23,7 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @Res({ passthrough: true }) res,
   ) {
+    console.log(createUserDto,'dto')
     const data = await this.usersService.create(createUserDto);
     res.cookie('sWTNNOCEN', data.access_token, {
       expires: new Date(Date.now() + 3600000),
