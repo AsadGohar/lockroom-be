@@ -35,6 +35,9 @@ export class File {
   is_deleted: boolean;
 
   @Column({ nullable: true })
+  this_deleted: boolean;
+
+  @Column({ nullable: true })
   mime_type: string;
 
   @Column({ nullable: true })
@@ -42,6 +45,12 @@ export class File {
 
   @Column({ nullable: false })
   tree_index: string;
+
+  @Column({ nullable: false })
+  display_tree_index: string;
+
+  @Column({ nullable: false })
+  absolute_path_ids: string;
 
   @Column({ nullable: true })
   extension: string;
@@ -70,8 +79,8 @@ export class File {
   })
   folder: Folder;
 
-  @OneToMany(() => FileVersion, fileVersion => fileVersion.file, {
-      cascade: true,
+  @OneToMany(() => FileVersion, (fileVersion) => fileVersion.file, {
+    cascade: true,
   })
   versions: FileVersion[];
 

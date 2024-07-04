@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, UpdateDateColumn, JoinTable, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToOne,
+  UpdateDateColumn,
+  JoinTable,
+  Column,
+} from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../users/entities/user.entity';
 import { Group } from 'src/groups/entities/group.entity';
@@ -17,7 +25,9 @@ export class Invite {
   @JoinTable()
   group: Group;
 
-  @ManyToOne(() => Organization, (organization) => organization.invites, {onDelete:'CASCADE'})
+  @ManyToOne(() => Organization, (organization) => organization.invites, {
+    onDelete: 'CASCADE',
+  })
   @JoinTable()
   organization: Organization;
 

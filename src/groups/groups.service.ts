@@ -23,62 +23,41 @@ export class GroupsService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
-
     private readonly fileService: FilesService,
     private readonly gfpService: GroupFilesPermissionsService,
     private readonly filePermissionService: FilesPermissionsService,
     private readonly emailService: EmailService,
   ) {}
-
   async create(name: string, user_id: string, organization_id: string) {
     try {
-      // console.log(user_id, 'user id');
       if (!name || !user_id || !organization_id)
         throw new NotFoundException('Missing Fields');
       const group = await this.groupsRepository.findOne({
-        where: {
-          name: name,
-        },
+        where: { name: name },
       });
       if (group)
         throw new ConflictException('group already exists with same name');
       const find_user = await this.userRepository.findOne({
-        where: {
-          id: user_id,
-        },
+        where: { id: user_id },
       });
       if (!find_user) throw new NotFoundException('user not found');
       const findOrg = await this.orgRepository.findOne({
-        where: {
-          id: organization_id,
-        },
+        where: { id: organization_id },
       });
       const new_group = this.groupsRepository.create({
         name,
         created_by: find_user,
         organization: findOrg,
       });
-
       const find_files =
         await this.fileService.getAllFilesByOrganization(organization_id);
-
-      // const files_ids = find_files.map((files) => files.id);
-
-      // const find_file_permissions = await this.fpRepository.find({
-      //   where: {
-      //     file: In(files_ids),
-      //   },
-      // });
-
       const new_file_permissions = [];
-
       for (let index = 0; index < find_files.length; index++) {
         const element = find_files[index];
         new_file_permissions.push(
           await this.filePermissionService.createFilePermissions(element),
         );
       }
-      // console.log(new_file_permissions.flat(), 'neww fppp');
       const saved_group = await this.groupsRepository.save(new_group);
       await this.gfpService.createGroupFilePermissionsForOneGroup(
         saved_group,
@@ -86,11 +65,12 @@ export class GroupsService {
       );
       return saved_group;
     } catch (error) {
-      console.log(error, 'err');
-      throw Error(error);
+      console.log(error?.response?.message, 'err');
+      throw new ConflictException(
+        error?.response?.message || 'Something went wrong!',
+      );
     }
   }
-
   async addUserToAGroup(
     group_id: string,
     user_id: string,
@@ -101,26 +81,17 @@ export class GroupsService {
         throw new NotFoundException('Missing Fields');
       const find_group = await this.groupsRepository.findOne({
         relations: ['users'],
-        where: {
-          id: group_id,
-        },
+        where: { id: group_id },
       });
 
       const find_org = await this.orgRepository.findOne({
         relations: ['users'],
-        where: {
-          groups: {
-            id: group_id,
-          },
-        },
+        where: { groups: { id: group_id } },
       });
-
       if (!find_group) throw new NotFoundException('group not found');
       const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in'],
-        where: {
-          id: user_id,
-        },
+        where: { id: user_id },
       });
       if (!find_user) throw new NotFoundException('user not found');
       const userExistsInGroup = find_group.users.some(
@@ -136,7 +107,6 @@ export class GroupsService {
         text: 'Hello',
         html: inviteTemplate(sender_name, link, 'View Organization'),
       };
-      // throw new ConflictException('user already exists group');
       find_group.users.push(find_user);
       find_user.organizations_added_in.push(find_org);
       await this.userRepository.save(find_user);
@@ -147,82 +117,62 @@ export class GroupsService {
       throw error;
     }
   }
-
   async removeUserFromGroup(group_id: string, user_id: string) {
     console.log(group_id, "to be removed from")
     const group = await this.groupsRepository.findOne({
       relations: ['users'],
-      where: {
-        id: group_id,
-      },
+      where: { id: group_id },
     });
     const user = await this.userRepository.findOne({
-      where: {
-        id: user_id,
-      },
+      where: { id: user_id },
     });
     const userIndex = group.users.findIndex(
       (existingUser) => existingUser.id === user.id,
     );
-    // console.log(userIndex,'indexxx')
     if (userIndex == -1) throw new ConflictException('user not in the group');
     group.users.splice(userIndex, 1);
     return await this.groupsRepository.save(group);
   }
-
   async findAll() {
     return await this.groupsRepository.find();
   }
-
   async findAllUsersInGroup(id: string) {
     try {
       return await this.groupsRepository.findOne({
         relations: ['users'],
-        where: {
-          id,
-        },
+        where: { id },
       });
     } catch (error) {}
   }
-
   async findOne(id: string) {
     try {
       return await this.groupsRepository.findOne({
-        where: {
-          id,
-        },
+        where: { id },
         relations: ['users'],
       });
     } catch (error) {}
   }
-
   async getGroupsByOrganization(organization_id: string, user_id: string) {
     try {
       if (!organization_id || !user_id)
         throw new NotFoundException('Missing Fields');
+      const find_user = await this.userRepository.findOne({
+        where: { id: user_id },
+      });
       const groups_result = [];
       const find_groups = await this.groupsRepository.find({
         relations: ['users', 'organization.creator'],
-        where: {
-          organization: {
-            id: organization_id,
-          },
-        },
+        where: { organization: { id: organization_id } },
       });
-
       find_groups.map((group) => {
         if (
-          group.organization.creator &&
-          group.organization.creator.id == user_id
+          find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER
         ) {
           groups_result.push(group);
         } else if (group.users.find((user) => user.id == user_id)) {
           groups_result.push(group);
         }
       });
-
-      // console.log(groups_result,'ress')
-
       return groups_result.sort(
         (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
       );
@@ -231,82 +181,53 @@ export class GroupsService {
       throw error;
     }
   }
-
   async getGroupsByOrg(organization_id: string) {
     return this.groupsRepository.find({
-      relations:['user.organization'],
-      where: {
-        organization: {
-          id: organization_id,
-        },
-      },
+      relations: ['user.organization'],
+      where: { organization: { id: organization_id } },
     });
   }
-
   async switchUser(
     guest_user_id: string,
     new_group_id: string,
     old_group_id: string,
   ) {
-    console.log(old_group_id, guest_user_id, 'dadasa')
-    //removed here
     await this.removeUserFromGroup(old_group_id, guest_user_id);
-    //add here
     const find_new_group = await this.groupsRepository.findOne({
       relations: ['users'],
-      where: {
-        id: new_group_id,
-      },
+      where: { id: new_group_id },
     });
     console.log(find_new_group.name,' bnacck to admin')
     const find_user = await this.userRepository.findOne({
       relations: ['organizations_added_in'],
-      where: {
-        id: guest_user_id,
-      },
+      where: { id: guest_user_id },
     });
     find_new_group.users.push(find_user);
     return await this.groupsRepository.save(find_new_group);
   }
-
   async updateUserRoleAndChangeGroup(
     user_id: string,
     user_role: UserRoleEnum,
     old_group_id: string,
+    org_id: string,
   ) {
-    console.log(user_id,user_role, old_group_id)
-    const find_user = await this.userRepository.findOne({
-      where: {
-        id: user_id
-      }
-    })
-  //  const old_group_id =  find_user.groups[0].id
+    console.log(user_id, user_role, old_group_id);
     const update_user = await this.userRepository.update(
-      {
-        id: user_id,
-      },
-      {
-        role: user_role,
-      },
+      { id: user_id },
+      { role: user_role },
     );
     const find_admin_group = await this.groupsRepository.findOne({
-      where: {
-        name: 'Admin',
-      },
+      where: { name: 'Admin', organization: { id: org_id } },
     });
-    console.log(find_admin_group.id, 'updatesss')
     if (update_user.affected > 0) {
       if (user_role == UserRoleEnum.ADMIN) {
-        // console.log(find_admin_group.id)
         const add_user_to_admin_group = await this.switchUser(
           user_id,
           find_admin_group.id,
           old_group_id,
         );
         if (add_user_to_admin_group) {
-          return {
-            group: add_user_to_admin_group,
-          };
+          return { group: add_user_to_admin_group };
         }
       }
       if (user_role == UserRoleEnum.GUEST) {
@@ -316,9 +237,7 @@ export class GroupsService {
           find_admin_group.id,
         );
         if (remove_user_from_admin_group) {
-          return {
-            group: remove_user_from_admin_group,
-          };
+          return { group: remove_user_from_admin_group };
         }
       }
     }

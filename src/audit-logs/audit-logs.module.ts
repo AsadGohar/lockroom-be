@@ -23,6 +23,8 @@ import { FoldersService } from 'src/folders/folders.service';
 import { UsersService } from 'src/users/users.service';
 import { OTPService } from 'src/otp/otp.service';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
+import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
+import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 
 @Module({
   imports: [
@@ -38,7 +40,8 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
       Permission,
       Invite,
       AuditLogs,
-      FileVersion
+      FileVersion,
+      SubscriptionPlans
     ]),
   ],
   controllers: [AuditLogsController],
@@ -54,8 +57,10 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
     FoldersService,
     UsersService,
     AuditLogsSerivce,
-    OTPService
+    OTPService,
+    SubscriptionsService
   ],
   exports: [AuditLogsSerivce],
 })
+
 export class AuditLogsModule {}

@@ -1,6 +1,16 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Patch,
+} from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { RolesGuard } from 'src/guards/role.guard';
+import { Roles } from 'src/guards/role.decorator';
+import { UserRoleEnum } from 'src/types/enums';
 
 @Controller('folders')
 export class FoldersController {
@@ -38,6 +48,19 @@ export class FoldersController {
     );
   }
 
+  @UseGuards(AuthGuard)
+  @Post('/deleted-items')
+  findAllDeletedByOrganization(
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.foldersService.findAllByOrganization(
+      organization_id,
+      request.decoded_data.user_id,
+      true,
+    );
+  }
+
   @Post('rename')
   rename(
     @Body('folder_id') folder_id: string,
@@ -49,7 +72,44 @@ export class FoldersController {
 
   @UseGuards(AuthGuard)
   @Post('delete')
-  remove(@Body('folder_id') folder_id: string, @Body('org_id') org_id: string) {
-    return this.foldersService.soft_delete(folder_id, org_id);
+  remove(
+    @Body('folder_id') folder_id: string,
+    @Body('organization_id') organization_id: string,
+  ) {
+    return this.foldersService.softDelete(folder_id, organization_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('restore')
+  restore(
+    @Body('folder_id') folder_id: string,
+    @Body('organization_id') organization_id: string,
+  ) {
+    return this.foldersService.restore(folder_id, organization_id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('rearrange')
+  rearragne(
+    @Body('data') data: any,
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.foldersService.rearrangeFolderAndFiles(
+      data,
+      organization_id,
+      request.decoded_data.user_id,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @UseGuards(RolesGuard)
+  @Roles([UserRoleEnum.ADMIN, UserRoleEnum.OWNER])
+  @Patch('update-folder-color')
+  updateFolderColor(
+    @Body('folder_id') folder_id: string,
+    @Body('color') color: string,
+  ) {
+    return this.foldersService.updateFolderColor(folder_id, color);
   }
 }

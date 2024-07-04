@@ -5,23 +5,31 @@ import {
   BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
+  ManyToOne,
+  OneToMany
 } from 'typeorm';
-import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { SubscriptionTypeEnum } from 'src/types/enums';
+import { User } from 'src/users/entities/user.entity';
 @Entity()
-export class Permission {
+export class SubscriptionPlans {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ nullable: false })
+  @Column()
+  name: string;
+
+  @Column({ type: 'enum', enum: SubscriptionTypeEnum, default: SubscriptionTypeEnum.TRIAL })
   type: string;
 
-  @Column({ nullable: true })
-  status: boolean;
+  @Column()
+  days: number;
 
-  @OneToMany(() => FilesPermissions, (fp) => fp.permission)
-  FilesPermissions: FilesPermissions[];
+  @Column()
+  price: number;
+
+  @OneToMany(() => User, user => user.subscription)
+  user: User;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

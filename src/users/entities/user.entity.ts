@@ -9,6 +9,7 @@ import {
   OneToMany,
   UpdateDateColumn,
   OneToOne,
+  ManyToOne
 } from 'typeorm';
 import { Folder } from '../../folders/entities/folder.entity';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,12 +18,17 @@ import { Group } from '../..//groups/entities/group.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 import { UserRoleEnum } from 'src/types/enums';
+import { UserViewType } from '../user.view-type.enum';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ default: UserViewType.GRID, enum: UserViewType })
+  view_type: string;
 
   @Column({ nullable: false })
   first_name: string;
@@ -72,11 +78,17 @@ export class User {
   @Column({ default: '' })
   generated_otp: string;
 
+  @Column({ nullable: true })
+  subscription_start_date: Date;
+
+  @Column({ nullable: true })
+  subscription_end_date: Date;
+
   @OneToOne(() => Organization, (organisation) => organisation.creator)
   organization_created: Organization;
 
   @ManyToMany(() => Organization, (organisation) => organisation.users, {
-    cascade:true
+    cascade: true,
   })
   @JoinTable()
   organizations_added_in: Organization[];
@@ -91,7 +103,6 @@ export class User {
   @ManyToMany(() => Group, (group) => group.users, {
     onDelete: 'CASCADE',
   })
-  
   @JoinTable()
   groups: Group[];
 
@@ -102,8 +113,11 @@ export class User {
   @OneToMany(() => File, (file) => file.user)
   files: File[];
 
-  @OneToMany(() => AuditLogs, auditLog => auditLog.user)
+  @OneToMany(() => AuditLogs, (auditLog) => auditLog.user)
   audit_log: AuditLogs[];
+
+  @ManyToOne(() => SubscriptionPlans, subscription => subscription.user)
+  subscription: SubscriptionPlans;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -6,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { Folder } from 'src/folders/entities/folder.entity';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { File } from './entities/file.entity';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
@@ -15,6 +16,7 @@ import { FoldersService } from 'src/folders/folders.service';
 import { Group } from 'src/groups/entities/group.entity';
 import { FilePermissionEnum, UserRoleEnum } from 'src/types/enums';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
+import { formatBytes } from 'src/utils/converts.utils';
 
 @Injectable()
 export class FilesService {
@@ -29,7 +31,6 @@ export class FilesService {
     private readonly groupRepository: Repository<Group>,
     @InjectRepository(FileVersion)
     private readonly fileVersionRepository: Repository<FileVersion>,
-
     private readonly fpService: FilesPermissionsService,
     private readonly folderService: FoldersService,
     private readonly gfpService: GroupFilesPermissionsService,
@@ -52,7 +53,6 @@ export class FilesService {
         !folder_id ||
         !user_id ||
         !organization_id ||
-        // !extension ||
         !file_uploaded_name
       )
         throw new NotFoundException('Missing Fields');
@@ -66,12 +66,7 @@ export class FilesService {
       if (!find_folder) throw new NotFoundException('folder not found');
 
       const find_file_same_name = await this.fileRepository.find({
-        where: {
-          folder: {
-            id: find_folder.id,
-          },
-          original_name: name,
-        },
+        where: { folder: { id: find_folder.id }, original_name: name },
       });
 
       const original_name = name; // to be saved without copy indexing
@@ -82,17 +77,11 @@ export class FilesService {
       }
 
       const all_child_files = await this.fileRepository.find({
-        where: {
-          folder: {
-            id: folder_id,
-          },
-        },
+        where: { folder: { id: folder_id } },
       });
 
       const all_child_folders = await this.foldersRepository.find({
-        where: {
-          parent_folder_id: folder_id,
-        },
+        where: { parent_folder_id: folder_id },
       });
 
       const current_tree_index = `${find_folder.tree_index}.`;
@@ -109,6 +98,7 @@ export class FilesService {
         user: find_user,
         folder: find_folder,
         tree_index: current_tree_index + next,
+        display_tree_index: find_folder.display_tree_index + '.' + next,
         organization,
         current_version_id: 0,
         mime_type: mime_type || '',
@@ -116,45 +106,57 @@ export class FilesService {
         extension,
         file_uploaded_name,
         original_name,
+        absolute_path_ids: '',
       });
 
       const saved_file = await this.fileRepository.save(new_file);
-      
-      const new_file_version = this.fileVersionRepository.create({
-        bucket_url,
-        file: saved_file
-      });
-      
-      const save_file_version =
-      await this.fileVersionRepository.save(new_file_version);
-      
-      saved_file.current_version_id = save_file_version.id
-      const new_saved_file = await this.fileRepository.save(saved_file);
-
-      const find_groups = await this.groupRepository.find({
-        where: {
-          organization: {
-            id: organization_id,
-          },
-        },
-      });
-
-      const file_permissions = [];
-
-      for (let index = 0; index < find_groups.length; index++) {
-        const fp = await this.fpService.createFilePermissions(saved_file);
-        file_permissions.push({
-          file_permissions: fp,
-          group_name: find_groups[index].name,
+      if (saved_file) {
+        await this.fileRepository.update(saved_file.id, {
+          absolute_path_ids: find_folder.absolute_path_ids,
         });
-      }
+        const updated_file = await this.fileRepository.findOne({
+          where: { id: saved_file?.id },
+        });
+        const new_file_version = this.fileVersionRepository.create({
+          bucket_url,
+          file: updated_file,
+        });
 
-      const new_group_files_permissions =
-        await this.gfpService.createGroupFilePermissionsFoAllGroups(
-          organization_id,
+        const save_file_version =
+          await this.fileVersionRepository.save(new_file_version);
+
+        updated_file.current_version_id = save_file_version.id;
+        const new_saved_file = await this.fileRepository.save(updated_file);
+
+        const find_groups = await this.groupRepository.find({
+          where: { organization: { id: organization_id } },
+        });
+
+        const file_permissions = [];
+
+        for (let index = 0; index < find_groups.length; index++) {
+          const fp = await this.fpService.createFilePermissions(saved_file);
+          file_permissions.push({
+            file_permissions: fp,
+            group_name: find_groups[index].name,
+          });
+        }
+
+        const new_group_files_permissions =
+          await this.gfpService.createGroupFilePermissionsFoAllGroups(
+            organization_id,
+            file_permissions,
+          );
+        return {
           file_permissions,
+          saved_file: new_saved_file,
+          new_group_files_permissions,
+        };
+      } else {
+        throw new BadRequestException(
+          'Something went wrong while creating file',
         );
-      return { file_permissions, saved_file:new_saved_file, new_group_files_permissions };
+      }
     } catch (error) {
       console.log(error);
       throw Error(error);
@@ -166,11 +168,7 @@ export class FilesService {
       if (!organization_id) throw new NotFoundException('Missing Fields');
       return this.fileRepository.find({
         relations: ['folder'],
-        where: {
-          organization: {
-            id: organization_id,
-          },
-        },
+        where: { is_deleted: false, organization: { id: organization_id } },
       });
     } catch (error) {
       throw Error(error);
@@ -193,21 +191,22 @@ export class FilesService {
     if (!id) throw new NotFoundException('Missing Fields');
     const find_user = await this.userRepository.findOne({
       relations: ['groups', 'organizations_added_in'],
-      where: {
-        id: user_id,
-      },
+      where: { id: user_id },
     });
     if (find_user.role == UserRoleEnum.GUEST) {
       const file_permissions = await this.fpService.findFilePermissiosn(
         id,
         find_user.groups[0].id,
       );
+
       const view_access_original =
         file_permissions[FilePermissionEnum.VIEW_ORIGINAL];
       const view_access_watermark =
         file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
       const download_access_original =
         file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
+      const download_access_watermark =
+        file_permissions[FilePermissionEnum.DOWNLOAD_WATERMARKED];
 
       const file = await this.fileRepository.findOne({
         relations: [
@@ -217,19 +216,17 @@ export class FilesService {
           'organization',
           'versions',
         ],
-        where: {
-          id,
-        },
+        where: { id },
       });
 
       const file_with_url = {
         ...file,
+        size: formatBytes(file.size_bytes),
         bucket_url: file.versions.find(
           (version) => version.id == file.current_version_id,
         ).bucket_url,
       };
 
-      // console.log(file.organization.id,find_user.organizations_added_in[0].id, 'orrggggg')
       if (file.organization.id != find_user.organizations_added_in[0].id)
         throw new UnauthorizedException('Unauthorized to View File');
 
@@ -241,26 +238,30 @@ export class FilesService {
         view_access_original,
         view_access_watermark,
         download_access_original,
+        download_access_watermark,
       };
     } else {
-     const file =  await this.fileRepository.findOne({
+      const file = await this.fileRepository.findOne({
         relations: ['user', 'versions'],
-        where: {
-          id,
-        },
+        where: { id },
       });
       const file_with_url = {
         ...file,
+        size: formatBytes(file.size_bytes),
         bucket_url: file.versions.find(
           (version) => version.id == file.current_version_id,
         ).bucket_url,
       };
 
-      return file_with_url
+      file_with_url.versions.sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
+
+      return file_with_url;
     }
   }
 
-  async findOneWithoutUser(id:string){
+  async findOneWithoutUser(id: string) {
     return await this.fileRepository.findOne({
       relations: [
         'FilesPermissions',
@@ -269,9 +270,7 @@ export class FilesService {
         'organization',
         'versions',
       ],
-      where: {
-        id,
-      },
+      where: { id },
     });
   }
 
@@ -281,14 +280,14 @@ export class FilesService {
     file_ids: string[],
   ) {
     const folder_files = {
-      name: folder.name,
+      name: folder.display_name,
       id: folder.id,
       type: 'folder',
       index: folder.tree_index,
       children: [],
     };
     if (folder.files && folder.files.length > 0) {
-      for (const file of folder.files) {
+      for (const file of folder.files.filter((file) => !file.is_deleted)) {
         const file_permissions = await this.fpService.findFilePermissiosn(
           file.id,
           group_id,
@@ -300,23 +299,22 @@ export class FilesService {
           file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
         const download_access_original =
           file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
+        const download_access_watermark =
+          file_permissions[FilePermissionEnum.DOWNLOAD_WATERMARKED];
 
         const current_file_details = await this.fileVersionRepository.findOne({
           where: {
             id: file.current_version_id,
           },
         });
-        // console.log(file_permissions,view_access_original,view_access_watermark , download_access_original)
-        // console.log(
-        //   file_permissions[0].permission.status,
-        //   file_permissions[0].permission.type,
-        // );
+
         const file_access = {
           type: 'file',
           name: file.name,
           has_view_access_original: view_access_original,
           has_view_access_watermark: view_access_watermark,
           has_download_access_original: download_access_original,
+          has_download_access_watermark: download_access_watermark,
           index: file.tree_index,
           mime_type: file.mime_type,
           file_id: file.id,
@@ -340,20 +338,20 @@ export class FilesService {
     file_ids: string[],
   ) {
     const root_folders = await this.foldersRepository.find({
+      relations: ['sub_folders', 'files.organization'],
       where: {
         organization: { id: organization_id },
         parent_folder_id: parent_folder_id,
         is_deleted: false,
       },
-      relations: ['sub_folders', 'files.organization'],
-      order: {
-        tree_index: 'ASC',
-      },
+      order: { tree_index: 'ASC' },
     });
 
     const folder_file_structures = [];
     if (root_folders.length > 0) {
       for (const root_folder of root_folders) {
+        const new_root = root_folder.files.filter((file) => !file.is_deleted);
+        console.log(root_folder, new_root, 'dasdas');
         const folder_file_structure = await this.buildFolderFileStructure(
           root_folder,
           group_id,
@@ -409,7 +407,6 @@ export class FilesService {
         ...folder_file_structure.children,
         ...result,
       ].sort((a, b) => a.index - b.index);
-      // console.log(file_ids_in_org,'orhgg')
       return { folder_file_structure, file_ids_in_org };
     } catch (error) {
       throw Error(error);
@@ -428,9 +425,7 @@ export class FilesService {
     const data_to_return = [];
 
     const parent_folder = await this.foldersRepository.findOne({
-      where: {
-        id: parent_folder_id,
-      },
+      where: { id: parent_folder_id },
     });
 
     for (let index = 0; index < files_data.length; index++) {
@@ -443,7 +438,6 @@ export class FilesService {
       const file_extension =
         file_name_parts.length > 1 ? file_name_parts.pop() : '';
       if (find_folder) {
-        // console.log('folder found');
         folderIdToPathMap.set(find_folder.id, path);
         const add_file_data = await this.addFileToAFolder(
           file.name,
@@ -505,10 +499,7 @@ export class FilesService {
   ) {
     const file_data = [];
     const find_folder = await this.foldersRepository.findOne({
-      where: {
-        parent_folder_id,
-        name: folder_name,
-      },
+      where: { parent_folder_id, name: folder_name },
     });
 
     if (find_folder) {
@@ -576,7 +567,6 @@ export class FilesService {
       .filter((folder) => folder.trim() !== '');
 
     let currentFolderId = parent_folder_id;
-    console.log('path--------here');
     for (const folderName of folderNames) {
       console.log(folderName, 'name');
       const folder = await this.foldersRepository.findOne({
@@ -609,31 +599,19 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     const find_file = await this.fileRepository.findOne({
-      where: {
-        id: file_id,
-      },
+      where: { id: file_id },
     });
     const update_file = await this.fileRepository.update(
-      {
-        id: file_id,
-      },
-      {
-        file_uploaded_name,
-      },
+      { id: file_id },
+      { file_uploaded_name },
     );
     const update_file_version = await this.fileVersionRepository.update(
-      {
-        id: find_file.current_version_id,
-      },
-      {
-        bucket_url: process.env.S3_BUCKET_BASE_URL + file_uploaded_name,
-      },
+      { id: find_file.current_version_id },
+      { bucket_url: process.env.S3_BUCKET_BASE_URL + file_uploaded_name },
     );
     if (update_file.affected > 0 && update_file_version.affected > 0) {
       const file = await this.fileRepository.findOne({
-        where: {
-          id: file_id,
-        },
+        where: { id: file_id },
       });
       return file;
     }
@@ -651,7 +629,6 @@ export class FilesService {
       parent_folder_id,
       group_id,
     );
-    // console.log(result.file_ids_in_org)
     const update_files_permissions =
       await this.gfpService.newUpdateGroupFilePermissions(
         group_id,
@@ -664,9 +641,7 @@ export class FilesService {
 
   async findFileAndUpdateUrl(file_id: string, new_name: string) {
     const find_file = await this.fileRepository.findOne({
-      where: {
-        id: file_id,
-      },
+      where: { id: file_id },
     });
 
     const new_file_version = await this.fileVersionRepository.save(
@@ -678,30 +653,55 @@ export class FilesService {
 
     find_file.current_version_id = new_file_version.id;
     await this.fileRepository.save(find_file);
-    return {
-      message: 'file url updated',
-      file: find_file,
-    };
-    // const update_file = await this.fileRepository.update(
-    //   {
-    //     id: file_id,
-    //   },
-    //   {
-    //     bucket_url:  process.env.S3_BUCKET_BASE_URL  + new_name,
-    //   },
-    // );
-    // // console.log(update_file, 'udddd res')
-    // if (update_file.affected > 0) {
-    //   const file = await this.fileRepository.findOne({
-    //     where: {
-    //       id: file_id,
-    //     },
-    //   });
-    //   // console.log('fhdasdas');
-    //   return {
-    //     message: 'file url updated',
-    //     file,
-    //   };
-    // }
+    return { message: 'file url updated', file: find_file };
+  }
+
+  async update(id: string, properties: any) {
+    if (properties?.current_version_id) {
+      const find_file_version = await this.fileVersionRepository.findOne({
+        relations: ['file'],
+        where: { id: properties?.current_version_id, file: { id } },
+      });
+      if (!find_file_version)
+        throw new NotFoundException('invalid file version');
+    }
+    const file = await this.fileRepository.update(id, properties);
+    if (file.affected > 0) {
+      return { file, message: 'file updated successfully' };
+    }
+    return { message: 'failed to update file' };
+  }
+
+  async softDelete(id: string) {
+    const soft_delete = await this.fileRepository.update(id, {
+      is_deleted: true,
+      this_deleted: true,
+    });
+    if (soft_delete) {
+      return { message: 'file deleted successfully' };
+    }
+    return { message: 'failed to delete file' };
+  }
+
+  async restore(id: string) {
+    const file = await this.fileRepository.findOne({
+      where: { id },
+      relations: ['folder'],
+    });
+    if (file?.folder?.is_deleted) {
+      const folders_to_restore = file.absolute_path_ids?.split('/')?.slice(1);
+      await this.foldersRepository.update(
+        { id: In(folders_to_restore) },
+        { is_partial_restored: true },
+      );
+    }
+    const restore = await this.fileRepository.update(id, {
+      is_deleted: false,
+      this_deleted: false,
+    });
+    if (restore) {
+      return { message: 'file restored successfully' };
+    }
+    return { message: 'failed to restore file' };
   }
 }

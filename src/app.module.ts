@@ -31,9 +31,16 @@ import { AuditLogs } from './audit-logs/entities/audit-logs.entities';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { FileVersionModule } from './file-version/file-version.module';
 import { FileVersion } from './file-version/entities/file-version.entity';
+import { RolesGuard } from './guards/role.guard';
+import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
+import { SubscriptionPlans } from './subscription-plans/entities/subscription-plan.entity';
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // envFilePath: process.env.NODE_ENV == 'development' ? '.env.development' : '.env'
+      // envFilePath: `.env.${process.env.NODE_ENV || 'development'}
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -52,20 +59,22 @@ import { FileVersion } from './file-version/entities/file-version.entity';
         FilesPermissions,
         GroupFilesPermissions,
         AuditLogs,
-        FileVersion
+        FileVersion,
+        SubscriptionPlans
       ],
       synchronize: true,
-      // logging:'all',
-      ssl:{
-        rejectUnauthorized:false
-      },
-      // ssl: false,
+      ssl:
+        process.env.NODE_ENV == 'development'
+          ? false
+          : {
+              rejectUnauthorized: false,
+            },
     }),
     ThrottlerModule.forRoot({
       throttlers: [
         {
           ttl: 60, // seconds
-          limit: 300,
+          limit: 1000,
         },
       ],
     }),
@@ -81,8 +90,9 @@ import { FileVersion } from './file-version/entities/file-version.entity';
     GroupFilesPermissionsModule,
     AuditLogsModule,
     FileVersionModule,
+    SubscriptionPlansModule,
   ],
   controllers: [AppController, MailController, GroupFilesPermissionsController],
-  providers: [AppService, EmailService, JwtService],
+  providers: [AppService, EmailService, JwtService, RolesGuard],
 })
 export class AppModule {}
