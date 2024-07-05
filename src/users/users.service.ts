@@ -352,6 +352,13 @@ export class UsersService {
           `You've already been invited, Check your email!`,
         );
 
+      const find_subscription = await this.subscriptionService.findOneByType(SubscriptionTypeEnum.TRIAL)
+
+      console.log(find_subscription,'subbbb')
+
+      const calculate_trial_end_date = getNextDate(find_subscription.days)
+
+
       const new_user = this.userRepository.create({
         email: user.email,
         full_name: `${user.given_name} ${user.family_name}`,
@@ -360,6 +367,9 @@ export class UsersService {
         display_picture_url: user.picture,
         sso_login: true,
         sso_type: 'google',
+        subscription: find_subscription,
+        subscription_start_date: new Date(),
+        subscription_end_date:calculate_trial_end_date
       });
       const saved_user = await this.userRepository.save(new_user);
 
