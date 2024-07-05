@@ -118,7 +118,6 @@ export class GroupsService {
     }
   }
   async removeUserFromGroup(group_id: string, user_id: string) {
-    console.log(group_id, "to be removed from")
     const group = await this.groupsRepository.findOne({
       relations: ['users'],
       where: { id: group_id },
@@ -197,7 +196,6 @@ export class GroupsService {
       relations: ['users'],
       where: { id: new_group_id },
     });
-    console.log(find_new_group.name,' bnacck to admin')
     const find_user = await this.userRepository.findOne({
       relations: ['organizations_added_in'],
       where: { id: guest_user_id },

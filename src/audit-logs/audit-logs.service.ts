@@ -65,9 +65,6 @@ export class AuditLogsSerivce {
       else if (date.type == 'months')
         startDate = subMonths(new Date(), date.value);
       const formattedStartDate = startDate && format(startDate, 'yyyy-MM-dd');
-
-      console.log(formattedStartDate,'date', date, '\n\n')
-
       const group_rankings_query = this.auditLogsRepository
         .createQueryBuilder('audit_logs')
         .select('group.name', 'group_name')
