@@ -433,7 +433,7 @@ export class UsersService {
           folders: [folder],
           files_count: 1,
           id: new_user.id,
-          sub_folder_count: query1,
+          sub_folder_count: query1, 
           user: { ...new_user, organization_created: saveOrg },
           organizations: [saveOrg],
         };
@@ -476,7 +476,13 @@ export class UsersService {
 
       if (!find_user) {
         throw new NotFoundException('user not found');
+
       }
+      console.log(find_user,'users')
+      if(isDateMoreThanSubscription(find_user.subscription_end_date, find_user.subscription.days)){
+        throw new UnauthorizedException('Your trial has expired');
+      }
+
       const orgs = [];
       if (
         find_user.role == UserRoleEnum.ADMIN ||
