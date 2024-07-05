@@ -371,6 +371,8 @@ export class UsersService {
       });
       const saved_user = await this.userRepository.save(new_user);
 
+      console.log('before query')
+
       const query1 = await this.folderRepository
         .createQueryBuilder('folder')
         .leftJoinAndSelect('folder.users', 'user')
@@ -380,6 +382,9 @@ export class UsersService {
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
+
+      console.log('after query')
+
 
       const new_group_admin = await this.groupsRepository.save(
         this.groupsRepository.create({ name: 'Admin', created_by: new_user }),
