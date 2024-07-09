@@ -467,7 +467,7 @@ export class UsersService {
     try {
       if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
-        relations: ['organizations_added_in', 'organization_created'],
+        relations: ['organizations_added_in', 'organization_created', 'subscription'],
         where: { id: user_id },
       });
 
