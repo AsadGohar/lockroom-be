@@ -240,4 +240,14 @@ export class GroupsService {
       }
     }
   }
+  async deleteGroup(group_id:string){
+    const delete_group = await this.groupsRepository.delete({
+      id: group_id
+    })
+    if(delete_group && delete_group.affected > 0){
+      return {
+        success: true
+      }
+    }
+  }
 }

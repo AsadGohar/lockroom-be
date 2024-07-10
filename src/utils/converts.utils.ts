@@ -26,3 +26,17 @@ export function isDateMoreThanSubscription(targetDate, subscriptionPeriodInDays)
   const daysDifference = Math.round(difference / (1000 * 60 * 60 * 24));
   return daysDifference >= subscriptionPeriodInDays;
 }
+
+export function generateRandomEmail() {
+  const domains = ["example.com", "test.com", "fake.com"];
+  const chars = "abcdefghijklmnopqrstuvwxyz1234567890";
+
+  let username = "";
+  for (let i = 0; i < 8; i++) {
+    username += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  const domain = domains[Math.floor(Math.random() * domains.length)];
+  const email = `${username}@${domain}`;
+  return email;
+}
