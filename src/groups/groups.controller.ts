@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Request, UseGuards, Delete } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { UserRoleEnum } from 'src/types/enums';
+import { RolesGuard } from 'src/guards/role.guard';
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
@@ -73,6 +74,17 @@ export class GroupsController {
       new_role,
       old_group_id,
       org_id,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @UseGuards(RolesGuard)
+  @Delete('')
+  deleteGroup(
+    @Body('group_id') group_id: string
+  ) {
+    return this.groupsService.deleteGroup(
+      group_id
     );
   }
 }

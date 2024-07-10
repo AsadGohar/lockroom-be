@@ -26,7 +26,11 @@ import { OTPService } from 'src/otp/otp.service';
 import { SubscriptionTypeEnum, UserRoleEnum } from 'src/types/enums';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
-import { getNextDate, isDateMoreThanSubscription } from 'src/utils/converts.utils';
+import {
+  generateRandomEmail,
+  getNextDate,
+  isDateMoreThanSubscription,
+} from 'src/utils/converts.utils';
 
 @Injectable()
 export class UsersService {
@@ -80,11 +84,13 @@ export class UsersService {
 
       const otp = String(this.otpService.generateOTP());
 
-      const find_subscription = await this.subscriptionService.findOneByType(SubscriptionTypeEnum.TRIAL)
+      const find_subscription = await this.subscriptionService.findOneByType(
+        SubscriptionTypeEnum.TRIAL,
+      );
 
-      console.log(find_subscription,'subbbb')
+      // console.log(find_subscription,'subbbb')
 
-      const calculate_trial_end_date = getNextDate(find_subscription.days)
+      const calculate_trial_end_date = getNextDate(find_subscription.days);
 
       const create_user = this.userRepository.create({
         email: createUserDto.email,
@@ -97,7 +103,7 @@ export class UsersService {
         generated_otp: otp,
         subscription: find_subscription,
         subscription_start_date: new Date(),
-        subscription_end_date:calculate_trial_end_date
+        subscription_end_date: calculate_trial_end_date,
       });
 
       // await this.otpService.sendSMSService(createUserDto.phone_number, otp);
@@ -171,7 +177,7 @@ export class UsersService {
         relations: [
           'organizations_added_in.groups',
           'organization_created.groups',
-          'subscription'
+          'subscription',
         ],
         where: { email },
       });
@@ -182,11 +188,16 @@ export class UsersService {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
 
-      if(isDateMoreThanSubscription(user.subscription_end_date, user.subscription.days)){
+      if (
+        isDateMoreThanSubscription(
+          user.subscription_end_date,
+          user.subscription.days,
+        )
+      ) {
         throw new UnauthorizedException('Your trial has expired');
       }
 
-      if (user.sso_login && user.sso_type == 'google'){
+      if (user.sso_login && user.sso_type == 'google') {
         throw new UnauthorizedException('Login with Google');
       }
 
@@ -281,13 +292,21 @@ export class UsersService {
       if (!user) throw new UnauthorizedException('token invalid');
 
       const find_user = await this.userRepository.findOne({
-        relations: ['organizations_added_in', 'organization_created', 'subscription'],
+        relations: [
+          'organizations_added_in',
+          'organization_created',
+          'subscription',
+        ],
         where: { email: user.email },
       });
 
       if (find_user) {
-
-        if(isDateMoreThanSubscription(find_user.subscription_end_date, find_user.subscription.days )){
+        if (
+          isDateMoreThanSubscription(
+            find_user.subscription_end_date,
+            find_user.subscription.days,
+          )
+        ) {
           throw new UnauthorizedException('Your trial has expired');
         }
         const orgs = [];
@@ -350,12 +369,13 @@ export class UsersService {
           `You've already been invited, Check your email!`,
         );
 
-      const find_subscription = await this.subscriptionService.findOneByType(SubscriptionTypeEnum.TRIAL)
+      const find_subscription = await this.subscriptionService.findOneByType(
+        SubscriptionTypeEnum.TRIAL,
+      );
 
-      console.log(find_subscription,'subbbb')
+      console.log(find_subscription, 'subbbb');
 
-      const calculate_trial_end_date = getNextDate(find_subscription.days)
-
+      const calculate_trial_end_date = getNextDate(find_subscription.days);
 
       const new_user = this.userRepository.create({
         email: user.email,
@@ -367,11 +387,11 @@ export class UsersService {
         sso_type: 'google',
         subscription: find_subscription,
         subscription_start_date: new Date(),
-        subscription_end_date:calculate_trial_end_date
+        subscription_end_date: calculate_trial_end_date,
       });
       const saved_user = await this.userRepository.save(new_user);
 
-      console.log('before query')
+      console.log('before query');
 
       const query1 = await this.folderRepository
         .createQueryBuilder('folder')
@@ -383,8 +403,7 @@ export class UsersService {
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
-      console.log('after query')
-
+      console.log('after query');
 
       const new_group_admin = await this.groupsRepository.save(
         this.groupsRepository.create({ name: 'Admin', created_by: new_user }),
@@ -433,7 +452,7 @@ export class UsersService {
           folders: [folder],
           files_count: 1,
           id: new_user.id,
-          sub_folder_count: query1, 
+          sub_folder_count: query1,
           user: { ...new_user, organization_created: saveOrg },
           organizations: [saveOrg],
         };
@@ -470,16 +489,24 @@ export class UsersService {
     try {
       if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
-        relations: ['organizations_added_in', 'organization_created', 'subscription'],
+        relations: [
+          'organizations_added_in',
+          'organization_created',
+          'subscription',
+        ],
         where: { id: user_id },
       });
 
       if (!find_user) {
         throw new NotFoundException('user not found');
-
       }
-      console.log(find_user,'users')
-      if(isDateMoreThanSubscription(find_user.subscription_end_date, find_user.subscription.days)){
+      console.log(find_user, 'users');
+      if (
+        isDateMoreThanSubscription(
+          find_user.subscription_end_date,
+          find_user.subscription.days,
+        )
+      ) {
         throw new UnauthorizedException('Your trial has expired');
       }
 
@@ -686,5 +713,172 @@ export class UsersService {
         'Something went wrong while updating user',
       );
     }
+  }
+
+  async createFakeDashBoard(user: User, organisation: Organization) {
+    const internal_team_group = await this.groupsRepository.save(
+      this.groupsRepository.create({ name: 'Internal Team', created_by: user }),
+    );
+    const buyer_one_group = await this.groupsRepository.save(
+      this.groupsRepository.create({ name: 'Buyer 1', created_by: user }),
+    );
+    const buyer_two_group = await this.groupsRepository.save(
+      this.groupsRepository.create({ name: 'Buyer 2', created_by: user }),
+    );
+    const legal_group = await this.groupsRepository.save(
+      this.groupsRepository.create({ name: 'Buyer 2', created_by: user }),
+    );
+
+    const groups = [internal_team_group, buyer_one_group, buyer_two_group, legal_group]
+
+    const users = await this.addFakeUsers(groups, organisation)
+  }
+
+  async addFakeUsers(groups: Group[], organisation: Organization) {
+    
+    const find_subscription = await this.subscriptionService.findOneByType(
+      SubscriptionTypeEnum.TRIAL,
+    );
+    const calculate_trial_end_date = getNextDate(find_subscription.days);
+    const fake_user_one = this.userRepository.create({
+      full_name: 'Bob Smith',
+      first_name: 'Bob',
+      last_name: 'Smith',
+      password: '12345678',
+      email: generateRandomEmail(),
+      is_email_verified: true,
+      role: UserRoleEnum.GUEST,
+      is_phone_number_verified: true,
+      subscription: find_subscription,
+      subscription_end_date: calculate_trial_end_date,
+      subscription_start_date: new Date(),
+      groups: [ groups[0], groups[1]],
+      organizations_added_in: [organisation]
+    });
+
+    const fake_user_two = this.userRepository.create({
+      full_name: 'Ben Franklin',
+      first_name: 'Ben',
+      last_name: 'Franklin',
+      password: '123456789',
+      email: generateRandomEmail(),
+      is_email_verified: true,
+      role: UserRoleEnum.GUEST,
+      is_phone_number_verified: true,
+      subscription: find_subscription,
+      subscription_end_date: calculate_trial_end_date,
+      subscription_start_date: new Date(),
+      groups: [ groups[0], groups[1]],
+      organizations_added_in: [organisation]
+    });
+
+    const fake_user_three = this.userRepository.create({
+      full_name: 'Jill Johnson',
+      first_name: 'Jill',
+      last_name: 'Johnson',
+      password: '12345678910',
+      email: generateRandomEmail(),
+      is_email_verified: true,
+      role: UserRoleEnum.GUEST,
+      is_phone_number_verified: true,
+      subscription: find_subscription,
+      subscription_end_date: calculate_trial_end_date,
+      subscription_start_date: new Date(),
+      groups: [ groups[2], groups[3]],
+      organizations_added_in: [organisation]
+    });
+
+    const fake_user_four = this.userRepository.create({
+      full_name: 'Cindy Lou',
+      first_name: 'Cindy',
+      last_name: 'Lou',
+      password: '12345678910',
+      email: generateRandomEmail(),
+      is_email_verified: true,
+      role: UserRoleEnum.GUEST,
+      is_phone_number_verified: true,
+      subscription: find_subscription,
+      subscription_end_date: calculate_trial_end_date,
+      subscription_start_date: new Date(),
+      groups: [ groups[2], groups[3]],
+      organizations_added_in: [organisation]
+    });
+
+    const fake_user_five = this.userRepository.create({
+      full_name: 'Don Cotton',
+      first_name: 'Don',
+      last_name: 'Cotton',
+      password: '1234567891011',
+      email: generateRandomEmail(),
+      is_email_verified: true,
+      role: UserRoleEnum.GUEST,
+      is_phone_number_verified: true,
+      subscription: find_subscription,
+      subscription_end_date: calculate_trial_end_date,
+      subscription_start_date: new Date(),
+      groups: [ groups[4], groups[5]],
+      organizations_added_in: [organisation]
+    });
+
+    const fake_user_six = this.userRepository.create({
+      full_name: 'Tom Sawyer',
+      first_name: 'Tom',
+      last_name: 'Sawyer',
+      password: '1234567891011',
+      email: generateRandomEmail(),
+      is_email_verified: true,
+      role: UserRoleEnum.GUEST,
+      is_phone_number_verified: true,
+      subscription: find_subscription,
+      subscription_end_date: calculate_trial_end_date,
+      subscription_start_date: new Date(),
+      groups: [ groups[4], groups[5]],
+      organizations_added_in: [organisation]
+    });
+
+    const fake_user_seven = this.userRepository.create({
+      full_name: 'Lauren Shoemaker',
+      first_name: 'Lauren',
+      last_name: 'Shoemaker',
+      password: '1234567891011',
+      email: generateRandomEmail(),
+      is_email_verified: true,
+      role: UserRoleEnum.GUEST,
+      is_phone_number_verified: true,
+      subscription: find_subscription,
+      subscription_end_date: calculate_trial_end_date,
+      subscription_start_date: new Date(),
+      groups: [ groups[6], groups[7]],
+      organizations_added_in: [organisation]
+    });
+
+    const fake_user_eight = this.userRepository.create({
+      full_name: 'Karen Baker',
+      first_name: 'Karen',
+      last_name: 'Cotton',
+      password: '1234567891011',
+      email: generateRandomEmail(),
+      is_email_verified: true,
+      role: UserRoleEnum.GUEST,
+      is_phone_number_verified: true,
+      subscription: find_subscription,
+      subscription_end_date: calculate_trial_end_date,
+      subscription_start_date: new Date(),
+      groups: [ groups[6], groups[7]],
+      organizations_added_in: [organisation]
+    });
+
+    const users = [
+      fake_user_one,
+      fake_user_two,
+      fake_user_three,
+      fake_user_four,
+      fake_user_five,
+      fake_user_six,
+      fake_user_seven,
+      fake_user_eight
+    ];
+
+   return await this.userRepository.save(users)
   }
 }
