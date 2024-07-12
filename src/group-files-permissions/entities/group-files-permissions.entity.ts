@@ -25,7 +25,7 @@ export class GroupFilesPermissions {
   @ManyToOne(
     () => FilesPermissions,
     (filePermission) => filePermission.group_files_permissions,
-    { onDelete: 'CASCADE' },
+     { onDelete: 'CASCADE' },
   )
   @JoinColumn()
   file_permission: FilesPermissions;
