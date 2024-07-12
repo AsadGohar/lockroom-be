@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Request, UseGuards, Delete, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, Request, UseGuards, Delete, Patch, Param, Put } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { UserRoleEnum } from 'src/types/enums';
@@ -81,7 +81,7 @@ export class GroupsController {
   @UseGuards(AuthGuard)
   @UseGuards(RolesGuard)
   @Roles([UserRoleEnum.ADMIN, UserRoleEnum.OWNER])
-  @Patch('')
+  @Put('')
   updateGroupName(
     @Body('group_id') group_id: string,
     @Body('new_group_name') new_group_name: string,

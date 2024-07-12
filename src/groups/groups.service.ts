@@ -258,8 +258,11 @@ export class GroupsService {
     })
     if(delete_group && delete_group.affected > 0){
       return {
-        success: true
+        success: true,
       }
+    }
+    else {
+      throw new NotFoundException('group not found');
     }
   }
 }
