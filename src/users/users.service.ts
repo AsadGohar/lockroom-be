@@ -106,7 +106,9 @@ export class UsersService {
         subscription_end_date: calculate_trial_end_date,
       });
 
-      // await this.otpService.sendSMSService(createUserDto.phone_number, otp);
+      if(createUserDto.type == 'app'){
+        await this.otpService.sendSMSService(createUserDto.phone_number, otp);
+      }
 
       const user = await this.userRepository.save(create_user);
 
