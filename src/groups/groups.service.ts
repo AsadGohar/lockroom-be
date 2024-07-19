@@ -240,4 +240,29 @@ export class GroupsService {
       }
     }
   }
+  async updateGroup(group_id:string, new_group_name:string){
+    const update_group = await this.groupsRepository.update({
+      id: group_id
+    },{
+      name: new_group_name
+    })
+    if(update_group && update_group.affected > 0){
+      return {
+        success: true
+      }
+    }
+  }
+  async deleteGroup(group_id:string){
+    const delete_group = await this.groupsRepository.delete({
+      id: group_id
+    })
+    if(delete_group && delete_group.affected > 0){
+      return {
+        success: true,
+      }
+    }
+    else {
+      throw new NotFoundException('group not found');
+    }
+  }
 }
