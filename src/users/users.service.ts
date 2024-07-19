@@ -190,7 +190,7 @@ export class UsersService {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
 
-      if (
+      if (user.role == UserRoleEnum.OWNER &&
         isDateMoreThanSubscription(
           user.subscription_end_date,
           user.subscription.days,
