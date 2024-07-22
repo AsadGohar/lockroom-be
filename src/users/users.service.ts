@@ -106,7 +106,7 @@ export class UsersService {
         subscription_end_date: calculate_trial_end_date,
       });
 
-      if(createUserDto.type == 'app'){
+      if (createUserDto.type == 'app') {
         await this.otpService.sendSMSService(createUserDto.phone_number, otp);
       }
 
@@ -191,6 +191,7 @@ export class UsersService {
       }
 
       if (
+        user.role == UserRoleEnum.OWNER &&
         isDateMoreThanSubscription(
           user.subscription_end_date,
           user.subscription.days,
@@ -731,13 +732,17 @@ export class UsersService {
       this.groupsRepository.create({ name: 'Buyer 2', created_by: user }),
     );
 
-    const groups = [internal_team_group, buyer_one_group, buyer_two_group, legal_group]
+    const groups = [
+      internal_team_group,
+      buyer_one_group,
+      buyer_two_group,
+      legal_group,
+    ];
 
-    const users = await this.addFakeUsers(groups, organisation)
+    const users = await this.addFakeUsers(groups, organisation);
   }
 
   async addFakeUsers(groups: Group[], organisation: Organization) {
-    
     const find_subscription = await this.subscriptionService.findOneByType(
       SubscriptionTypeEnum.TRIAL,
     );
@@ -754,8 +759,8 @@ export class UsersService {
       subscription: find_subscription,
       subscription_end_date: calculate_trial_end_date,
       subscription_start_date: new Date(),
-      groups: [ groups[0], groups[1]],
-      organizations_added_in: [organisation]
+      groups: [groups[0], groups[1]],
+      organizations_added_in: [organisation],
     });
 
     const fake_user_two = this.userRepository.create({
@@ -770,8 +775,8 @@ export class UsersService {
       subscription: find_subscription,
       subscription_end_date: calculate_trial_end_date,
       subscription_start_date: new Date(),
-      groups: [ groups[0], groups[1]],
-      organizations_added_in: [organisation]
+      groups: [groups[0], groups[1]],
+      organizations_added_in: [organisation],
     });
 
     const fake_user_three = this.userRepository.create({
@@ -786,8 +791,8 @@ export class UsersService {
       subscription: find_subscription,
       subscription_end_date: calculate_trial_end_date,
       subscription_start_date: new Date(),
-      groups: [ groups[2], groups[3]],
-      organizations_added_in: [organisation]
+      groups: [groups[2], groups[3]],
+      organizations_added_in: [organisation],
     });
 
     const fake_user_four = this.userRepository.create({
@@ -802,8 +807,8 @@ export class UsersService {
       subscription: find_subscription,
       subscription_end_date: calculate_trial_end_date,
       subscription_start_date: new Date(),
-      groups: [ groups[2], groups[3]],
-      organizations_added_in: [organisation]
+      groups: [groups[2], groups[3]],
+      organizations_added_in: [organisation],
     });
 
     const fake_user_five = this.userRepository.create({
@@ -818,8 +823,8 @@ export class UsersService {
       subscription: find_subscription,
       subscription_end_date: calculate_trial_end_date,
       subscription_start_date: new Date(),
-      groups: [ groups[4], groups[5]],
-      organizations_added_in: [organisation]
+      groups: [groups[4], groups[5]],
+      organizations_added_in: [organisation],
     });
 
     const fake_user_six = this.userRepository.create({
@@ -834,8 +839,8 @@ export class UsersService {
       subscription: find_subscription,
       subscription_end_date: calculate_trial_end_date,
       subscription_start_date: new Date(),
-      groups: [ groups[4], groups[5]],
-      organizations_added_in: [organisation]
+      groups: [groups[4], groups[5]],
+      organizations_added_in: [organisation],
     });
 
     const fake_user_seven = this.userRepository.create({
@@ -850,8 +855,8 @@ export class UsersService {
       subscription: find_subscription,
       subscription_end_date: calculate_trial_end_date,
       subscription_start_date: new Date(),
-      groups: [ groups[6], groups[7]],
-      organizations_added_in: [organisation]
+      groups: [groups[6], groups[7]],
+      organizations_added_in: [organisation],
     });
 
     const fake_user_eight = this.userRepository.create({
@@ -866,8 +871,8 @@ export class UsersService {
       subscription: find_subscription,
       subscription_end_date: calculate_trial_end_date,
       subscription_start_date: new Date(),
-      groups: [ groups[6], groups[7]],
-      organizations_added_in: [organisation]
+      groups: [groups[6], groups[7]],
+      organizations_added_in: [organisation],
     });
 
     const users = [
@@ -878,9 +883,9 @@ export class UsersService {
       fake_user_five,
       fake_user_six,
       fake_user_seven,
-      fake_user_eight
+      fake_user_eight,
     ];
 
-   return await this.userRepository.save(users)
+    return await this.userRepository.save(users);
   }
 }
