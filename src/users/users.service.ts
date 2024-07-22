@@ -505,6 +505,7 @@ export class UsersService {
       }
       console.log(find_user, 'users');
       if (
+        find_user.role == UserRoleEnum.OWNER &&
         isDateMoreThanSubscription(
           find_user.subscription_end_date,
           find_user.subscription.days,
