@@ -28,7 +28,7 @@ export class FoldersService {
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
-    
+
     private readonly userService: UsersService,
   ) {}
   async create(
@@ -495,7 +495,6 @@ export class FoldersService {
     });
     return data;
   }
-
   private async updateDisplayTreeIndex(
     parentId: string,
     parentDisplayTreeIndex: string,
@@ -528,7 +527,6 @@ export class FoldersService {
       });
     }
   }
-
   async rearrangeFolderAndFiles(
     data: any[],
     organization_id: string,
@@ -555,9 +553,24 @@ export class FoldersService {
       new_data: await this.findAllByOrganization(organization_id, user_id),
     };
   }
-
-  async updateFolderColor(folder_id: string, color: string) {
+  async updateFolderColor(
+    organization_id: string,
+    folder_id: string,
+    color: string,
+    user_id: string,
+  ) {
     if (!folder_id || !color) throw new BadRequestException('Missing fields');
-    return await this.foldersRepository.update(folder_id, { color });
+    // console.log(organization_id, folder_id);
+    const get_all_ids = await this.getAllFilesByOrg(organization_id, folder_id);
+    console.log(get_all_ids, 'idsss');
+    const update = await this.foldersRepository.update(
+      {
+        id: In([...get_all_ids.folder_ids, folder_id]),
+      },
+      { color },
+    );
+    if (update.affected > 0) {
+      return await this.findAllByOrganization(organization_id, user_id);
+    }
   }
 }
