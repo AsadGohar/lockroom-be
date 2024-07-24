@@ -31,6 +31,8 @@ import {
   getNextDate,
   isDateMoreThanSubscription,
 } from 'src/utils/converts.utils';
+import { signupTemplate } from 'src/utils/email.templates';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class UsersService {
@@ -52,6 +54,7 @@ export class UsersService {
     private readonly auditService: AuditLogsSerivce,
     private readonly otpService: OTPService,
     private readonly subscriptionService: SubscriptionsService,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -77,8 +80,6 @@ export class UsersService {
           `You've already been invited, Check your email!`,
         );
 
-      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-      createUserDto.password = hashedPassword;
       createUserDto.full_name = `${createUserDto.first_name} ${createUserDto.last_name}`;
       createUserDto.role = UserRoleEnum.OWNER;
 
@@ -88,13 +89,10 @@ export class UsersService {
         SubscriptionTypeEnum.TRIAL,
       );
 
-      // console.log(find_subscription,'subbbb')
-
       const calculate_trial_end_date = getNextDate(find_subscription.days);
 
       const create_user = this.userRepository.create({
         email: createUserDto.email,
-        password: createUserDto.password,
         first_name: createUserDto.first_name,
         last_name: createUserDto.last_name,
         role: createUserDto.role,
@@ -104,11 +102,8 @@ export class UsersService {
         subscription: find_subscription,
         subscription_start_date: new Date(),
         subscription_end_date: calculate_trial_end_date,
+        is_email_verified: false,
       });
-
-      if (createUserDto.type == 'app') {
-        await this.otpService.sendSMSService(createUserDto.phone_number, otp);
-      }
 
       const user = await this.userRepository.save(create_user);
 
@@ -117,6 +112,8 @@ export class UsersService {
         secret: process.env.JWT_SECRET,
         expiresIn: '1d',
       });
+
+      await this.sendConfirmPasswordEmail(createUserDto.email, access_token);
 
       const new_admin_group = await this.groupsRepository.save(
         this.groupsRepository.create({ name: 'Admin', created_by: user }),
@@ -154,11 +151,7 @@ export class UsersService {
         });
 
         return {
-          user: { ...user, organization_created: saveOrg },
-          access_token,
-          files_count: 1,
-          id: user.id,
-          organizations: [saveOrg],
+          success: true,
         };
       } else {
         throw new BadRequestException(
@@ -888,5 +881,35 @@ export class UsersService {
     ];
 
     return await this.userRepository.save(users);
+  }
+
+  async sendConfirmPasswordEmail(email: string, access_token: string) {
+    const link = `${process.env.FE_HOST}/authentication/create-password?confirm=${access_token}`;
+    const mail = {
+      to: email,
+      subject: 'LockRoom',
+      from: String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
+      text: 'Greetings',
+      html: signupTemplate(link),
+    };
+    return this.emailService.send(mail);
+  }
+
+  async updatePassword(user_id: string, password: string) {
+    const hashed_password = await bcrypt.hash(password, 10);
+    const update_password = await this.userRepository.update(
+      {
+        id: user_id,
+      },
+      {
+        password: hashed_password,
+      },
+    );
+
+    if(update_password.affected > 0){
+      return {
+        sucess:true
+      }
+    }
   }
 }

@@ -25,6 +25,7 @@ import { OTPService } from 'src/otp/otp.service';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
 import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
 import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
+import { EmailService } from 'src/email/email.service';
 
 @Module({
   imports: [
@@ -58,7 +59,8 @@ import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-
     UsersService,
     AuditLogsSerivce,
     OTPService,
-    SubscriptionsService
+    SubscriptionsService,
+    EmailService
   ],
   exports: [AuditLogsSerivce],
 })
