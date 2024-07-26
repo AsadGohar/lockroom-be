@@ -108,8 +108,10 @@ export class FoldersController {
   @Patch('update-folder-color')
   updateFolderColor(
     @Body('folder_id') folder_id: string,
+    @Body('organization_id') organization_id: string,
     @Body('color') color: string,
+    @Request() request,
   ) {
-    return this.foldersService.updateFolderColor(folder_id, color);
+    return this.foldersService.updateFolderColor(organization_id,folder_id, color, request.decoded_data.user_id );
   }
 }

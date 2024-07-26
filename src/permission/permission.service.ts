@@ -16,11 +16,11 @@ export class PermissionService {
       const new_permissions = [
         {
           type: FilePermissionEnum.VIEW_ORIGINAL,
-          status: true,
+          status: false,
         },
         {
           type: FilePermissionEnum.DOWNLOAD_ORIGINAL,
-          status: true,
+          status: false,
         },
         {
           type: FilePermissionEnum.VIEW_WATERMARKED,
