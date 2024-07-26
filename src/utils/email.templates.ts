@@ -162,9 +162,8 @@ export const signupTemplate = (
       <div class="invitation-message">
         <p>
           <a href=${link} style="color: rgb(26, 61, 251); text-decoration: none"
-            >Confirm Password</a
+            >Verify Email</a
           >
-          to get started.
         </p>
       </div>
     </div>

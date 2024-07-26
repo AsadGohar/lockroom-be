@@ -83,8 +83,6 @@ export class UsersService {
       createUserDto.full_name = `${createUserDto.first_name} ${createUserDto.last_name}`;
       createUserDto.role = UserRoleEnum.OWNER;
 
-      const otp = String(this.otpService.generateOTP());
-
       const find_subscription = await this.subscriptionService.findOneByType(
         SubscriptionTypeEnum.TRIAL,
       );
@@ -98,7 +96,6 @@ export class UsersService {
         role: createUserDto.role,
         phone_number: createUserDto.phone_number,
         full_name: createUserDto.full_name,
-        generated_otp: otp,
         subscription: find_subscription,
         subscription_start_date: new Date(),
         subscription_end_date: calculate_trial_end_date,
@@ -122,11 +119,14 @@ export class UsersService {
       const new_associate_group = await this.groupsRepository.save(
         this.groupsRepository.create({ name: 'Associates', created_by: user }),
       );
+
+      const dashboard = await this.createFakeDashBoard(user);
+
       const new_org = this.orgRepository.create({
         name: 'ORG-' + user.id.slice(0, 5),
         creator: user,
-        groups: [new_admin_group, new_associate_group],
-        users: [],
+        groups: [new_admin_group, new_associate_group, ...dashboard.groups],
+        users: dashboard.users,
         invites: [],
       });
 
@@ -387,7 +387,7 @@ export class UsersService {
       });
       const saved_user = await this.userRepository.save(new_user);
 
-      console.log('before query');
+      // console.log('before query');
 
       const query1 = await this.folderRepository
         .createQueryBuilder('folder')
@@ -399,7 +399,7 @@ export class UsersService {
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
-      console.log('after query');
+      // console.log('after query');
 
       const new_group_admin = await this.groupsRepository.save(
         this.groupsRepository.create({ name: 'Admin', created_by: new_user }),
@@ -410,16 +410,18 @@ export class UsersService {
           created_by: new_user,
         }),
       );
+      const dashboard = await this.createFakeDashBoard(user);
 
       const saveOrg = await this.orgRepository.save(
         this.orgRepository.create({
           name: 'ORG-' + new_user.id.slice(0, 5),
           creator: saved_user,
-          groups: [new_group_admin, new_group_associates],
-          users: [],
+          groups: [new_group_admin, new_group_associates, ...dashboard.groups],
+          users: dashboard.users,
           invites: [],
         }),
       );
+
 
       const payload = { user_id: new_user.id, email: new_user.email };
       const access_token = this.jwtService.sign(payload, {
@@ -712,20 +714,31 @@ export class UsersService {
     }
   }
 
-  async createFakeDashBoard(user: User, organisation: Organization) {
+  private async createFakeDashBoard(user: User) {
     const internal_team_group = await this.groupsRepository.save(
-      this.groupsRepository.create({ name: 'Internal Team', created_by: user }),
+      this.groupsRepository.create({
+        name: 'Internal Team',
+        created_by: user,
+      }),
     );
     const buyer_one_group = await this.groupsRepository.save(
-      this.groupsRepository.create({ name: 'Buyer 1', created_by: user }),
+      this.groupsRepository.create({
+        name: 'Buyer 1',
+        created_by: user,
+      }),
     );
     const buyer_two_group = await this.groupsRepository.save(
-      this.groupsRepository.create({ name: 'Buyer 2', created_by: user }),
+      this.groupsRepository.create({
+        name: 'Buyer 2',
+        created_by: user,
+      }),
     );
     const legal_group = await this.groupsRepository.save(
-      this.groupsRepository.create({ name: 'Buyer 2', created_by: user }),
+      this.groupsRepository.create({
+        name: 'Buyer 3',
+        created_by: user,
+      }),
     );
-
     const groups = [
       internal_team_group,
       buyer_one_group,
@@ -733,141 +746,157 @@ export class UsersService {
       legal_group,
     ];
 
-    const users = await this.addFakeUsers(groups, organisation);
+    const users = await this.addFakeUsers(groups);
+
+    return {
+      groups,
+      users
+    };
   }
 
-  async addFakeUsers(groups: Group[], organisation: Organization) {
+  private async addFakeUsers(groups: Group[]) {
     const find_subscription = await this.subscriptionService.findOneByType(
       SubscriptionTypeEnum.TRIAL,
     );
     const calculate_trial_end_date = getNextDate(find_subscription.days);
-    const fake_user_one = this.userRepository.create({
-      full_name: 'Bob Smith',
-      first_name: 'Bob',
-      last_name: 'Smith',
-      password: '12345678',
-      email: generateRandomEmail(),
-      is_email_verified: true,
-      role: UserRoleEnum.GUEST,
-      is_phone_number_verified: true,
-      subscription: find_subscription,
-      subscription_end_date: calculate_trial_end_date,
-      subscription_start_date: new Date(),
-      groups: [groups[0], groups[1]],
-      organizations_added_in: [organisation],
-    });
 
-    const fake_user_two = this.userRepository.create({
-      full_name: 'Ben Franklin',
-      first_name: 'Ben',
-      last_name: 'Franklin',
-      password: '123456789',
-      email: generateRandomEmail(),
-      is_email_verified: true,
-      role: UserRoleEnum.GUEST,
-      is_phone_number_verified: true,
-      subscription: find_subscription,
-      subscription_end_date: calculate_trial_end_date,
-      subscription_start_date: new Date(),
-      groups: [groups[0], groups[1]],
-      organizations_added_in: [organisation],
-    });
+    const fake_user_one = await this.userRepository.save(
+      this.userRepository.create({
+        full_name: 'Bob Smith',
+        first_name: 'Bob',
+        last_name: 'Smith',
+        password: '12345678',
+        email: generateRandomEmail(),
+        is_email_verified: true,
+        role: UserRoleEnum.GUEST,
+        is_phone_number_verified: true,
+        subscription: find_subscription,
+        subscription_end_date: calculate_trial_end_date,
+        subscription_start_date: new Date(),
+        groups: [groups[0], groups[1]],
+      }),
+    );
 
-    const fake_user_three = this.userRepository.create({
-      full_name: 'Jill Johnson',
-      first_name: 'Jill',
-      last_name: 'Johnson',
-      password: '12345678910',
-      email: generateRandomEmail(),
-      is_email_verified: true,
-      role: UserRoleEnum.GUEST,
-      is_phone_number_verified: true,
-      subscription: find_subscription,
-      subscription_end_date: calculate_trial_end_date,
-      subscription_start_date: new Date(),
-      groups: [groups[2], groups[3]],
-      organizations_added_in: [organisation],
-    });
+    console.log(fake_user_one,'one')
 
-    const fake_user_four = this.userRepository.create({
-      full_name: 'Cindy Lou',
-      first_name: 'Cindy',
-      last_name: 'Lou',
-      password: '12345678910',
-      email: generateRandomEmail(),
-      is_email_verified: true,
-      role: UserRoleEnum.GUEST,
-      is_phone_number_verified: true,
-      subscription: find_subscription,
-      subscription_end_date: calculate_trial_end_date,
-      subscription_start_date: new Date(),
-      groups: [groups[2], groups[3]],
-      organizations_added_in: [organisation],
-    });
+    const fake_user_two = await this.userRepository.save(
+      this.userRepository.create({
+        full_name: 'Ben Franklin',
+        first_name: 'Ben',
+        last_name: 'Franklin',
+        password: '123456789',
+        email: generateRandomEmail(),
+        is_email_verified: true,
+        role: UserRoleEnum.GUEST,
+        is_phone_number_verified: true,
+        subscription: find_subscription,
+        subscription_end_date: calculate_trial_end_date,
+        subscription_start_date: new Date(),
+        groups: [groups[0], groups[1]],
+      }),
+    );
 
-    const fake_user_five = this.userRepository.create({
-      full_name: 'Don Cotton',
-      first_name: 'Don',
-      last_name: 'Cotton',
-      password: '1234567891011',
-      email: generateRandomEmail(),
-      is_email_verified: true,
-      role: UserRoleEnum.GUEST,
-      is_phone_number_verified: true,
-      subscription: find_subscription,
-      subscription_end_date: calculate_trial_end_date,
-      subscription_start_date: new Date(),
-      groups: [groups[4], groups[5]],
-      organizations_added_in: [organisation],
-    });
+    const fake_user_three = await this.userRepository.save(
+      this.userRepository.create({
+        full_name: 'Jill Johnson',
+        first_name: 'Jill',
+        last_name: 'Johnson',
+        password: '12345678910',
+        email: generateRandomEmail(),
+        is_email_verified: true,
+        role: UserRoleEnum.GUEST,
+        is_phone_number_verified: true,
+        subscription: find_subscription,
+        subscription_end_date: calculate_trial_end_date,
+        subscription_start_date: new Date(),
+        groups: [groups[2], groups[3]],
+      }),
+    );
 
-    const fake_user_six = this.userRepository.create({
-      full_name: 'Tom Sawyer',
-      first_name: 'Tom',
-      last_name: 'Sawyer',
-      password: '1234567891011',
-      email: generateRandomEmail(),
-      is_email_verified: true,
-      role: UserRoleEnum.GUEST,
-      is_phone_number_verified: true,
-      subscription: find_subscription,
-      subscription_end_date: calculate_trial_end_date,
-      subscription_start_date: new Date(),
-      groups: [groups[4], groups[5]],
-      organizations_added_in: [organisation],
-    });
+    const fake_user_four = await this.userRepository.save(
+      this.userRepository.create({
+        full_name: 'Cindy Lou',
+        first_name: 'Cindy',
+        last_name: 'Lou',
+        password: '12345678910',
+        email: generateRandomEmail(),
+        is_email_verified: true,
+        role: UserRoleEnum.GUEST,
+        is_phone_number_verified: true,
+        subscription: find_subscription,
+        subscription_end_date: calculate_trial_end_date,
+        subscription_start_date: new Date(),
+        groups: [groups[2], groups[3]],
+      }),
+    );
 
-    const fake_user_seven = this.userRepository.create({
-      full_name: 'Lauren Shoemaker',
-      first_name: 'Lauren',
-      last_name: 'Shoemaker',
-      password: '1234567891011',
-      email: generateRandomEmail(),
-      is_email_verified: true,
-      role: UserRoleEnum.GUEST,
-      is_phone_number_verified: true,
-      subscription: find_subscription,
-      subscription_end_date: calculate_trial_end_date,
-      subscription_start_date: new Date(),
-      groups: [groups[6], groups[7]],
-      organizations_added_in: [organisation],
-    });
+    const fake_user_five = await this.userRepository.save(
+      this.userRepository.create({
+        full_name: 'Don Cotton',
+        first_name: 'Don',
+        last_name: 'Cotton',
+        password: '1234567891011',
+        email: generateRandomEmail(),
+        is_email_verified: true,
+        role: UserRoleEnum.GUEST,
+        is_phone_number_verified: true,
+        subscription: find_subscription,
+        subscription_end_date: calculate_trial_end_date,
+        subscription_start_date: new Date(),
+        groups: [groups[4], groups[5]],
+      }),
+    );
 
-    const fake_user_eight = this.userRepository.create({
-      full_name: 'Karen Baker',
-      first_name: 'Karen',
-      last_name: 'Cotton',
-      password: '1234567891011',
-      email: generateRandomEmail(),
-      is_email_verified: true,
-      role: UserRoleEnum.GUEST,
-      is_phone_number_verified: true,
-      subscription: find_subscription,
-      subscription_end_date: calculate_trial_end_date,
-      subscription_start_date: new Date(),
-      groups: [groups[6], groups[7]],
-      organizations_added_in: [organisation],
-    });
+    const fake_user_six = await this.userRepository.save(
+      this.userRepository.create({
+        full_name: 'Tom Sawyer',
+        first_name: 'Tom',
+        last_name: 'Sawyer',
+        password: '1234567891011',
+        email: generateRandomEmail(),
+        is_email_verified: true,
+        role: UserRoleEnum.GUEST,
+        is_phone_number_verified: true,
+        subscription: find_subscription,
+        subscription_end_date: calculate_trial_end_date,
+        subscription_start_date: new Date(),
+        groups: [groups[4], groups[5]],
+      }),
+    );
+
+    const fake_user_seven = await this.userRepository.save(
+      this.userRepository.create({
+        full_name: 'Lauren Shoemaker',
+        first_name: 'Lauren',
+        last_name: 'Shoemaker',
+        password: '1234567891011',
+        email: generateRandomEmail(),
+        is_email_verified: true,
+        role: UserRoleEnum.GUEST,
+        is_phone_number_verified: true,
+        subscription: find_subscription,
+        subscription_end_date: calculate_trial_end_date,
+        subscription_start_date: new Date(),
+        groups: [groups[6], groups[7]],
+      }),
+    );
+
+    const fake_user_eight = await this.userRepository.save(
+      this.userRepository.create({
+        full_name: 'Karen Baker',
+        first_name: 'Karen',
+        last_name: 'Cotton',
+        password: '1234567891011',
+        email: generateRandomEmail(),
+        is_email_verified: true,
+        role: UserRoleEnum.GUEST,
+        is_phone_number_verified: true,
+        subscription: find_subscription,
+        subscription_end_date: calculate_trial_end_date,
+        subscription_start_date: new Date(),
+        groups: [groups[6], groups[7]],
+      }),
+    );
 
     const users = [
       fake_user_one,
@@ -880,7 +909,7 @@ export class UsersService {
       fake_user_eight,
     ];
 
-    return await this.userRepository.save(users);
+    return users
   }
 
   async sendConfirmPasswordEmail(email: string, access_token: string) {
@@ -906,10 +935,10 @@ export class UsersService {
       },
     );
 
-    if(update_password.affected > 0){
+    if (update_password.affected > 0) {
       return {
-        sucess:true
-      }
+        sucess: true,
+      };
     }
   }
 }
