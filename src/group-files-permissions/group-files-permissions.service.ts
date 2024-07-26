@@ -217,7 +217,7 @@ export class GroupFilesPermissionsService {
                   id: In(file_ids),
                 },
                 permission: {
-                  type: this.getReversePermission(type as FilePermissionEnum),
+                  type: In(this.getReversePermission(type as FilePermissionEnum)),
                 },
               },
             },
@@ -241,6 +241,8 @@ export class GroupFilesPermissionsService {
             // message: status ? 'enabled view on file' : 'disabled view on file',
           };
         }
+
+        
         return {
           update_permissions,
           message: 'Permission updated',
@@ -270,13 +272,13 @@ export class GroupFilesPermissionsService {
 
   private getReversePermission(permission: FilePermissionEnum) {
     if (permission == FilePermissionEnum.VIEW_ORIGINAL) {
-      return FilePermissionEnum.VIEW_WATERMARKED;
+      return [FilePermissionEnum.VIEW_WATERMARKED];
     } else if (permission == FilePermissionEnum.VIEW_WATERMARKED) {
-      return FilePermissionEnum.VIEW_ORIGINAL;
+      return [FilePermissionEnum.VIEW_ORIGINAL,FilePermissionEnum.DOWNLOAD_ORIGINAL];
     } else if (permission == FilePermissionEnum.DOWNLOAD_ORIGINAL) {
-      return FilePermissionEnum.DOWNLOAD_WATERMARKED;
+      return [FilePermissionEnum.DOWNLOAD_WATERMARKED, FilePermissionEnum.VIEW_WATERMARKED];
     } else if (permission == FilePermissionEnum.DOWNLOAD_WATERMARKED) {
-      return FilePermissionEnum.DOWNLOAD_ORIGINAL;
+      return [FilePermissionEnum.DOWNLOAD_ORIGINAL];
     }
   }
 }
