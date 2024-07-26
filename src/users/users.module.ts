@@ -15,6 +15,7 @@ import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { OTPService } from 'src/otp/otp.service';
 import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
 import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
+import { EmailService } from 'src/email/email.service';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -34,7 +35,7 @@ import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-
     ]),
   ],
   controllers: [UsersController],
-  providers: [UsersService, AuditLogsSerivce, OTPService, SubscriptionsService],
+  providers: [UsersService, AuditLogsSerivce, OTPService, SubscriptionsService, EmailService],
   exports: [UsersService],
 })
 export class UsersModule {}

@@ -23,17 +23,8 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @Res({ passthrough: true }) res,
   ) {
-    console.log(createUserDto,'dto')
-    const data = await this.usersService.create(createUserDto);
-    res.cookie('sWTNNOCEN', data.access_token, {
-      expires: new Date(Date.now() + 3600000),
-    });
-    return {
-      access_token: data.access_token,
-      id: data.id,
-      user: data.user,
-      organizations: data.organizations,
-    };
+    // console.log(createUserDto, 'dto');
+    return await this.usersService.create(createUserDto);
   }
 
   @Post('login')
@@ -128,4 +119,13 @@ export class UsersController {
       request?.decoded_data?.user_id,
     );
   }
+
+  @UseGuards(AuthGuard)
+  @Patch('confirm-password')
+  updatePassword(@Body('password') password: string, @Request() request) {
+    return this.usersService.updatePassword(
+      request?.decoded_data?.user_id,
+      password,
+    );
+}
 }
