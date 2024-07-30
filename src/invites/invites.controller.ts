@@ -27,7 +27,6 @@ export class InvitesController {
   ) {
     return this.invitesService.addInvitedUser(
       email,
-      password,
       first_name,
       last_name,
       phone_number,

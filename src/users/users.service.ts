@@ -773,11 +773,9 @@ export class UsersService {
         subscription: find_subscription,
         subscription_end_date: calculate_trial_end_date,
         subscription_start_date: new Date(),
-        groups: [groups[0], groups[1]],
+        groups: [groups[0]],
       }),
     );
-
-    console.log(fake_user_one,'one')
 
     const fake_user_two = await this.userRepository.save(
       this.userRepository.create({
@@ -792,7 +790,7 @@ export class UsersService {
         subscription: find_subscription,
         subscription_end_date: calculate_trial_end_date,
         subscription_start_date: new Date(),
-        groups: [groups[0], groups[1]],
+        groups: [groups[1]],
       }),
     );
 
@@ -809,7 +807,7 @@ export class UsersService {
         subscription: find_subscription,
         subscription_end_date: calculate_trial_end_date,
         subscription_start_date: new Date(),
-        groups: [groups[2], groups[3]],
+        groups: [groups[2]],
       }),
     );
 
@@ -826,7 +824,7 @@ export class UsersService {
         subscription: find_subscription,
         subscription_end_date: calculate_trial_end_date,
         subscription_start_date: new Date(),
-        groups: [groups[2], groups[3]],
+        groups: [groups[3]],
       }),
     );
 
@@ -843,7 +841,7 @@ export class UsersService {
         subscription: find_subscription,
         subscription_end_date: calculate_trial_end_date,
         subscription_start_date: new Date(),
-        groups: [groups[4], groups[5]],
+        groups: [groups[4]],
       }),
     );
 
@@ -860,7 +858,7 @@ export class UsersService {
         subscription: find_subscription,
         subscription_end_date: calculate_trial_end_date,
         subscription_start_date: new Date(),
-        groups: [groups[4], groups[5]],
+        groups: [groups[5]],
       }),
     );
 
@@ -877,7 +875,7 @@ export class UsersService {
         subscription: find_subscription,
         subscription_end_date: calculate_trial_end_date,
         subscription_start_date: new Date(),
-        groups: [groups[6], groups[7]],
+        groups: [groups[6]],
       }),
     );
 
@@ -894,7 +892,7 @@ export class UsersService {
         subscription: find_subscription,
         subscription_end_date: calculate_trial_end_date,
         subscription_start_date: new Date(),
-        groups: [groups[6], groups[7]],
+        groups: [groups[7]],
       }),
     );
 
