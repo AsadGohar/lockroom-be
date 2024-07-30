@@ -165,7 +165,8 @@ export class GroupsService {
       });
       find_groups.map((group) => {
         if (
-          find_user.role == UserRoleEnum.ADMIN || find_user.role == UserRoleEnum.OWNER
+          find_user.role == UserRoleEnum.ADMIN ||
+          find_user.role == UserRoleEnum.OWNER
         ) {
           groups_result.push(group);
         } else if (group.users.find((user) => user.id == user_id)) {
@@ -240,29 +241,41 @@ export class GroupsService {
       }
     }
   }
-  async updateGroup(group_id:string, new_group_name:string){
-    const update_group = await this.groupsRepository.update({
-      id: group_id
-    },{
-      name: new_group_name
-    })
-    if(update_group && update_group.affected > 0){
-      return {
-        success: true
-      }
-    }
-  }
-  async deleteGroup(group_id:string){
-    const delete_group = await this.groupsRepository.delete({
-      id: group_id
-    })
-    if(delete_group && delete_group.affected > 0){
+  async updateGroup(group_id: string, new_group_name: string) {
+    const update_group = await this.groupsRepository.update(
+      {
+        id: group_id,
+      },
+      {
+        name: new_group_name,
+      },
+    );
+    if (update_group && update_group.affected > 0) {
       return {
         success: true,
-      }
+      };
     }
-    else {
-      throw new NotFoundException('group not found');
+  }
+  async deleteGroup(group_id: string) {
+    const find_group = await this.groupsRepository.findOne({
+      relations:['users'],
+      where: {
+        id: group_id,
+      },
+    })
+    find_group.users = []
+    const delete_users = await this.groupsRepository.save(find_group)
+    if(delete_users){
+      const delete_group = await this.groupsRepository.delete({
+        id: group_id,
+      });
+      if (delete_group && delete_group.affected > 0) {
+        return {
+          success: true,
+        };
+      } else {
+        throw new NotFoundException('group not found');
+      }
     }
   }
 }

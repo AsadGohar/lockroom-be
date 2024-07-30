@@ -9,7 +9,7 @@ import {
   OneToMany,
   UpdateDateColumn,
   OneToOne,
-  ManyToOne
+  ManyToOne,
 } from 'typeorm';
 import { Folder } from '../../folders/entities/folder.entity';
 import { v4 as uuidv4 } from 'uuid';
@@ -93,7 +93,7 @@ export class User {
   @JoinTable()
   organizations_added_in: Organization[];
 
-  @OneToMany(() => Group, (group) => group.created_by)
+  @OneToMany(() => Group, (group) => group.created_by, { onDelete: 'CASCADE' })
   created_groups: Group[];
 
   @ManyToMany(() => Folder, (folder) => folder.users)
@@ -116,7 +116,7 @@ export class User {
   @OneToMany(() => AuditLogs, (auditLog) => auditLog.user)
   audit_log: AuditLogs[];
 
-  @ManyToOne(() => SubscriptionPlans, subscription => subscription.user)
+  @ManyToOne(() => SubscriptionPlans, (subscription) => subscription.user)
   subscription: SubscriptionPlans;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
