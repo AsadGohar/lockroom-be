@@ -13,6 +13,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { UserRoleEnum } from 'src/types/enums';
+import { EmailService } from 'src/email/email.service';
+import { signupTemplate } from 'src/utils/email.templates';
 @Injectable()
 export class InvitesService {
   constructor(
@@ -24,7 +26,9 @@ export class InvitesService {
     private readonly groupRepository: Repository<Group>,
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
+
     private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
   ) {}
   async findAll() {
     await this.inviteRepository.find();
@@ -90,7 +94,6 @@ export class InvitesService {
   }
   async addInvitedUser(
     email: string,
-    password: string,
     first_name: string,
     last_name: string,
     phone_number: string,
@@ -99,7 +102,6 @@ export class InvitesService {
     try {
       if (
         !email ||
-        !password ||
         !first_name ||
         !last_name ||
         !phone_number ||
@@ -116,8 +118,6 @@ export class InvitesService {
       });
       if (existing_number)
         throw new ConflictException('phone number already taken');
-      const hashedPassword = await bcrypt.hash(password, 10);
-      password = hashedPassword;
       const full_name = `${first_name} ${last_name}`;
       const resp = await this.jwtService.verify(jwt_token, {
         secret: process.env.JWT_SECRET,
@@ -143,7 +143,6 @@ export class InvitesService {
           : UserRoleEnum.GUEST;
       const new_user = this.userRepository.create({
         email,
-        password,
         first_name,
         last_name,
         role,
@@ -159,6 +158,15 @@ export class InvitesService {
         organization: { id: find_org.id },
       });
 
+      const payload = { user_id: new_user.id, email };
+      const access_token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: '1d',
+      });
+
+      await this.sendConfirmPasswordEmail(email, access_token);
+
+
       return { status: true };
     } catch (error) {
       console.log(error);
@@ -166,5 +174,17 @@ export class InvitesService {
         error.message || 'failed to create user',
       );
     }
+  }
+
+  async sendConfirmPasswordEmail(email: string, access_token: string) {
+    const link = `${process.env.FE_HOST}/authentication/create-password?confirm=${access_token}`;
+    const mail = {
+      to: email,
+      subject: 'LockRoom',
+      from: String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
+      text: 'Greetings',
+      html: signupTemplate(link),
+    };
+    return this.emailService.send(mail);
   }
 }

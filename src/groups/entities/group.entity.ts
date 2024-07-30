@@ -27,7 +27,7 @@ export class Group {
   @ManyToOne(() => User, (user) => user.created_groups)
   created_by: User;
 
-  @ManyToMany(() => User, (user) => user.groups)
+  @ManyToMany(() => User, (user) => user.groups, { cascade: true })
   users: User[];
 
   @OneToMany(() => Invite, (invite) => invite.group)
