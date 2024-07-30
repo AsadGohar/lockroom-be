@@ -38,8 +38,6 @@ import { SubscriptionPlans } from './subscription-plans/entities/subscription-pl
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // envFilePath: process.env.NODE_ENV == 'development' ? '.env.development' : '.env'
-      // envFilePath: `.env.${process.env.NODE_ENV || 'development'},
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
