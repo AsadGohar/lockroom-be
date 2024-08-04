@@ -21,7 +21,7 @@ export class Invite {
   @JoinTable()
   sender: User;
 
-  @ManyToOne(() => Group, (group) => group.invites)
+  @ManyToOne(() => Group, (group) => group.invites, {onDelete:'CASCADE'})
   @JoinTable()
   group: Group;
 

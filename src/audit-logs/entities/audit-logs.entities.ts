@@ -26,7 +26,7 @@ export class AuditLogs {
   @JoinColumn()
   user: User;
 
-  @ManyToOne(() => Group, (group) => group.audit_log)
+  @ManyToOne(() => Group, (group) => group.audit_log, {onDelete:'CASCADE'})
   @JoinColumn()
   group: Group;
 

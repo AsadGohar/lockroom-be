@@ -170,6 +170,7 @@ export class UsersService {
     try {
       const user = await this.userRepository.findOne({
         relations: [
+          'groups',
           'organizations_added_in.groups',
           'organization_created.groups',
           'subscription',
@@ -241,6 +242,11 @@ export class UsersService {
         };
       }
       if (user.role == UserRoleEnum.GUEST) {
+        console.log('hereeeeee')
+        if(user.groups.length==0) {
+          console.log('hereeeeee1')
+          throw new UnauthorizedException('You have not been added to any group, try contacting the room owner');
+        }
         const payload = {
           user_id: user.id,
           email: user.email,
@@ -735,7 +741,7 @@ export class UsersService {
     );
     const legal_group = await this.groupsRepository.save(
       this.groupsRepository.create({
-        name: 'Buyer 3',
+        name: 'Legal Group',
         created_by: user,
       }),
     );
@@ -828,83 +834,11 @@ export class UsersService {
       }),
     );
 
-    const fake_user_five = await this.userRepository.save(
-      this.userRepository.create({
-        full_name: 'Don Cotton',
-        first_name: 'Don',
-        last_name: 'Cotton',
-        password: '1234567891011',
-        email: generateRandomEmail(),
-        is_email_verified: true,
-        role: UserRoleEnum.GUEST,
-        is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
-        groups: [groups[4]],
-      }),
-    );
-
-    const fake_user_six = await this.userRepository.save(
-      this.userRepository.create({
-        full_name: 'Tom Sawyer',
-        first_name: 'Tom',
-        last_name: 'Sawyer',
-        password: '1234567891011',
-        email: generateRandomEmail(),
-        is_email_verified: true,
-        role: UserRoleEnum.GUEST,
-        is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
-        groups: [groups[5]],
-      }),
-    );
-
-    const fake_user_seven = await this.userRepository.save(
-      this.userRepository.create({
-        full_name: 'Lauren Shoemaker',
-        first_name: 'Lauren',
-        last_name: 'Shoemaker',
-        password: '1234567891011',
-        email: generateRandomEmail(),
-        is_email_verified: true,
-        role: UserRoleEnum.GUEST,
-        is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
-        groups: [groups[6]],
-      }),
-    );
-
-    const fake_user_eight = await this.userRepository.save(
-      this.userRepository.create({
-        full_name: 'Karen Baker',
-        first_name: 'Karen',
-        last_name: 'Cotton',
-        password: '1234567891011',
-        email: generateRandomEmail(),
-        is_email_verified: true,
-        role: UserRoleEnum.GUEST,
-        is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
-        groups: [groups[7]],
-      }),
-    );
-
     const users = [
       fake_user_one,
       fake_user_two,
       fake_user_three,
       fake_user_four,
-      fake_user_five,
-      fake_user_six,
-      fake_user_seven,
-      fake_user_eight,
     ];
 
     return users

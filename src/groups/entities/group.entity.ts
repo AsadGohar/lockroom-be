@@ -44,7 +44,7 @@ export class Group {
   )
   group_files_permissions: GroupFilesPermissions[];
 
-  @OneToMany(() => AuditLogs, (auditLog) => auditLog.organization)
+  @OneToMany(() => AuditLogs, (auditLog) => auditLog.organization, { cascade: true })
   audit_log: AuditLogs[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

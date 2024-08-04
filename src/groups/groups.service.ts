@@ -23,6 +23,7 @@ export class GroupsService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
+    
     private readonly fileService: FilesService,
     private readonly gfpService: GroupFilesPermissionsService,
     private readonly filePermissionService: FilesPermissionsService,
@@ -122,9 +123,11 @@ export class GroupsService {
       relations: ['users'],
       where: { id: group_id },
     });
+    console.log(group,'gropppp')
     const user = await this.userRepository.findOne({
       where: { id: user_id },
     });
+    console.log(group.users)
     const userIndex = group.users.findIndex(
       (existingUser) => existingUser.id === user.id,
     );
@@ -211,15 +214,21 @@ export class GroupsService {
     org_id: string,
   ) {
     console.log(user_id, user_role, old_group_id);
+    // return
     const update_user = await this.userRepository.update(
       { id: user_id },
       { role: user_role },
     );
+
     const find_admin_group = await this.groupsRepository.findOne({
       where: { name: 'Admin', organization: { id: org_id } },
     });
+
+    console.log(find_admin_group.users,'addddmin grrppp')
+
     if (update_user.affected > 0) {
       if (user_role == UserRoleEnum.ADMIN) {
+        console.log('in admin')
         const add_user_to_admin_group = await this.switchUser(
           user_id,
           find_admin_group.id,
@@ -230,10 +239,11 @@ export class GroupsService {
         }
       }
       if (user_role == UserRoleEnum.GUEST) {
+        console.log('in guest')
         const remove_user_from_admin_group = await this.switchUser(
           user_id,
-          old_group_id,
           find_admin_group.id,
+          old_group_id,
         );
         if (remove_user_from_admin_group) {
           return { group: remove_user_from_admin_group };
@@ -241,6 +251,7 @@ export class GroupsService {
       }
     }
   }
+
   async updateGroup(group_id: string, new_group_name: string) {
     const update_group = await this.groupsRepository.update(
       {
