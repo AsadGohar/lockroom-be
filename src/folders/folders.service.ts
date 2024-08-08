@@ -15,6 +15,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
 import { UserRoleEnum, FilePermissionEnum } from 'src/types/enums';
+import { Room } from 'src/rooms/entities/room.entity';
 @Injectable()
 export class FoldersService {
   constructor(
@@ -28,13 +29,15 @@ export class FoldersService {
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
 
     private readonly userService: UsersService,
   ) {}
   async create(
     name: string,
     user_id: string,
-    organization_id: string,
+    room_id: string,
     parent_folder_id?: string,
   ) {
     if (!parent_folder_id)
@@ -65,8 +68,8 @@ export class FoldersService {
         ? `${all_child_folders.length + all_child_files.length + 1}`
         : 1;
     if (!user) throw new NotFoundException('user not found');
-    const find_org = await this.orgRepository.findOne({
-      where: { id: organization_id },
+    const find_room = await this.roomRepository.findOne({
+      where: { id: room_id },
     });
     const new_folder = await this.foldersRepository.save({
       display_name:
@@ -77,7 +80,7 @@ export class FoldersService {
       parent_folder_id,
       tree_index: current_tree_index + next,
       users: [user],
-      organization: find_org,
+      room:find_room,
       absolute_path: parent_folder.absolute_path + '/' + name,
       display_tree_index: parent_folder.display_tree_index + '.' + next,
       absolute_path_ids: '',
@@ -117,20 +120,20 @@ export class FoldersService {
       find_user.role == UserRoleEnum.ADMIN ||
       find_user.role == UserRoleEnum.OWNER
     ) {
-      const org =
+      const rooms =
         find_user.role == UserRoleEnum.OWNER
-          ? find_user.organization_created.id
-          : find_user.organizations_added_in[0].id;
+          ? find_user.organization.rooms.map(room=> room.id)
+          : [find_user.room.id];
       let get_files: File[];
       if (is_deleted) {
         get_files = await this.fileRepository?.find({
           relations: ['folder', 'versions'],
-          where: { this_deleted: true, organization: { id: org } },
+          where: { this_deleted: true, room: { id: In(rooms) } },
         });
       } else {
         get_files = await this.fileRepository?.find({
           relations: ['folder', 'versions'],
-          where: { is_deleted: false, organization: { id: org } },
+          where: { is_deleted: false, room: { id: In(rooms) } },
         });
       }
       const file_data = get_files.map((file) => {
@@ -327,14 +330,14 @@ export class FoldersService {
     );
     return folder_files;
   }
-  private async getFoldersAndFilesByOrganizationId(
-    organization_id: string,
+  private async getFoldersAndFilesByRoomId(
+    room_id: string,
     parent_folder_id: string,
     folder_ids: string[],
   ) {
     const root_folders = await this.foldersRepository?.find({
       where: {
-        organization: { id: organization_id },
+        room: { id: room_id },
         parent_folder_id: parent_folder_id,
       },
       relations: ['sub_folders', 'files.organization'],
@@ -350,8 +353,8 @@ export class FoldersService {
       }
       for (const sub of folder_file_structures) {
         const folder_file_structure =
-          await this.getFoldersAndFilesByOrganizationId(
-            organization_id,
+          await this.getFoldersAndFilesByRoomId(
+            room_id,
             sub.id,
             folder_ids,
           );
@@ -361,14 +364,14 @@ export class FoldersService {
     return folder_file_structures;
   }
   private async getAllFilesByOrg(
-    organization_id: string,
+    room_id: string,
     parent_folder_id: string,
   ) {
     try {
-      if (!organization_id) throw new NotFoundException('Missing Fields');
+      if (!room_id) throw new NotFoundException('Missing Fields');
       const folder_ids = [];
-      await this.getFoldersAndFilesByOrganizationId(
-        organization_id,
+      await this.getFoldersAndFilesByRoomId(
+        room_id,
         parent_folder_id,
         folder_ids,
       );

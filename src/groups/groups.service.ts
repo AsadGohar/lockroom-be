@@ -14,6 +14,7 @@ import { FilesService } from 'src/files/files.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';
 import { UserRoleEnum } from 'src/types/enums';
+import { Room } from 'src/rooms/entities/room.entity';
 @Injectable()
 export class GroupsService {
   constructor(
@@ -23,15 +24,17 @@ export class GroupsService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
     
     private readonly fileService: FilesService,
     private readonly gfpService: GroupFilesPermissionsService,
     private readonly filePermissionService: FilesPermissionsService,
     private readonly emailService: EmailService,
   ) {}
-  async create(name: string, user_id: string, organization_id: string) {
+  async create(name: string, user_id: string, room_id: string) {
     try {
-      if (!name || !user_id || !organization_id)
+      if (!name || !user_id || !room_id)
         throw new NotFoundException('Missing Fields');
       const group = await this.groupsRepository.findOne({
         where: { name: name },
@@ -42,16 +45,16 @@ export class GroupsService {
         where: { id: user_id },
       });
       if (!find_user) throw new NotFoundException('user not found');
-      const findOrg = await this.orgRepository.findOne({
-        where: { id: organization_id },
+      const find_room = await this.orgRepository.findOne({
+        where: { id: room_id },
       });
       const new_group = this.groupsRepository.create({
         name,
         created_by: find_user,
-        organization: findOrg,
+        room: find_room
       });
       const find_files =
-        await this.fileService.getAllFilesByOrganization(organization_id);
+        await this.fileService.getAllFilesByRoom(room_id);
       const new_file_permissions = [];
       for (let index = 0; index < find_files.length; index++) {
         const element = find_files[index];
@@ -72,58 +75,13 @@ export class GroupsService {
       );
     }
   }
-  async addUserToAGroup(
-    group_id: string,
-    user_id: string,
-    sender_name: string,
-  ) {
-    try {
-      if (!group_id || !user_id || !sender_name)
-        throw new NotFoundException('Missing Fields');
-      const find_group = await this.groupsRepository.findOne({
-        relations: ['users'],
-        where: { id: group_id },
-      });
 
-      const find_org = await this.orgRepository.findOne({
-        relations: ['users'],
-        where: { groups: { id: group_id } },
-      });
-      if (!find_group) throw new NotFoundException('group not found');
-      const find_user = await this.userRepository.findOne({
-        relations: ['organizations_added_in'],
-        where: { id: user_id },
-      });
-      if (!find_user) throw new NotFoundException('user not found');
-      const userExistsInGroup = find_group.users.some(
-        (existingUser) => existingUser.id === find_user.id,
-      );
-      if (userExistsInGroup) return;
-      const link = `${process.env.FE_HOST}/dashboard/${find_org.id}`;
-      const mail = {
-        to: find_user.email,
-        subject: 'Invited to LockRoom',
-        from:
-          String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
-        text: 'Hello',
-        html: inviteTemplate(sender_name, link, 'View Organization'),
-      };
-      find_group.users.push(find_user);
-      find_user.organizations_added_in.push(find_org);
-      await this.userRepository.save(find_user);
-      await this.emailService.send(mail);
-      return await this.groupsRepository.save(find_group);
-    } catch (error) {
-      console.log(error);
-      throw error;
-    }
-  }
+
   async removeUserFromGroup(group_id: string, user_id: string) {
     const group = await this.groupsRepository.findOne({
       relations: ['users'],
       where: { id: group_id },
     });
-    console.log(group,'gropppp')
     const user = await this.userRepository.findOne({
       where: { id: user_id },
     });
@@ -154,9 +112,9 @@ export class GroupsService {
       });
     } catch (error) {}
   }
-  async getGroupsByOrganization(organization_id: string, user_id: string) {
+  async getGroupsByOrganization(room_id: string, user_id: string) {
     try {
-      if (!organization_id || !user_id)
+      if (!room_id || !user_id)
         throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         where: { id: user_id },
@@ -164,7 +122,7 @@ export class GroupsService {
       const groups_result = [];
       const find_groups = await this.groupsRepository.find({
         relations: ['users', 'organization.creator'],
-        where: { organization: { id: organization_id } },
+        where: { room: { id: room_id } },
       });
       find_groups.map((group) => {
         if (
@@ -184,10 +142,10 @@ export class GroupsService {
       throw error;
     }
   }
-  async getGroupsByOrg(organization_id: string) {
+  async getGroupsByRoom(room_id: string) {
     return this.groupsRepository.find({
       relations: ['user.organization'],
-      where: { organization: { id: organization_id } },
+      where: { room: { id: room_id } },
     });
   }
   async switchUser(
@@ -211,7 +169,7 @@ export class GroupsService {
     user_id: string,
     user_role: UserRoleEnum,
     old_group_id: string,
-    org_id: string,
+    room_id: string,
   ) {
     console.log(user_id, user_role, old_group_id);
     // return
@@ -221,7 +179,7 @@ export class GroupsService {
     );
 
     const find_admin_group = await this.groupsRepository.findOne({
-      where: { name: 'Admin', organization: { id: org_id } },
+      where: { name: 'Admin', room: { id: room_id } },
     });
 
     console.log(find_admin_group.users,'addddmin grrppp')

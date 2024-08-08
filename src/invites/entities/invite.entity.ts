@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../users/entities/user.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Entity()
 export class Invite {
@@ -25,11 +26,11 @@ export class Invite {
   @JoinTable()
   group: Group;
 
-  @ManyToOne(() => Organization, (organization) => organization.invites, {
+  @ManyToOne(() => Room, (room) => room.invites, {
     onDelete: 'CASCADE',
   })
   @JoinTable()
-  organization: Organization;
+  room: Room;
 
   @Column({ nullable: true })
   sent_to: string;

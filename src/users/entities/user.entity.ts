@@ -21,6 +21,7 @@ import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 import { UserRoleEnum } from 'src/types/enums';
 import { UserViewType } from '../user.view-type.enum';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Entity()
 export class User {
@@ -78,20 +79,14 @@ export class User {
   @Column({ default: '' })
   generated_otp: string;
 
-  @Column({ nullable: true })
-  subscription_start_date: Date;
-
-  @Column({ nullable: true })
-  subscription_end_date: Date;
-
   @OneToOne(() => Organization, (organisation) => organisation.creator)
   organization_created: Organization;
 
-  @ManyToMany(() => Organization, (organisation) => organisation.users, {
+  @ManyToOne(() => Room, (room) => room.users, {
     cascade: true,
   })
   @JoinTable()
-  organizations_added_in: Organization[];
+  room: Room;
 
   @OneToMany(() => Group, (group) => group.created_by, { onDelete: 'CASCADE' })
   created_groups: Group[];
@@ -116,8 +111,8 @@ export class User {
   @OneToMany(() => AuditLogs, (auditLog) => auditLog.user)
   audit_log: AuditLogs[];
 
-  @ManyToOne(() => SubscriptionPlans, (subscription) => subscription.user)
-  subscription: SubscriptionPlans;
+  @ManyToOne(() => Organization, (organization) => organization.users)
+  organization: Organization;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

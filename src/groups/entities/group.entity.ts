@@ -12,9 +12,9 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../users/entities/user.entity';
 import { Invite } from 'src/invites/entities/invite.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Entity()
 export class Group {
@@ -33,10 +33,10 @@ export class Group {
   @OneToMany(() => Invite, (invite) => invite.group)
   invites: Invite[];
 
-  @ManyToOne(() => Organization, (organization) => organization.groups, {
+  @ManyToOne(() => Room, (room) => room.groups, {
     onDelete: 'CASCADE',
   })
-  organization: Organization;
+  room: Room;
 
   @OneToMany(
     () => GroupFilesPermissions,
@@ -44,7 +44,7 @@ export class Group {
   )
   group_files_permissions: GroupFilesPermissions[];
 
-  @OneToMany(() => AuditLogs, (auditLog) => auditLog.organization, { cascade: true })
+  @OneToMany(() => AuditLogs, (auditLog) => auditLog.room, { cascade: true })
   audit_log: AuditLogs[];
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

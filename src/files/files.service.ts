@@ -17,6 +17,7 @@ import { Group } from 'src/groups/entities/group.entity';
 import { FilePermissionEnum, UserRoleEnum } from 'src/types/enums';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
 import { formatBytes } from 'src/utils/converts.utils';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Injectable()
 export class FilesService {
@@ -31,6 +32,9 @@ export class FilesService {
     private readonly groupRepository: Repository<Group>,
     @InjectRepository(FileVersion)
     private readonly fileVersionRepository: Repository<FileVersion>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
+
     private readonly fpService: FilesPermissionsService,
     private readonly folderService: FoldersService,
     private readonly gfpService: GroupFilesPermissionsService,
@@ -41,7 +45,7 @@ export class FilesService {
     name: string,
     folder_id: string,
     user_id: string,
-    organization_id: string,
+    room_id: string,
     mime_type: string,
     size: number,
     extension: string,
@@ -52,7 +56,7 @@ export class FilesService {
         !name ||
         !folder_id ||
         !user_id ||
-        !organization_id ||
+        !room_id ||
         !file_uploaded_name
       )
         throw new NotFoundException('Missing Fields');
@@ -89,7 +93,12 @@ export class FilesService {
         all_child_files.length + all_child_folders.length > 0
           ? `${all_child_files.length + all_child_folders.length + 1}`
           : 1;
-      const organization = await this.orgService.findOne(organization_id);
+      // const organization = await this.orgService.findOne(room_id);
+      const room = await this.roomRepository.findOne({
+        where: {
+          id: room_id
+        }
+      });
 
       const bucket_url = process.env.S3_BUCKET_BASE_URL + file_uploaded_name;
 
@@ -99,7 +108,7 @@ export class FilesService {
         folder: find_folder,
         tree_index: current_tree_index + next,
         display_tree_index: find_folder.display_tree_index + '.' + next,
-        organization,
+        room:room,
         current_version_id: 0,
         mime_type: mime_type || '',
         size_bytes: size,
@@ -129,7 +138,7 @@ export class FilesService {
         const new_saved_file = await this.fileRepository.save(updated_file);
 
         const find_groups = await this.groupRepository.find({
-          where: { organization: { id: organization_id } },
+          where: { room: { id: room_id } },
         });
 
         const file_permissions = [];
@@ -144,7 +153,7 @@ export class FilesService {
 
         const new_group_files_permissions =
           await this.gfpService.createGroupFilePermissionsFoAllGroups(
-            organization_id,
+            room_id,
             file_permissions,
           );
         return {
@@ -163,22 +172,22 @@ export class FilesService {
     }
   }
 
-  async getAllFilesByOrganization(organization_id: string) {
+  async getAllFilesByRoom(room_id: string) {
     try {
-      if (!organization_id) throw new NotFoundException('Missing Fields');
+      if (!room_id) throw new NotFoundException('Missing Fields');
       return this.fileRepository.find({
         relations: ['folder'],
-        where: { is_deleted: false, organization: { id: organization_id } },
+        where: { is_deleted: false, room: { id: room_id } },
       });
     } catch (error) {
       throw Error(error);
     }
   }
 
-  async getFilesWithGroupPermissions(organization_id: string) {
+  async getFilesWithGroupPermissions(room_id: string) {
     try {
-      if (!organization_id) throw new NotFoundException('Missing Fields');
-      const find_files = await this.getAllFilesByOrganization(organization_id);
+      if (!room_id) throw new NotFoundException('Missing Fields');
+      const find_files = await this.getAllFilesByRoom(room_id);
       const file_ids = find_files.map((file) => file.id);
       await this.gfpService.getGroupFilesPermissiosnByFileIds(file_ids);
     } catch (error) {
@@ -213,7 +222,7 @@ export class FilesService {
           'FilesPermissions',
           'FilesPermissions.permission',
           'user',
-          'organization',
+          'room',
           'versions',
         ],
         where: { id },
@@ -227,7 +236,7 @@ export class FilesService {
         ).bucket_url,
       };
 
-      if (file.organization.id != find_user.organizations_added_in[0].id)
+      if (file.room.id)
         throw new UnauthorizedException('Unauthorized to View File');
 
       if (!view_access_original && !view_access_watermark)
@@ -332,15 +341,15 @@ export class FilesService {
   }
 
   async getFoldersAndFilesByOrganizationId(
-    organization_id: string,
+    room_id: string,
     parent_folder_id: string,
     group_id: string,
     file_ids: string[],
   ) {
     const root_folders = await this.foldersRepository.find({
-      relations: ['sub_folders', 'files.organization'],
+      relations: ['sub_folders', 'files.room'],
       where: {
-        organization: { id: organization_id },
+        room: { id: room_id },
         parent_folder_id: parent_folder_id,
         is_deleted: false,
       },
@@ -362,7 +371,7 @@ export class FilesService {
       for (const sub of folder_file_structures) {
         const folder_file_structure =
           await this.getFoldersAndFilesByOrganizationId(
-            organization_id,
+            room_id,
             sub.id,
             group_id,
             file_ids,
@@ -374,15 +383,15 @@ export class FilesService {
   }
 
   async getAllFilesByOrg(
-    organization_id: string,
+    room_id: string,
     parent_folder_id: string,
     group_id: string,
   ) {
     try {
-      if (!organization_id) throw new NotFoundException('Missing Fields');
+      if (!room_id) throw new NotFoundException('Missing Fields');
       const file_ids_in_org = [];
       const result = await this.getFoldersAndFilesByOrganizationId(
-        organization_id,
+        room_id,
         parent_folder_id,
         group_id,
         file_ids_in_org,
@@ -391,7 +400,7 @@ export class FilesService {
         JSON.stringify(
           await this.foldersRepository.findOne({
             where: {
-              organization: { id: organization_id },
+              room: { id: room_id },
               id: parent_folder_id,
             },
             relations: ['sub_folders', 'files.organization'],
@@ -414,7 +423,7 @@ export class FilesService {
   }
 
   async dragAndDropFiles(
-    organization_id: string,
+    room_id: string,
     parent_folder_id: string,
     user_id: string,
     files_data: any[],
@@ -443,7 +452,7 @@ export class FilesService {
           file.name,
           find_folder.id,
           user_id,
-          organization_id,
+          room_id,
           file.mime_type,
           file.size,
           file_extension,
@@ -463,7 +472,7 @@ export class FilesService {
           path,
           parent_folder.id,
           user_id,
-          organization_id,
+          room_id,
         );
         console.log(new_folder_id, 'id');
         folderIdToPathMap.set(new_folder_id, file.file_path);
@@ -471,7 +480,7 @@ export class FilesService {
           file.name,
           new_folder_id,
           user_id,
-          organization_id,
+          room_id,
           file.mime_type,
           file.size,
           file_extension,
@@ -491,7 +500,7 @@ export class FilesService {
   }
 
   async dragAndDropFilesOneLevel(
-    organization_id: string,
+    room_id: string,
     parent_folder_id: string,
     folder_name: string,
     user_id: string,
@@ -512,7 +521,7 @@ export class FilesService {
           file.name,
           find_folder.id,
           user_id,
-          organization_id,
+          room_id,
           file.mime_type,
           file.size,
           file_extension,
@@ -528,7 +537,7 @@ export class FilesService {
       const create_folder = await this.folderService.create(
         folder_name,
         user_id,
-        organization_id,
+        room_id,
         parent_folder_id,
       );
 
@@ -541,7 +550,7 @@ export class FilesService {
           file.name,
           create_folder.new_folder.id,
           user_id,
-          organization_id,
+          room_id,
           file.mime_type,
           file.size,
           file_extension,
@@ -560,7 +569,7 @@ export class FilesService {
     filePath: string,
     parent_folder_id: string,
     user_id: string,
-    organization_id: string,
+    room_id: string,
   ) {
     const folderNames = filePath
       .split('/')
@@ -577,7 +586,7 @@ export class FilesService {
         const create_folder = await this.folderService.create(
           folderName,
           user_id,
-          organization_id,
+          room_id,
           currentFolderId,
         );
         console.log(
@@ -618,14 +627,14 @@ export class FilesService {
   }
 
   async getFileIdsFromParentFolderAndUpdatePermissions(
-    organization_id: string,
+    room_id: string,
     parent_folder_id: string,
     group_id: string,
     type: string,
     status: boolean,
   ) {
     const result = await this.getAllFilesByOrg(
-      organization_id,
+      room_id,
       parent_folder_id,
       group_id,
     );

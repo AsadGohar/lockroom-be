@@ -15,6 +15,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { UserRoleEnum } from 'src/types/enums';
 import { EmailService } from 'src/email/email.service';
 import { signupTemplate } from 'src/utils/email.templates';
+import { Room } from 'src/rooms/entities/room.entity';
 @Injectable()
 export class InvitesService {
   constructor(
@@ -26,6 +27,8 @@ export class InvitesService {
     private readonly groupRepository: Repository<Group>,
     @InjectRepository(Organization)
     private readonly orgRepository: Repository<Organization>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
 
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
@@ -44,47 +47,47 @@ export class InvitesService {
     sender_id: string,
     emails: string[],
     group_id: string,
-    organization_id: string,
+    room_id: string,
   ) {
-    if (!sender_id || !group_id || !organization_id || !emails)
+    if (!sender_id || !group_id || !emails)
       throw new NotFoundException('Missing Fields');
-    const findUser = await this.userRepository.findOne({
+    const find_user = await this.userRepository.findOne({
       where: { id: sender_id },
     });
-    const findGroup = await this.groupRepository.findOne({
+    const find_group = await this.groupRepository.findOne({
       where: { id: group_id },
     });
-    const findOrg = await this.orgRepository.findOne({
-      relations: ['users'],
-      where: { id: organization_id },
+    const find_room = await this.roomRepository.findOne({
+      where: { id: room_id },
     });
     const invites = emails.map((email) => {
       return {
-        sender: findUser,
+        sender: find_user,
         sent_to: email,
-        group: findGroup,
-        organization: findOrg,
+        group: find_group,
         status: 'pending',
+        room: find_room,
       };
     });
-    const invitesDB = await this.inviteRepository.save(invites);
-    return { user: findUser, invites: invitesDB };
+    const invites_db = await this.inviteRepository.save(invites);
+    return { user: find_user, invites: invites_db };
   }
+
   async getEmailByToken(jwt_token: string) {
     try {
       const resp = await this.jwtService.verify(jwt_token, {
         secret: process.env.JWT_SECRET,
       });
       if (resp) {
-        const findInvite = await this.inviteRepository.findOne({
-          relations: ['organization'],
+        const find_invite = await this.inviteRepository.findOne({
+          relations: ['room'],
           where: { id: resp.invite_id },
         });
-        if (!findInvite) throw new NotFoundException('user not found');
+        if (!find_invite) throw new NotFoundException('user not found');
         console.log();
         return {
-          email: findInvite.sent_to,
-          organization_id: findInvite.organization.id,
+          email: find_invite.sent_to,
+          organization_id: find_invite.room.id,
         };
       }
     } catch (error) {
@@ -92,6 +95,7 @@ export class InvitesService {
       throw Error(error);
     }
   }
+
   async addInvitedUser(
     email: string,
     first_name: string,
@@ -100,13 +104,7 @@ export class InvitesService {
     jwt_token: string,
   ) {
     try {
-      if (
-        !email ||
-        !first_name ||
-        !last_name ||
-        !phone_number ||
-        !jwt_token
-      )
+      if (!email || !first_name || !last_name || !phone_number || !jwt_token)
         throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['organizations_added_in'],
@@ -123,12 +121,8 @@ export class InvitesService {
         secret: process.env.JWT_SECRET,
       });
       const invite = await this.inviteRepository.findOne({
-        relations: ['organization', 'group'],
+        relations: ['room', 'group'],
         where: { id: resp.invite_id },
-      });
-      const find_org = await this.orgRepository.findOne({
-        relations: ['users'],
-        where: { id: invite.organization.id },
       });
 
       invite.status = 'accepted';
@@ -137,10 +131,16 @@ export class InvitesService {
         relations: ['users'],
         where: { id: invite.group.id },
       });
+      const find_room = await this.roomRepository.findOne({
+        where: {
+          id: invite.room.id,
+        },
+      });
       const role =
         find_group?.name?.toLocaleLowerCase() === UserRoleEnum.ADMIN
           ? UserRoleEnum.ADMIN
           : UserRoleEnum.GUEST;
+
       const new_user = this.userRepository.create({
         email,
         first_name,
@@ -148,14 +148,14 @@ export class InvitesService {
         role,
         phone_number,
         full_name,
-        organizations_added_in: [find_org],
         groups: [find_group],
+        room: find_room,
       });
       await this.groupRepository.save(find_group);
       await this.userRepository.save(new_user);
       await this.inviteRepository.delete({
         sent_to: email,
-        organization: { id: find_org.id },
+        room: { id: find_room.id },
       });
 
       const payload = { user_id: new_user.id, email };
@@ -165,8 +165,6 @@ export class InvitesService {
       });
 
       await this.sendConfirmPasswordEmail(email, access_token);
-
-
       return { status: true };
     } catch (error) {
       console.log(error);

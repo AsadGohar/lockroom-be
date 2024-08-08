@@ -3,6 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Organization } from './entities/organization.entity';
 import { Invite } from 'src/invites/entities/invite.entity';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Injectable()
 export class OrganizationsService {
@@ -11,6 +12,8 @@ export class OrganizationsService {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Invite)
     private readonly inviteRepository: Repository<Invite>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
   ) {}
 
   async findOne(id: string) {
@@ -22,7 +25,7 @@ export class OrganizationsService {
     });
   }
 
-  async getUsersByOrganization(organization_id: string) {
+  async getUsersByOrganization(room_id: string) {
     try {
       const find_org = await this.orgRepository.findOne({
         relations: [
@@ -33,15 +36,15 @@ export class OrganizationsService {
         ],
         where: [
           {
-            id: organization_id,
+            id: room_id,
           },
         ],
       });
       const find_invites = await this.inviteRepository.find({
         relations: ['sender'],
         where: {
-          organization: {
-            id: organization_id,
+          room: {
+            id: room_id,
           },
           status: 'pending',
         },
@@ -57,26 +60,26 @@ export class OrganizationsService {
     }
   }
 
-  async getUsersByOrganizationAndGroup(
-    organization_id: string,
+  async getUsersByRoomAndGroup(
+    room_id: string,
     group_id: string,
   ) {
     try {
-      const find_org = await this.orgRepository.findOne({
-        relations: ['creator', 'groups.users'],
+      const find_room = await this.roomRepository.findOne({
+        relations: ['groups.users'],
         where: {
-          id: organization_id,
+          id: room_id,
           groups: {
             id: group_id,
           },
         },
       });
-      if (!find_org) throw new NotFoundException('organization not found');
+      if (!find_room) throw new NotFoundException('room not found');
       const find_invites = await this.inviteRepository.find({
         relations: ['sender'],
         where: {
-          organization: {
-            id: organization_id,
+          room: {
+            id: room_id,
           },
           group: {
             id: group_id,
@@ -86,7 +89,7 @@ export class OrganizationsService {
       });
 
       return {
-        organization: { ...find_org, group_name: find_org.groups[0].name },
+        room: { ...find_room, group_name: find_room.groups[0].name },
         invites: find_invites,
       };
     } catch (error) {

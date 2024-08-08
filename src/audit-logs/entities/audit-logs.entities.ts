@@ -13,6 +13,7 @@ import { File } from 'src/files/entities/file.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Group } from 'src/groups/entities/group.entity';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Entity()
 export class AuditLogs {
@@ -30,9 +31,9 @@ export class AuditLogs {
   @JoinColumn()
   group: Group;
 
-  @ManyToOne(() => Organization, (org) => org.audit_log)
+  @ManyToOne(() => Room, (room) => room.audit_log)
   @JoinColumn()
-  organization: Organization;
+  room: Room;
 
   @ManyToOne(() => File, { nullable: true })
   @JoinColumn()

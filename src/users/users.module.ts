@@ -16,6 +16,7 @@ import { OTPService } from 'src/otp/otp.service';
 import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
 import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 import { EmailService } from 'src/email/email.service';
+import { Room } from 'src/rooms/entities/room.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -31,11 +32,18 @@ import { EmailService } from 'src/email/email.service';
       Organization,
       File,
       AuditLogs,
-      SubscriptionPlans
+      SubscriptionPlans,
+      Room
     ]),
   ],
   controllers: [UsersController],
-  providers: [UsersService, AuditLogsSerivce, OTPService, SubscriptionsService, EmailService],
+  providers: [
+    UsersService,
+    AuditLogsSerivce,
+    OTPService,
+    SubscriptionsService,
+    EmailService,
+  ],
   exports: [UsersService],
 })
 export class UsersModule {}

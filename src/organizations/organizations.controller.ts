@@ -9,11 +9,11 @@ export class OrganizationsController {
   @UseGuards(AuthGuard)
   @Post('org-group-users')
   getUserByOrganizationAndGroup(
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Body('group_id') group_id: string,
   ) {
-    return this.organizationsService.getUsersByOrganizationAndGroup(
-      organization_id,
+    return this.organizationsService.getUsersByRoomAndGroup(
+      room_id,
       group_id,
     );
   }

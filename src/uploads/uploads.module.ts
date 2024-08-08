@@ -29,6 +29,7 @@ import { FileVersion } from 'src/file-version/entities/file-version.entity';
 import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
 import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 import { EmailService } from 'src/email/email.service';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { EmailService } from 'src/email/email.service';
       AuditLogs,
       FileVersion,
       SubscriptionPlans,
+      Room
     ]),
     // UsersModule
   ],

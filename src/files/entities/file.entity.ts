@@ -13,9 +13,9 @@ import { User } from '../../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { FilesPermissions } from 'src/files-permissions/entities/files-permissions.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Entity()
 export class File {
@@ -62,9 +62,9 @@ export class File {
   @JoinColumn()
   FilesPermissions: FilesPermissions[];
 
-  @ManyToOne(() => Organization, (organization) => organization.files)
+  @ManyToOne(() => Room, (room) => room.files)
   @JoinColumn()
-  organization: Organization;
+  room: Room;
 
   @ManyToOne(() => AuditLogs, (auditLogs) => auditLogs.file)
   @JoinColumn()

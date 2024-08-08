@@ -7,6 +7,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { User } from 'src/users/entities/user.entity';
 import { subMonths, format, subDays } from 'date-fns';
 import { ConfigService } from '@nestjs/config';
+import { Room } from 'src/rooms/entities/room.entity';
 @Injectable()
 export class AuditLogsSerivce {
   constructor(
@@ -18,16 +19,19 @@ export class AuditLogsSerivce {
     private readonly orgRepository: Repository<Organization>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
+
     private readonly configService: ConfigService,
   ) {}
   async create(
     file_id: string | null,
     user_id: string,
-    organization_id: string,
+    room_id: string,
     type: string,
   ) {
     try {
-      if (!user_id || !organization_id || !type)
+      if (!user_id || !room_id || !type)
         throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['groups', 'created_groups'],
@@ -38,17 +42,17 @@ export class AuditLogsSerivce {
             where: { is_deleted: false, id: file_id },
           })
         : null;
-      const find_org = await this.orgRepository.findOne({
-        where: { id: organization_id },
+      const find_room = await this.roomRepository.findOne({
+        where: { id: room_id },
       });
       const groups = [...find_user.groups, ...find_user.created_groups];
       const audit_logs = groups.map((item) => {
         return this.auditLogsRepository.create({
           file: file_id ? find_file : null,
-          organization: find_org,
           user: find_user,
           group: item,
           type,
+          room: find_room
         });
       });
       return await this.auditLogsRepository.save(audit_logs);
@@ -184,11 +188,11 @@ export class AuditLogsSerivce {
       throw Error(error);
     }
   }
-  async exportDataToExcel(organization_id: string) {
-    if (!organization_id) throw new NotFoundException('Missing Fields');
+  async exportDataToExcel(room_id: string) {
+    if (!room_id) throw new NotFoundException('Missing Fields');
     const audit_logs = await this.auditLogsRepository.find({
       relations: ['user', 'file'],
-      where: { organization: { id: organization_id } },
+      where: { room: { id: room_id } },
     });
     const data = audit_logs
       ?.filter((log) => log.type === 'login')

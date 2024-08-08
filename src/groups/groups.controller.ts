@@ -37,7 +37,7 @@ export class GroupsController {
   }
 
   @UseGuards(AuthGuard)
-  @Post('org-groups')
+  @Post('room-groups')
   findGroupsByOrganizationAndUserId(
     @Body('organization_id') organization_id: string,
     @Request() request,

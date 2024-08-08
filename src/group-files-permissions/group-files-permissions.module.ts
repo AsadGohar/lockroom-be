@@ -25,6 +25,7 @@ import { OTPService } from 'src/otp/otp.service';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
 import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
 import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Module({
   imports: [
@@ -40,7 +41,8 @@ import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-
       Permission,
       AuditLogs,
       FileVersion,
-      SubscriptionPlans
+      SubscriptionPlans,
+      Room
     ]),
   ],
   providers: [
