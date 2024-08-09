@@ -58,13 +58,13 @@ export class FilesController {
   @UseGuards(AuthGuard)
   @Post('nested-drag-and-drop')
   async addDragAndDropTwo(
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Body('parent_folder_id') parent_folder_id: string,
     @Body('files') files: [],
     @Request() request,
   ) {
     return await this.filesService.dragAndDropFiles(
-      organization_id,
+      room_id,
       parent_folder_id,
       request.decoded_data.user_id,
       files,

@@ -25,11 +25,10 @@ export class OrganizationsService {
     });
   }
 
-  async getUsersByOrganization(room_id: string) {
+  async getUsersByRoom(room_id: string) {
     try {
-      const find_org = await this.orgRepository.findOne({
+      const find_room = await this.roomRepository.findOne({
         relations: [
-          'creator',
           'users.groups',
           'groups.users',
           'users.created_groups',
@@ -49,9 +48,9 @@ export class OrganizationsService {
           status: 'pending',
         },
       });
-      if (!find_org) throw new NotFoundException('organization not found');
+      if (!find_room) throw new NotFoundException('organization not found');
       return {
-        organization: find_org,
+        room: find_room,
         invites: find_invites.filter((item) => item.status == 'pending'),
       };
     } catch (error) {

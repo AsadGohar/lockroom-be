@@ -52,6 +52,12 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     try {
+
+      console.log(  name,
+        folder_id,
+        user_id,
+        room_id,
+        file_uploaded_name)
       if (
         !name ||
         !folder_id ||

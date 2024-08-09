@@ -39,11 +39,11 @@ export class GroupsController {
   @UseGuards(AuthGuard)
   @Post('room-groups')
   findGroupsByOrganizationAndUserId(
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Request() request,
   ) {
-    return this.groupsService.getGroupsByOrganization(
-      organization_id,
+    return this.groupsService.getGroupsByRoom(
+      room_id,
       request.decoded_data?.user_id,
     );
   }

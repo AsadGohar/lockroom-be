@@ -137,7 +137,7 @@ export class UsersService {
           organization: save_org,
           groups: [new_admin_group, new_associate_group, ...dashboard.groups],
           invites: [],
-          users: dashboard.users
+          users: dashboard.users,
         }),
       );
 
@@ -152,6 +152,7 @@ export class UsersService {
         display_tree_index: '1',
         absolute_path_ids: '',
         color: '#fec81e',
+        room
       });
 
       if (folder) {
@@ -189,8 +190,6 @@ export class UsersService {
         where: { email },
       });
 
-      console.log(user,'heheh')
-
       const allowed_rooms = [];
 
       if (!user) {
@@ -198,8 +197,13 @@ export class UsersService {
       }
 
       const organization = await this.orgRepository.findOne({
-        relations: ['users', 'creator','subscription', 'rooms'],
-        where: { id: user.role == UserRoleEnum.OWNER ? user.organization_created.id : user.organization.id },
+        relations: ['users', 'creator', 'subscription', 'rooms'],
+        where: {
+          id:
+            user.role == UserRoleEnum.OWNER
+              ? user.organization_created.id
+              : user.organization.id,
+        },
       });
 
       if (
@@ -231,9 +235,9 @@ export class UsersService {
           expiresIn: '1d',
         });
 
-        organization.rooms.map(room=>{
-          allowed_rooms.push(room)
-        })
+        organization.rooms.map((room) => {
+          allowed_rooms.push(room);
+        });
         // if (user.organization_created) {
         //   rooms.push(user.organization_created.id);
         // }
@@ -252,7 +256,7 @@ export class UsersService {
           id: user.id,
           user,
           organization,
-          rooms: allowed_rooms
+          rooms: allowed_rooms,
         };
       }
       if (user.role == UserRoleEnum.GUEST) {
@@ -284,7 +288,7 @@ export class UsersService {
           id: user.id,
           user,
           organization,
-          room: user.room
+          room: user.room,
         };
       }
     } catch (error) {
@@ -493,6 +497,8 @@ export class UsersService {
         relations: [
           'organization.rooms.groups',
           'organization.subscription',
+          'organization_created',
+          'organization',
           'groups',
           'room',
         ],
@@ -503,10 +509,20 @@ export class UsersService {
         throw new NotFoundException('user not found');
       }
 
+      const organization = await this.orgRepository.findOne({
+        relations: ['users', 'creator', 'subscription', 'rooms'],
+        where: {
+          id:
+            find_user.role == UserRoleEnum.OWNER
+              ? find_user.organization_created.id
+              : find_user.organization.id,
+        },
+      });
+
       if (
         isDateMoreThanSubscription(
-          find_user.organization.subscription_end_date,
-          find_user.organization.subscription.days,
+          organization.subscription_end_date,
+          organization.subscription.days,
         )
       ) {
         throw new UnauthorizedException('Your trial has expired');
@@ -528,7 +544,13 @@ export class UsersService {
 
   async findOne(where: any) {
     return await this.userRepository.findOne({
-      relations: ['organization_created', 'organization', 'groups', 'organization.rooms'],
+      relations: [
+        'organization_created',
+        'organization',
+        'groups',
+        'organization.rooms',
+        'organization_created.rooms',
+      ],
       where: where,
     });
   }
@@ -838,7 +860,7 @@ export class UsersService {
   }
 
   async updatePassword(user_id: string, password: string) {
-    console.log(password,'dasdas')
+    console.log(password, 'dasdas');
     const hashed_password = await bcrypt.hash(password, 10);
     const update_password = await this.userRepository.update(
       {

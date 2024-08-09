@@ -19,7 +19,7 @@ export class RoomsService {
         name,
         organization,
         groups,
-        invites
+        invites,
       }),
     );
     return new_room;
@@ -32,14 +32,23 @@ export class RoomsService {
         name,
         organization,
         groups,
-        invites
+        invites,
       }),
     );
     return new_room;
   }
 
-  findAll() {
-    return `This action returns all rooms`;
+  async findAll(organization_id: string, user_id: string) {
+    return await this.roomRepository.find({
+      where: {
+        organization: {
+          id: organization_id,
+        },
+        users: {
+          id:user_id
+        }
+      },
+    });
   }
 
   findOne(id: number) {

@@ -112,7 +112,8 @@ export class GroupsService {
       });
     } catch (error) {}
   }
-  async getGroupsByOrganization(room_id: string, user_id: string) {
+  async getGroupsByRoom(room_id: string, user_id: string) {
+    console.log(room_id,'room')
     try {
       if (!room_id || !user_id)
         throw new NotFoundException('Missing Fields');
@@ -121,7 +122,7 @@ export class GroupsService {
       });
       const groups_result = [];
       const find_groups = await this.groupsRepository.find({
-        relations: ['users', 'organization.creator'],
+        relations: ['users', 'room'],
         where: { room: { id: room_id } },
       });
       find_groups.map((group) => {
@@ -142,12 +143,12 @@ export class GroupsService {
       throw error;
     }
   }
-  async getGroupsByRoom(room_id: string) {
-    return this.groupsRepository.find({
-      relations: ['user.organization'],
-      where: { room: { id: room_id } },
-    });
-  }
+  // async getGroupsByRoom(room_id: string) {
+  //   return this.groupsRepository.find({
+  //     relations: ['user.organization'],
+  //     where: { room: { id: room_id } },
+  //   });
+  // }
   async switchUser(
     guest_user_id: string,
     new_group_id: string,

@@ -19,10 +19,13 @@ export class UploadService {
     files: Array<Express.Multer.File>,
     folder_id: string,
     user_id: string,
-    organization_id: string,
+    room_id: string,
   ) {
     if (files.length > 0) {
       const file_names = [];
+
+      console.log(user_id)
+      // return
 
       const file_promises = files.map((file) => {
         const file_name = uuidv4() + '-' + file.originalname;
@@ -51,7 +54,7 @@ export class UploadService {
             files[index].originalname,
             folder_id,
             user_id,
-            organization_id,
+            room_id,
             files[index].mimetype || 'unknown',
             files[index].size || 1,
             file_extension,

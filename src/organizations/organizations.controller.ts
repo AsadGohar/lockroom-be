@@ -20,7 +20,7 @@ export class OrganizationsController {
 
   @UseGuards(AuthGuard)
   @Post('org-users')
-  getUserByOrganization(@Body('organization_id') organization_id: string) {
-    return this.organizationsService.getUsersByOrganization(organization_id);
+  getUserByOrganization(@Body('room_id') room_id: string) {
+    return this.organizationsService.getUsersByRoom(room_id);
   }
 }

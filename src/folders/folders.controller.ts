@@ -37,13 +37,13 @@ export class FoldersController {
   }
 
   @UseGuards(AuthGuard)
-  @Post('/organization')
+  @Post('/room')
   findAllByOrganization(
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Request() request,
   ) {
-    return this.foldersService.findAllByOrganization(
-      organization_id,
+    return this.foldersService.findAllByRoom(
+      room_id,
       request.decoded_data.user_id,
     );
   }
@@ -51,11 +51,11 @@ export class FoldersController {
   @UseGuards(AuthGuard)
   @Post('/deleted-items')
   findAllDeletedByOrganization(
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Request() request,
   ) {
-    return this.foldersService.findAllByOrganization(
-      organization_id,
+    return this.foldersService.findAllByRoom(
+      room_id,
       request.decoded_data.user_id,
       true,
     );
@@ -74,30 +74,30 @@ export class FoldersController {
   @Post('delete')
   remove(
     @Body('folder_id') folder_id: string,
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
   ) {
-    return this.foldersService.softDelete(folder_id, organization_id);
+    return this.foldersService.softDelete(folder_id, room_id);
   }
 
   @UseGuards(AuthGuard)
   @Post('restore')
   restore(
     @Body('folder_id') folder_id: string,
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
   ) {
-    return this.foldersService.restore(folder_id, organization_id);
+    return this.foldersService.restore(folder_id, room_id);
   }
 
   @UseGuards(AuthGuard)
   @Patch('rearrange')
   rearragne(
     @Body('data') data: any,
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Request() request,
   ) {
     return this.foldersService.rearrangeFolderAndFiles(
       data,
-      organization_id,
+      room_id,
       request.decoded_data.user_id,
     );
   }
@@ -108,10 +108,10 @@ export class FoldersController {
   @Patch('update-folder-color')
   updateFolderColor(
     @Body('folder_id') folder_id: string,
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Body('color') color: string,
     @Request() request,
   ) {
-    return this.foldersService.updateFolderColor(organization_id,folder_id, color, request.decoded_data.user_id );
+    return this.foldersService.updateFolderColor(room_id,folder_id, color, request.decoded_data.user_id );
   }
 }

@@ -3,12 +3,9 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
-  OneToOne,
   CreateDateColumn,
   UpdateDateColumn,
   BeforeInsert,
-  JoinColumn,
-  ManyToMany,
   ManyToOne
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
