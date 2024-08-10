@@ -33,6 +33,7 @@ import {
 } from 'src/utils/converts.utils';
 import { signupTemplate } from 'src/utils/email.templates';
 import { EmailService } from 'src/email/email.service';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Injectable()
 export class UsersService {
@@ -49,6 +50,8 @@ export class UsersService {
     private readonly inviteRepository: Repository<Invite>,
     @InjectRepository(AuditLogs)
     private readonly auditRepository: Repository<AuditLogs>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
 
     private readonly jwtService: JwtService,
     private readonly auditService: AuditLogsSerivce,
@@ -59,17 +62,17 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     try {
-      const existingUser = await this.userRepository.findOne({
+      const existing_user = await this.userRepository.findOne({
         where: { email: createUserDto.email },
       });
 
-      if (existingUser) throw new ConflictException('user already exists');
+      if (existing_user) throw new ConflictException('user already exists');
 
-      const existingNumber = await this.userRepository.findOne({
+      const existing_number = await this.userRepository.findOne({
         where: { phone_number: createUserDto.phone_number },
       });
 
-      if (existingNumber)
+      if (existing_number)
         throw new ConflictException('phone number already taken');
 
       const find_invites = await this.inviteRepository.find({
@@ -87,8 +90,6 @@ export class UsersService {
         SubscriptionTypeEnum.TRIAL,
       );
 
-      const calculate_trial_end_date = getNextDate(find_subscription.days);
-
       const create_user = this.userRepository.create({
         email: createUserDto.email,
         first_name: createUserDto.first_name,
@@ -96,9 +97,6 @@ export class UsersService {
         role: createUserDto.role,
         phone_number: createUserDto.phone_number,
         full_name: createUserDto.full_name,
-        subscription: find_subscription,
-        subscription_start_date: new Date(),
-        subscription_end_date: calculate_trial_end_date,
         is_email_verified: false,
       });
 
@@ -122,27 +120,40 @@ export class UsersService {
 
       const dashboard = await this.createFakeDashBoard(user);
 
+      const calculate_trial_end_date = getNextDate(find_subscription.days);
+
       const new_org = this.orgRepository.create({
         name: 'ORG-' + user.id.slice(0, 5),
         creator: user,
-        groups: [new_admin_group, new_associate_group, ...dashboard.groups],
-        users: dashboard.users,
-        invites: [],
+        subscription: find_subscription,
+        subscription_start_date: new Date(),
+        subscription_end_date: calculate_trial_end_date,
       });
 
-      const saveOrg = await this.orgRepository.save(new_org);
+      const save_org = await this.orgRepository.save(new_org);
+      const room = await this.roomRepository.save(
+        this.roomRepository.create({
+          name: 'Room-' + save_org.id.slice(0, 5),
+          organization: save_org,
+          groups: [new_admin_group, new_associate_group, ...dashboard.groups],
+          invites: [],
+
+          users: [user, ...dashboard.users],
+        }),
+      );
 
       const folder = await this.folderRepository.save({
         name: 'Home',
         parent_folder_id: null,
         tree_index: '1',
         users: [user],
-        organization: saveOrg,
+        organization: save_org,
         absolute_path: '/Home',
         display_name: 'Home',
         display_tree_index: '1',
         absolute_path_ids: '',
         color: '#fec81e',
+        room,
       });
 
       if (folder) {
@@ -170,24 +181,38 @@ export class UsersService {
     try {
       const user = await this.userRepository.findOne({
         relations: [
-          'organizations_added_in.groups',
-          'organization_created.groups',
-          'subscription',
+          'organization',
+          'organization_created',
+          'organization.rooms.groups',
+          'organization.subscription',
+          'groups',
+          'room',
         ],
         where: { email },
       });
 
-      const orgs = [];
+      const allowed_rooms = [];
+
+      console.log(user,'dasssss')
 
       if (!user) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
 
+      const organization = await this.orgRepository.findOne({
+        relations: ['users', 'creator', 'subscription', 'rooms'],
+        where: {
+          id:
+            user.role == UserRoleEnum.OWNER
+              ? user.organization_created.id
+              : user.organization.id,
+        },
+      });
+
       if (
-        user.role == UserRoleEnum.OWNER &&
         isDateMoreThanSubscription(
-          user.subscription_end_date,
-          user.subscription.days,
+          organization.subscription_end_date,
+          organization.subscription.days,
         )
       ) {
         throw new UnauthorizedException('Your trial has expired');
@@ -197,10 +222,10 @@ export class UsersService {
         throw new UnauthorizedException('Login with Google');
       }
 
-      const passwordMatched = await bcrypt.compare(password, user.password);
+      const password_matched = await bcrypt.compare(password, user.password);
 
-      if (!passwordMatched) {
-        throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
+      if (!password_matched) {
+        throw new UnauthorizedException('Invalid Credentials');
       }
       if (user.role == UserRoleEnum.ADMIN || user.role == UserRoleEnum.OWNER) {
         const payload = {
@@ -208,20 +233,13 @@ export class UsersService {
           email: user.email,
           role: user.role,
         };
-        const accessToken = this.jwtService.sign(payload, {
+        const access_token = this.jwtService.sign(payload, {
           secret: process.env.JWT_SECRET,
           expiresIn: '1d',
         });
-        if (user.organization_created) {
-          orgs.push(user.organization_created.id);
-        }
-        user.organizations_added_in.map((org) => {
-          orgs.push(org.id);
-        });
 
-        const organizations = await this.orgRepository.find({
-          relations: ['users', 'creator'],
-          where: { id: In(orgs) },
+        organization.rooms.map((room) => {
+          allowed_rooms.push(room);
         });
 
         if (user.two_fa_type == 'sms') {
@@ -233,30 +251,28 @@ export class UsersService {
         await this.userRepository.save(user);
 
         return {
-          access_token: accessToken,
+          access_token,
           is_phone_number_verified: user.is_phone_number_verified,
           id: user.id,
           user,
-          organizations,
+          organization,
+          rooms: allowed_rooms,
         };
       }
       if (user.role == UserRoleEnum.GUEST) {
+        if (user.groups.length == 0) {
+          throw new UnauthorizedException(
+            'You have not been added to any group, try contacting the room owner',
+          );
+        }
         const payload = {
           user_id: user.id,
           email: user.email,
           role: user.role,
         };
-        const accessToken = this.jwtService.sign(payload, {
+        const access_token = this.jwtService.sign(payload, {
           secret: process.env.JWT_SECRET,
           expiresIn: '1d',
-        });
-        user.organizations_added_in.map((org) => {
-          orgs.push(org.id);
-        });
-
-        const organizations = await this.orgRepository.find({
-          relations: ['users', 'creator'],
-          where: { id: In(orgs) },
         });
 
         if (user.two_fa_type == 'sms') {
@@ -264,15 +280,15 @@ export class UsersService {
           user.generated_otp = String(otp);
           await this.otpService.sendSMSService(user.phone_number, String(otp));
         }
-
         await this.userRepository.save(user);
-
+        console.log(user.room,'dsaads')
         return {
-          access_token: accessToken,
+          access_token,
           is_phone_number_verified: user.is_phone_number_verified,
           id: user.id,
           user,
-          organizations,
+          organization,
+          rooms: [user.room],
         };
       }
     } catch (error) {
@@ -285,43 +301,56 @@ export class UsersService {
     try {
       const user = decodeJwtResponse(jwt_token);
 
+      const allowed_rooms = [];
+
       if (!user) throw new UnauthorizedException('token invalid');
 
       const find_user = await this.userRepository.findOne({
         relations: [
-          'organizations_added_in',
-          'organization_created',
-          'subscription',
+          'organization.rooms.groups',
+          'organization.subscription',
+          'organization_created.subscription',
+          'groups',
+          'room',
         ],
         where: { email: user.email },
       });
 
+      console.log(find_user,'dsdadadas')
+
       if (find_user) {
         if (
           isDateMoreThanSubscription(
-            find_user.subscription_end_date,
-            find_user.subscription.days,
+            find_user.role == UserRoleEnum.OWNER ? find_user.organization_created.subscription_end_date:find_user.organization.subscription_end_date,
+             find_user.role == UserRoleEnum.OWNER ? find_user.organization_created.subscription.days:find_user.organization.subscription.days,
           )
         ) {
           throw new UnauthorizedException('Your trial has expired');
         }
-        const orgs = [];
+        const organization = await this.orgRepository.findOne({
+          relations: ['users', 'creator', 'subscription', 'rooms'],
+          where: {
+            id:
+              find_user.role == UserRoleEnum.OWNER
+                ? find_user.organization_created.id
+                : find_user.organization.id,
+          },
+        });
+
+        console.log(organization,'dasdasasss')
+
         if (find_user.role == UserRoleEnum.GUEST) {
           await this.auditService.create(
             null,
             find_user.id,
-            find_user.organizations_added_in[0].id,
+            find_user.room.id,
             'login',
           );
+          organization.rooms.map((room) => {
+            allowed_rooms.push(room);
+          });
         }
-        orgs.push(find_user?.organization_created?.id);
-        find_user.organizations_added_in.map((org) => {
-          orgs.push(org.id);
-        });
-        const organizations = await this.orgRepository.find({
-          relations: ['users', 'creator'],
-          where: { id: In(orgs) },
-        });
+
         const query = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
@@ -342,19 +371,20 @@ export class UsersService {
           email: find_user.email,
           role: find_user.role,
         };
-        const accessToken = this.jwtService.sign(payload, {
+        const access_token = this.jwtService.sign(payload, {
           secret: process.env.JWT_SECRET,
           expiresIn: '1d',
         });
         return {
-          access_token: accessToken,
+          access_token: access_token,
           is_phone_number_verified: find_user.is_phone_number_verified,
           folders: query,
           files_count: query.length,
           sub_folder_count: query1,
           id: find_user.id,
           user: find_user,
-          organizations,
+          organization,
+          rooms: find_user.role == UserRoleEnum.OWNER ? organization.rooms : allowed_rooms,
         };
       }
       const find_invites = await this.inviteRepository.find({
@@ -369,7 +399,7 @@ export class UsersService {
         SubscriptionTypeEnum.TRIAL,
       );
 
-      console.log(find_subscription, 'subbbb');
+      // console.log(find_subscription, 'subbbb');
 
       const calculate_trial_end_date = getNextDate(find_subscription.days);
 
@@ -381,49 +411,52 @@ export class UsersService {
         display_picture_url: user.picture,
         sso_login: true,
         sso_type: 'google',
-        subscription: find_subscription,
-        subscription_start_date: new Date(),
-        subscription_end_date: calculate_trial_end_date,
       });
       const saved_user = await this.userRepository.save(new_user);
-
-      // console.log('before query');
 
       const query1 = await this.folderRepository
         .createQueryBuilder('folder')
         .leftJoinAndSelect('folder.users', 'user')
         .leftJoin('folder.sub_folders', 'sub_folder')
         .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-        .where('user.id = :user_id', { user_id: new_user.id })
+        .where('user.id = :user_id', { user_id: saved_user.id })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
-      // console.log('after query');
-
-      const new_group_admin = await this.groupsRepository.save(
-        this.groupsRepository.create({ name: 'Admin', created_by: new_user }),
+      const new_admin_group = await this.groupsRepository.save(
+        this.groupsRepository.create({ name: 'Admin', created_by: saved_user }),
       );
-      const new_group_associates = await this.groupsRepository.save(
+      const new_associate_group = await this.groupsRepository.save(
         this.groupsRepository.create({
           name: 'Associates',
-          created_by: new_user,
+          created_by: saved_user,
         }),
       );
+
       const dashboard = await this.createFakeDashBoard(user);
 
-      const saveOrg = await this.orgRepository.save(
+      const save_org = await this.orgRepository.save(
         this.orgRepository.create({
-          name: 'ORG-' + new_user.id.slice(0, 5),
+          name: 'ORG-' + saved_user.id.slice(0, 5),
           creator: saved_user,
-          groups: [new_group_admin, new_group_associates, ...dashboard.groups],
-          users: dashboard.users,
-          invites: [],
+          subscription: find_subscription,
+          subscription_start_date: new Date(),
+          subscription_end_date: calculate_trial_end_date,
         }),
       );
 
+      const room = await this.roomRepository.save(
+        this.roomRepository.create({
+          name: 'Room-' + save_org.id.slice(0, 5),
+          organization: save_org,
+          groups: [new_admin_group, new_associate_group, ...dashboard.groups],
+          invites: [],
+          users: [saved_user, ...dashboard.users],
+        }),
+      );
 
-      const payload = { user_id: new_user.id, email: new_user.email };
+      const payload = { user_id: saved_user.id, email: saved_user.email };
       const access_token = this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET,
         expiresIn: '1d',
@@ -433,13 +466,14 @@ export class UsersService {
         name: 'Home',
         parent_folder_id: null,
         tree_index: '1',
-        users: [new_user],
-        organization: saveOrg,
+        users: [saved_user],
+        organization: save_org,
         absolute_path: '/Home',
         display_name: 'Home',
         display_tree_index: '1',
         absolute_path_ids: '',
         color: '#fec81e',
+        room,
       });
       if (folder) {
         await this.folderRepository.update(folder.id, {
@@ -449,10 +483,11 @@ export class UsersService {
           access_token,
           folders: [folder],
           files_count: 1,
-          id: new_user.id,
+          id: saved_user.id,
           sub_folder_count: query1,
-          user: { ...new_user, organization_created: saveOrg },
-          organizations: [saveOrg],
+          user: { ...new_user, organization_created: save_org },
+          organization: save_org,
+          rooms: [room],
         };
       } else {
         throw new BadRequestException(
@@ -488,9 +523,12 @@ export class UsersService {
       if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: [
-          'organizations_added_in',
+          'organization.rooms.groups',
           'organization_created',
-          'subscription',
+          'organization.subscription',
+          'organization',
+          'groups',
+          'room',
         ],
         where: { id: user_id },
       });
@@ -498,12 +536,23 @@ export class UsersService {
       if (!find_user) {
         throw new NotFoundException('user not found');
       }
-      console.log(find_user, 'users');
+
+      const organization = await this.orgRepository.findOne({
+        relations: ['users', 'creator', 'subscription', 'rooms'],
+        where: {
+          id:
+            find_user.role == UserRoleEnum.OWNER
+              ? find_user.organization_created.id
+              : find_user.organization.id,
+        },
+      });
+
+      console.log(organization)
+
       if (
-        find_user.role == UserRoleEnum.OWNER &&
         isDateMoreThanSubscription(
-          find_user.subscription_end_date,
-          find_user.subscription.days,
+          organization.subscription_end_date,
+          organization.subscription.days,
         )
       ) {
         throw new UnauthorizedException('Your trial has expired');
@@ -513,11 +562,15 @@ export class UsersService {
       if (
         find_user.role == UserRoleEnum.ADMIN ||
         find_user.role == UserRoleEnum.OWNER
-      )
+      ){
         orgs.push(find_user.organization_created);
-      find_user.organizations_added_in.map((org) => {
-        orgs.push(org);
-      });
+      }
+      else {
+        orgs.push(find_user.organization);
+
+      }
+
+      console.log(orgs,'dasdas')
 
       return { findUser: find_user, organizations: orgs };
     } catch (error) {
@@ -528,12 +581,18 @@ export class UsersService {
 
   async findOne(where: any) {
     return await this.userRepository.findOne({
-      relations: ['organization_created', 'organizations_added_in', 'groups'],
+      relations: [
+        'organization_created',
+        'organization',
+        'groups',
+        'organization.rooms',
+        'organization_created.rooms',
+      ],
       where: where,
     });
   }
 
-  async getAllGroups(organization_id: string, user_id: string) {
+  async getAllGroups(room_id: string, user_id: string) {
     try {
       if (!user_id) throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
@@ -550,7 +609,7 @@ export class UsersService {
         find_user.role == UserRoleEnum.OWNER
       ) {
         return await this.groupsRepository.find({
-          where: { organization: { id: organization_id } },
+          where: { room: { id: room_id } },
         });
       }
       return find_user.groups;
@@ -570,7 +629,12 @@ export class UsersService {
 
   async verifyOTP(otp: string, user_id: string) {
     const find_user = await this.userRepository.findOne({
-      relations: ['organizations_added_in', 'groups'],
+      relations: [
+        'organization.rooms.groups',
+        'organization.subscription',
+        'groups',
+        'room',
+      ],
       where: { id: user_id },
     });
     if (find_user && find_user.generated_otp.length > 0) {
@@ -578,7 +642,7 @@ export class UsersService {
         if (find_user.role == UserRoleEnum.GUEST) {
           const audit = this.auditRepository.create({
             file: null,
-            organization: find_user.organizations_added_in[0],
+            room: find_user.room[0],
             user: find_user,
             group: find_user.groups[0],
             type: 'login',
@@ -590,7 +654,6 @@ export class UsersService {
         }
         return { success: true };
       }
-      console.log('heeress');
       return new UnauthorizedException('OTP is invalid');
     } else {
       return new NotFoundException('user not found');
@@ -735,7 +798,7 @@ export class UsersService {
     );
     const legal_group = await this.groupsRepository.save(
       this.groupsRepository.create({
-        name: 'Buyer 3',
+        name: 'Legal Group',
         created_by: user,
       }),
     );
@@ -750,16 +813,11 @@ export class UsersService {
 
     return {
       groups,
-      users
+      users,
     };
   }
 
   private async addFakeUsers(groups: Group[]) {
-    const find_subscription = await this.subscriptionService.findOneByType(
-      SubscriptionTypeEnum.TRIAL,
-    );
-    const calculate_trial_end_date = getNextDate(find_subscription.days);
-
     const fake_user_one = await this.userRepository.save(
       this.userRepository.create({
         full_name: 'Bob Smith',
@@ -770,9 +828,6 @@ export class UsersService {
         is_email_verified: true,
         role: UserRoleEnum.GUEST,
         is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
         groups: [groups[0]],
       }),
     );
@@ -787,9 +842,6 @@ export class UsersService {
         is_email_verified: true,
         role: UserRoleEnum.GUEST,
         is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
         groups: [groups[1]],
       }),
     );
@@ -804,9 +856,6 @@ export class UsersService {
         is_email_verified: true,
         role: UserRoleEnum.GUEST,
         is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
         groups: [groups[2]],
       }),
     );
@@ -821,78 +870,7 @@ export class UsersService {
         is_email_verified: true,
         role: UserRoleEnum.GUEST,
         is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
         groups: [groups[3]],
-      }),
-    );
-
-    const fake_user_five = await this.userRepository.save(
-      this.userRepository.create({
-        full_name: 'Don Cotton',
-        first_name: 'Don',
-        last_name: 'Cotton',
-        password: '1234567891011',
-        email: generateRandomEmail(),
-        is_email_verified: true,
-        role: UserRoleEnum.GUEST,
-        is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
-        groups: [groups[4]],
-      }),
-    );
-
-    const fake_user_six = await this.userRepository.save(
-      this.userRepository.create({
-        full_name: 'Tom Sawyer',
-        first_name: 'Tom',
-        last_name: 'Sawyer',
-        password: '1234567891011',
-        email: generateRandomEmail(),
-        is_email_verified: true,
-        role: UserRoleEnum.GUEST,
-        is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
-        groups: [groups[5]],
-      }),
-    );
-
-    const fake_user_seven = await this.userRepository.save(
-      this.userRepository.create({
-        full_name: 'Lauren Shoemaker',
-        first_name: 'Lauren',
-        last_name: 'Shoemaker',
-        password: '1234567891011',
-        email: generateRandomEmail(),
-        is_email_verified: true,
-        role: UserRoleEnum.GUEST,
-        is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
-        groups: [groups[6]],
-      }),
-    );
-
-    const fake_user_eight = await this.userRepository.save(
-      this.userRepository.create({
-        full_name: 'Karen Baker',
-        first_name: 'Karen',
-        last_name: 'Cotton',
-        password: '1234567891011',
-        email: generateRandomEmail(),
-        is_email_verified: true,
-        role: UserRoleEnum.GUEST,
-        is_phone_number_verified: true,
-        subscription: find_subscription,
-        subscription_end_date: calculate_trial_end_date,
-        subscription_start_date: new Date(),
-        groups: [groups[7]],
       }),
     );
 
@@ -901,13 +879,9 @@ export class UsersService {
       fake_user_two,
       fake_user_three,
       fake_user_four,
-      fake_user_five,
-      fake_user_six,
-      fake_user_seven,
-      fake_user_eight,
     ];
 
-    return users
+    return users;
   }
 
   async sendConfirmPasswordEmail(email: string, access_token: string) {
@@ -923,6 +897,7 @@ export class UsersService {
   }
 
   async updatePassword(user_id: string, password: string) {
+    console.log(password, 'dasdas');
     const hashed_password = await bcrypt.hash(password, 10);
     const update_password = await this.userRepository.update(
       {
@@ -937,6 +912,131 @@ export class UsersService {
       return {
         sucess: true,
       };
+    }
+  }
+
+  async createNewRoom(
+    room_name: string,
+    organization_id: string,
+    user_id: string,
+  ) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: {
+          id: user_id,
+        },
+      });
+
+      if (!user) throw new NotFoundException('user not found');
+
+      const organization = await this.orgRepository.findOne({
+        relations: ['rooms'],
+        where: {
+          id: organization_id,
+        },
+      });
+
+      if (!organization) throw new NotFoundException('organization not found');
+
+      const new_admin_group = await this.groupsRepository.save(
+        this.groupsRepository.create({ name: 'Admin', created_by: user }),
+      );
+
+      const new_associate_group = await this.groupsRepository.save(
+        this.groupsRepository.create({ name: 'Associates', created_by: user }),
+      );
+
+      const dashboard = await this.createFakeDashBoard(user);
+
+      const room = await this.roomRepository.save(
+        this.roomRepository.create({
+          name: room_name,
+          organization: organization,
+          groups: [new_admin_group, new_associate_group, ...dashboard.groups],
+          invites: [],
+          users: [user, ...dashboard.users],
+        }),
+      );
+
+      const folder = await this.folderRepository.save({
+        name: 'Home',
+        parent_folder_id: null,
+        tree_index: '1',
+        users: [user],
+        organization: organization,
+        absolute_path: '/Home',
+        display_name: 'Home',
+        display_tree_index: '1',
+        absolute_path_ids: '',
+        color: '#fec81e',
+        room,
+      });
+
+      if (folder) {
+        await this.folderRepository.update(folder.id, {
+          absolute_path_ids: `/${folder.id}`,
+        });
+        const rooms = await this.roomRepository.find({
+          where: {
+            organization: {
+              id: organization_id,
+            },
+          },
+        });
+        return {
+          success: true,
+          rooms,
+        };
+      } else {
+        throw new BadRequestException(
+          'Something went wrong while creating folders',
+        );
+      }
+    } catch (error) {
+      console.log(error, 'err');
+      throw new InternalServerErrorException(
+        error.message || 'failed to create user',
+      );
+    }
+  }
+
+  async getRoomsByUserId(organization_id:string,user_id: string) {
+    try {
+      const user = await this.userRepository.findOne({
+        relations: ['room'],
+        where: {
+          id: user_id,
+        },
+      });
+
+      const organization = await this.orgRepository.findOne({
+        relations: ['rooms'],
+        where: {
+          id: organization_id,
+        },
+      });
+
+      console.log(organization,'dsadas')
+
+      if (!user) throw new NotFoundException('user not found');
+
+      if (
+        user.role === UserRoleEnum.ADMIN ||
+        user.role === UserRoleEnum.OWNER
+      ) {
+        return {
+          rooms: organization.rooms,
+        };
+      } else {
+        return {
+          rooms: [user.room],
+        };
+      }
+    } catch (error) {
+      console.log(error, 'err');
+      throw new InternalServerErrorException(
+        error.message || 'failed to create user',
+      );
     }
   }
 }

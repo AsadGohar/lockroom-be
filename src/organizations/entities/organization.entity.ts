@@ -2,21 +2,18 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToMany,
   OneToOne,
   CreateDateColumn,
   UpdateDateColumn,
   BeforeInsert,
   JoinColumn,
-  ManyToMany,
+  ManyToOne,
+  OneToMany,
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
-import { Group } from 'src/groups/entities/group.entity';
-import { Invite } from 'src/invites/entities/invite.entity';
 import { v4 as uuidv4 } from 'uuid';
-import { File } from 'src/files/entities/file.entity';
-import { Folder } from 'src/folders/entities/folder.entity';
-import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
+import { Room } from 'src/rooms/entities/room.entity';
+import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 
 @Entity()
 export class Organization {
@@ -26,33 +23,28 @@ export class Organization {
   @Column({ nullable: true })
   name: string;
 
+  @OneToMany(() => Room, (room) => room.organization, {
+    onDelete: 'CASCADE',
+  })
+  rooms: Room[];
+
+  @Column({ nullable: true })
+  subscription_start_date: Date;
+
+  @Column({ nullable: true })
+  subscription_end_date: Date;
+
+  @OneToMany(() => User, (user) => user.organization, {
+    onDelete: 'CASCADE',
+  })
+  users: User[];
+
   @OneToOne(() => User, (user) => user.organization_created)
   @JoinColumn()
   creator: User;
 
-  @ManyToMany(() => User, (user) => user.organizations_added_in)
-  users: User[];
-
-  @OneToMany(() => Group, (group) => group.organization, {
-    nullable: true,
-    cascade: true,
-  })
-  groups: Group[];
-
-  @OneToMany(() => Invite, (invite) => invite.organization, {
-    nullable: true,
-    cascade: true,
-  })
-  invites: Invite[];
-
-  @OneToMany(() => File, (file) => file.organization)
-  files: File[];
-
-  @OneToMany(() => Folder, (folder) => folder.organization)
-  folder: Folder[];
-
-  @OneToMany(() => AuditLogs, (auditLog) => auditLog.organization)
-  audit_log: AuditLogs[];
+  @ManyToOne(() => SubscriptionPlans, (subscription) => subscription.organization)
+  subscription: SubscriptionPlans;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

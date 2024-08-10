@@ -34,12 +34,9 @@ export class UsersController {
 
   @UseGuards(AuthGuard)
   @Post('find-groups')
-  findAllGroupsByUserId(
-    @Body('organization_id') organization_id: string,
-    @Request() request,
-  ) {
+  findAllGroupsByUserId(@Body('room_id') room_id: string, @Request() request) {
     return this.usersService.getAllGroups(
-      organization_id,
+      room_id,
       request?.decoded_data?.user_id,
     );
   }
@@ -127,5 +124,31 @@ export class UsersController {
       request?.decoded_data?.user_id,
       password,
     );
-}
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('new-room')
+  createNewRoom(
+    @Body('room_name') room_name: string,
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.usersService.createNewRoom(
+      room_name,
+      organization_id,
+      request?.decoded_data?.user_id,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('fetch-room')
+  getAllRooms(
+    @Body('organization_id') organization_id: string,
+    @Request() request,
+  ) {
+    return this.usersService.getRoomsByUserId(
+      organization_id,
+      request?.decoded_data?.user_id,
+    );
+  }
 }

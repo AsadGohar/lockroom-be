@@ -3,10 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLogs } from './entities/audit-logs.entities';
 import { File } from 'src/files/entities/file.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { User } from 'src/users/entities/user.entity';
 import { subMonths, format, subDays } from 'date-fns';
 import { ConfigService } from '@nestjs/config';
+import { Room } from 'src/rooms/entities/room.entity';
 @Injectable()
 export class AuditLogsSerivce {
   constructor(
@@ -14,20 +14,21 @@ export class AuditLogsSerivce {
     private readonly auditLogsRepository: Repository<AuditLogs>,
     @InjectRepository(File)
     private readonly fileRepository: Repository<File>,
-    @InjectRepository(Organization)
-    private readonly orgRepository: Repository<Organization>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
+
     private readonly configService: ConfigService,
   ) {}
   async create(
     file_id: string | null,
     user_id: string,
-    organization_id: string,
+    room_id: string,
     type: string,
   ) {
     try {
-      if (!user_id || !organization_id || !type)
+      if (!user_id || !room_id || !type)
         throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         relations: ['groups', 'created_groups'],
@@ -38,17 +39,17 @@ export class AuditLogsSerivce {
             where: { is_deleted: false, id: file_id },
           })
         : null;
-      const find_org = await this.orgRepository.findOne({
-        where: { id: organization_id },
+      const find_room = await this.roomRepository.findOne({
+        where: { id: room_id },
       });
       const groups = [...find_user.groups, ...find_user.created_groups];
       const audit_logs = groups.map((item) => {
         return this.auditLogsRepository.create({
           file: file_id ? find_file : null,
-          organization: find_org,
           user: find_user,
           group: item,
           type,
+          room: find_room
         });
       });
       return await this.auditLogsRepository.save(audit_logs);
@@ -56,9 +57,9 @@ export class AuditLogsSerivce {
       throw new Error(error);
     }
   }
-  async getStats(organization_id: string, date: any) {
+  async getStats(room_id: string, date: any) {
     try {
-      if (!organization_id || !date)
+      if (!room_id || !date)
         throw new NotFoundException('Missing Fields');
       let startDate: any;
       if (date.type == 'days') startDate = subDays(new Date(), date.value);
@@ -71,8 +72,8 @@ export class AuditLogsSerivce {
         .addSelect('COUNT(*)', 'total')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'view')`, 'views')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'login')`, 'login')
-        .where('audit_logs.organizationId = :organization_id', {
-          organization_id,
+        .where('audit_logs.roomId = :room_id', {
+          room_id,
         })
         .leftJoin('audit_logs.group', 'group')
         .groupBy('group.name');
@@ -86,8 +87,8 @@ export class AuditLogsSerivce {
         .leftJoin('audit_logs.group', 'group')
         .leftJoin('audit_logs.user', 'user')
         .groupBy('group.name, user.full_name, user.createdAt, user.email')
-        .where('audit_logs.organizationId = :organization_id', {
-          organization_id,
+        .where('audit_logs.roomId = :room_id', {
+          room_id,
         })
         .orderBy('engagement', 'DESC');
       const document_rankings_query = this.auditLogsRepository
@@ -102,8 +103,8 @@ export class AuditLogsSerivce {
         .leftJoin('audit_logs.file', 'file')
         .leftJoin('file.folder', 'folder')
         .groupBy('group.name, file.id, folder.name, file.mime_type')
-        .where('audit_logs.organizationId = :organization_id', {
-          organization_id,
+        .where('audit_logs.roomId = :room_id', {
+          room_id,
         })
         .andWhere('audit_logs.type = :type', { type: 'view' })
         .orderBy('views', 'DESC');
@@ -184,11 +185,11 @@ export class AuditLogsSerivce {
       throw Error(error);
     }
   }
-  async exportDataToExcel(organization_id: string) {
-    if (!organization_id) throw new NotFoundException('Missing Fields');
+  async exportDataToExcel(room_id: string) {
+    if (!room_id) throw new NotFoundException('Missing Fields');
     const audit_logs = await this.auditLogsRepository.find({
       relations: ['user', 'file'],
-      where: { organization: { id: organization_id } },
+      where: { room: { id: room_id } },
     });
     const data = audit_logs
       ?.filter((log) => log.type === 'login')

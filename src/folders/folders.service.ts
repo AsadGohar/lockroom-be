@@ -11,10 +11,10 @@ import { Folder } from './entities/folder.entity';
 import { UsersService } from '../users/users.service';
 import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
 import { File } from 'src/files/entities/file.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
 import { UserRoleEnum, FilePermissionEnum } from 'src/types/enums';
+import { Room } from 'src/rooms/entities/room.entity';
 @Injectable()
 export class FoldersService {
   constructor(
@@ -22,19 +22,19 @@ export class FoldersService {
     private readonly foldersRepository: Repository<Folder>,
     @InjectRepository(File)
     private readonly fileRepository: Repository<File>,
-    @InjectRepository(Organization)
-    private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Group)
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(GroupFilesPermissions)
     private readonly gfpRepository: Repository<GroupFilesPermissions>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
 
     private readonly userService: UsersService,
   ) {}
   async create(
     name: string,
     user_id: string,
-    organization_id: string,
+    room_id: string,
     parent_folder_id?: string,
   ) {
     if (!parent_folder_id)
@@ -65,9 +65,11 @@ export class FoldersService {
         ? `${all_child_folders.length + all_child_files.length + 1}`
         : 1;
     if (!user) throw new NotFoundException('user not found');
-    const find_org = await this.orgRepository.findOne({
-      where: { id: organization_id },
+    const find_room = await this.roomRepository.findOne({
+      where: { id: room_id },
     });
+
+    console.log(find_room,'roooom')
     const new_folder = await this.foldersRepository.save({
       display_name:
         child_folders_with_same_name?.length > 0 && folderwithSamedisplay_name
@@ -77,7 +79,7 @@ export class FoldersService {
       parent_folder_id,
       tree_index: current_tree_index + next,
       users: [user],
-      organization: find_org,
+      room:find_room,
       absolute_path: parent_folder.absolute_path + '/' + name,
       display_tree_index: parent_folder.display_tree_index + '.' + next,
       absolute_path_ids: '',
@@ -105,32 +107,30 @@ export class FoldersService {
   async findAll() {
     return await this.foldersRepository.find();
   }
-  async findAllByOrganization(
-    organization_id: string,
+  async findAllByRoom(
+    room_id: string,
     user_id: string,
     is_deleted?: boolean,
   ) {
-    if (!organization_id || !user_id)
+    if (!room_id || !user_id)
       throw new NotFoundException('Missing Fields');
     const find_user = await this.userService.findOne({ id: user_id });
+    console.log(user_id,'sdasds')
+    // console.log(find_user,'dasdas')
     if (
       find_user.role == UserRoleEnum.ADMIN ||
       find_user.role == UserRoleEnum.OWNER
     ) {
-      const org =
-        find_user.role == UserRoleEnum.OWNER
-          ? find_user.organization_created.id
-          : find_user.organizations_added_in[0].id;
       let get_files: File[];
       if (is_deleted) {
         get_files = await this.fileRepository?.find({
           relations: ['folder', 'versions'],
-          where: { this_deleted: true, organization: { id: org } },
+          where: { this_deleted: true, room: { id: room_id } },
         });
       } else {
         get_files = await this.fileRepository?.find({
           relations: ['folder', 'versions'],
-          where: { is_deleted: false, organization: { id: org } },
+          where: { is_deleted: false, room: { id: room_id } },
         });
       }
       const file_data = get_files.map((file) => {
@@ -160,8 +160,8 @@ export class FoldersService {
           .leftJoinAndSelect('folder.users', 'user')
           .leftJoin('folder.sub_folders', 'sub_folder')
           .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-          .where('folder.organization.id = :organizationId', {
-            organizationId: organization_id,
+          .where('folder.room.id = :roomId', {
+            roomId: room_id,
           })
           .andWhere(`folder.is_deleted = :is_deleted`, {
             is_deleted: is_deleted || false,
@@ -181,8 +181,8 @@ export class FoldersService {
           .leftJoinAndSelect('folder.users', 'user')
           .leftJoin('folder.sub_folders', 'sub_folder')
           .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-          .where('folder.organization.id = :organizationId', {
-            organizationId: organization_id,
+          .where('folder.room.id = :roomId', {
+            roomId: room_id,
           })
           .andWhere(`folder.is_deleted = :is_deleted`, {
             is_deleted: is_deleted || false,
@@ -255,8 +255,8 @@ export class FoldersService {
         .leftJoinAndSelect('folder.users', 'user')
         .leftJoin('folder.sub_folders', 'sub_folder')
         .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-        .where('folder.organization.id = :organizationId', {
-          organizationId: organization_id,
+        .where('folder.room.id = :roomId', {
+          roomId: room_id,
         })
         .andWhere(`folder.is_deleted = :is_deleted`, {
           is_deleted: is_deleted || false,
@@ -327,17 +327,17 @@ export class FoldersService {
     );
     return folder_files;
   }
-  private async getFoldersAndFilesByOrganizationId(
-    organization_id: string,
+  private async getFoldersAndFilesByRoomId(
+    room_id: string,
     parent_folder_id: string,
     folder_ids: string[],
   ) {
     const root_folders = await this.foldersRepository?.find({
       where: {
-        organization: { id: organization_id },
+        room: { id: room_id },
         parent_folder_id: parent_folder_id,
       },
-      relations: ['sub_folders', 'files.organization'],
+      relations: ['sub_folders', 'files.room'],
       order: { tree_index: 'ASC' },
     });
     const folder_file_structures = [];
@@ -350,8 +350,8 @@ export class FoldersService {
       }
       for (const sub of folder_file_structures) {
         const folder_file_structure =
-          await this.getFoldersAndFilesByOrganizationId(
-            organization_id,
+          await this.getFoldersAndFilesByRoomId(
+            room_id,
             sub.id,
             folder_ids,
           );
@@ -360,15 +360,15 @@ export class FoldersService {
     }
     return folder_file_structures;
   }
-  private async getAllFilesByOrg(
-    organization_id: string,
+  private async getAllFilesByRoom(
+    room_id: string,
     parent_folder_id: string,
   ) {
     try {
-      if (!organization_id) throw new NotFoundException('Missing Fields');
+      if (!room_id) throw new NotFoundException('Missing Fields');
       const folder_ids = [];
-      await this.getFoldersAndFilesByOrganizationId(
-        organization_id,
+      await this.getFoldersAndFilesByRoomId(
+        room_id,
         parent_folder_id,
         folder_ids,
       );
@@ -377,8 +377,8 @@ export class FoldersService {
       throw Error(error);
     }
   }
-  async softDelete(id: string, org_id: string) {
-    const to_delete = await this.getAllFilesByOrg(org_id, id);
+  async softDelete(id: string, room_id: string) {
+    const to_delete = await this.getAllFilesByRoom(room_id, id);
     const sub_folders_ids = to_delete?.folder_ids;
     const required_files = [...sub_folders_ids, id].map(async (folder_id) => {
       const file = await this.fileRepository.find({
@@ -408,7 +408,7 @@ export class FoldersService {
     }
   }
   async restore(id: string, org_id: string) {
-    const to_restore = await this.getAllFilesByOrg(org_id, id);
+    const to_restore = await this.getAllFilesByRoom(org_id, id);
     const sub_folders_ids = to_restore?.folder_ids;
 
     const required_files = [...sub_folders_ids, id].map(async (folder_id) => {
@@ -529,7 +529,7 @@ export class FoldersService {
   }
   async rearrangeFolderAndFiles(
     data: any[],
-    organization_id: string,
+    room_id: string,
     user_id: string,
   ) {
     for (const element of data) {
@@ -550,18 +550,17 @@ export class FoldersService {
 
     return {
       success: true,
-      new_data: await this.findAllByOrganization(organization_id, user_id),
+      new_data: await this.findAllByRoom(room_id, user_id),
     };
   }
   async updateFolderColor(
-    organization_id: string,
+    room_id: string,
     folder_id: string,
     color: string,
     user_id: string,
   ) {
     if (!folder_id || !color) throw new BadRequestException('Missing fields');
-    // console.log(organization_id, folder_id);
-    const get_all_ids = await this.getAllFilesByOrg(organization_id, folder_id);
+    const get_all_ids = await this.getAllFilesByRoom(room_id, folder_id);
     console.log(get_all_ids, 'idsss');
     const update = await this.foldersRepository.update(
       {
@@ -570,7 +569,7 @@ export class FoldersService {
       { color },
     );
     if (update.affected > 0) {
-      return await this.findAllByOrganization(organization_id, user_id);
+      return await this.findAllByRoom(room_id, user_id);
     }
   }
 }

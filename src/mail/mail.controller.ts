@@ -29,36 +29,40 @@ export class MailController {
   async sendEmail(
     @Body('emails') emails: string[],
     @Body('group_id') group_id: string,
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Request() request,
   ) {
     if (!request.decoded_data.user_id)
       throw new UnauthorizedException('Sender Id is Missing');
     const new_users = [];
-    const senderUser = await this.userService.findOne({
+    const sender_user = await this.userService.findOne({
       id: request.decoded_data.user_id,
     });
-    // console.log(request.decoded_data.user_id,'dsads')
-    if (!senderUser) throw new NotFoundException('sender user not found');
+
+    if (!sender_user) throw new NotFoundException('sender user not found');
+
     await Promise.all(
       emails.map(async (email: string) => {
-        const invitedUserAlreadyExists = await this.userService.findOne({
+        const invited_user_already_exists = await this.userService.findOne({
           email,
         });
-        if (invitedUserAlreadyExists) return;
+        if (invited_user_already_exists) return;
         new_users.push(email);
       }),
     );
+
     if (new_users.length == 0) {
       throw new NotFoundException('no user found to invite');
     }
+
     const { invites } = await this.inviteService.sendInvitesBySenderId(
       request.decoded_data.user_id,
       new_users,
       group_id,
-      organization_id,
+      room_id,
     );
-    if (invites.length > 0) {
+    if (
+      invites.length > 0) {
       const sendEmails = invites.map((invite) => {
         const payload = { invite_id: invite.id };
         const access_token = this.jwtService.sign(payload, {
@@ -70,8 +74,8 @@ export class MailController {
           subject: 'Invited to LockRoom',
           from:
             String(process.env.VERIFIED_SENDER_EMAIL) || 'waleed@lockroom.com',
-          text: 'Hello',
-          html: inviteTemplate(senderUser.first_name, link, 'Create Account'),
+          text: 'Lockroom Invite',
+          html: inviteTemplate(sender_user.first_name, link, 'Create Account'),
         };
         return this.emailService.send(mail);
       });

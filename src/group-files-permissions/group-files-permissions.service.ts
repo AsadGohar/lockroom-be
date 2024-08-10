@@ -19,14 +19,14 @@ export class GroupFilesPermissionsService {
   ) {}
 
   async createGroupFilePermissionsFoAllGroups(
-    organization_id: string,
+    room_id: string,
     files_permissions: any[],
   ) {
     try {
       const groups = await this.groupsRepository.find({
         where: {
-          organization: {
-            id: organization_id,
+          room: {
+            id: room_id,
           },
         },
       });
