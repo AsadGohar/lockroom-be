@@ -137,7 +137,8 @@ export class UsersService {
           organization: save_org,
           groups: [new_admin_group, new_associate_group, ...dashboard.groups],
           invites: [],
-          users: dashboard.users,
+
+          users: [user, ...dashboard.users],
         }),
       );
 
@@ -152,7 +153,7 @@ export class UsersService {
         display_tree_index: '1',
         absolute_path_ids: '',
         color: '#fec81e',
-        room
+        room,
       });
 
       if (folder) {
@@ -192,6 +193,8 @@ export class UsersService {
 
       const allowed_rooms = [];
 
+      console.log(user,'dasssss')
+
       if (!user) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException
       }
@@ -219,9 +222,9 @@ export class UsersService {
         throw new UnauthorizedException('Login with Google');
       }
 
-      const passwordMatched = await bcrypt.compare(password, user.password);
+      const password_matched = await bcrypt.compare(password, user.password);
 
-      if (!passwordMatched) {
+      if (!password_matched) {
         throw new UnauthorizedException('Invalid Credentials');
       }
       if (user.role == UserRoleEnum.ADMIN || user.role == UserRoleEnum.OWNER) {
@@ -238,9 +241,6 @@ export class UsersService {
         organization.rooms.map((room) => {
           allowed_rooms.push(room);
         });
-        // if (user.organization_created) {
-        //   rooms.push(user.organization_created.id);
-        // }
 
         if (user.two_fa_type == 'sms') {
           const otp = this.otpService.generateOTP();
@@ -281,14 +281,14 @@ export class UsersService {
           await this.otpService.sendSMSService(user.phone_number, String(otp));
         }
         await this.userRepository.save(user);
-
+        console.log(user.room,'dsaads')
         return {
           access_token,
           is_phone_number_verified: user.is_phone_number_verified,
           id: user.id,
           user,
           organization,
-          room: user.room,
+          rooms: [user.room],
         };
       }
     } catch (error) {
@@ -301,27 +301,43 @@ export class UsersService {
     try {
       const user = decodeJwtResponse(jwt_token);
 
+      const allowed_rooms = [];
+
       if (!user) throw new UnauthorizedException('token invalid');
 
       const find_user = await this.userRepository.findOne({
         relations: [
           'organization.rooms.groups',
           'organization.subscription',
+          'organization_created.subscription',
           'groups',
           'room',
         ],
         where: { email: user.email },
       });
 
+      console.log(find_user,'dsdadadas')
+
       if (find_user) {
         if (
           isDateMoreThanSubscription(
-            find_user.organization.subscription_end_date,
-            find_user.organization.subscription.days,
+            find_user.role == UserRoleEnum.OWNER ? find_user.organization_created.subscription_end_date:find_user.organization.subscription_end_date,
+             find_user.role == UserRoleEnum.OWNER ? find_user.organization_created.subscription.days:find_user.organization.subscription.days,
           )
         ) {
           throw new UnauthorizedException('Your trial has expired');
         }
+        const organization = await this.orgRepository.findOne({
+          relations: ['users', 'creator', 'subscription', 'rooms'],
+          where: {
+            id:
+              find_user.role == UserRoleEnum.OWNER
+                ? find_user.organization_created.id
+                : find_user.organization.id,
+          },
+        });
+
+        console.log(organization,'dasdasasss')
 
         if (find_user.role == UserRoleEnum.GUEST) {
           await this.auditService.create(
@@ -330,12 +346,11 @@ export class UsersService {
             find_user.room.id,
             'login',
           );
+          organization.rooms.map((room) => {
+            allowed_rooms.push(room);
+          });
         }
 
-        const organizations = await this.orgRepository.find({
-          relations: ['users', 'creator'],
-          where: { id: find_user.organization.id },
-        });
         const query = await this.folderRepository
           .createQueryBuilder('folder')
           .leftJoinAndSelect('folder.users', 'user')
@@ -356,19 +371,20 @@ export class UsersService {
           email: find_user.email,
           role: find_user.role,
         };
-        const accessToken = this.jwtService.sign(payload, {
+        const access_token = this.jwtService.sign(payload, {
           secret: process.env.JWT_SECRET,
           expiresIn: '1d',
         });
         return {
-          access_token: accessToken,
+          access_token: access_token,
           is_phone_number_verified: find_user.is_phone_number_verified,
           folders: query,
           files_count: query.length,
           sub_folder_count: query1,
           id: find_user.id,
           user: find_user,
-          organizations,
+          organization,
+          rooms: find_user.role == UserRoleEnum.OWNER ? organization.rooms : allowed_rooms,
         };
       }
       const find_invites = await this.inviteRepository.find({
@@ -383,7 +399,7 @@ export class UsersService {
         SubscriptionTypeEnum.TRIAL,
       );
 
-      console.log(find_subscription, 'subbbb');
+      // console.log(find_subscription, 'subbbb');
 
       const calculate_trial_end_date = getNextDate(find_subscription.days);
 
@@ -398,39 +414,49 @@ export class UsersService {
       });
       const saved_user = await this.userRepository.save(new_user);
 
-      // console.log('before query');
-
       const query1 = await this.folderRepository
         .createQueryBuilder('folder')
         .leftJoinAndSelect('folder.users', 'user')
         .leftJoin('folder.sub_folders', 'sub_folder')
         .addSelect('COUNT(DISTINCT sub_folder.id)', 'sub_folder_count')
-        .where('user.id = :user_id', { user_id: new_user.id })
+        .where('user.id = :user_id', { user_id: saved_user.id })
         .groupBy('folder.id, user.id')
         .orderBy('folder.createdAt', 'ASC')
         .getRawMany();
 
-      // console.log('after query');
-
-      const new_group_admin = await this.groupsRepository.save(
-        this.groupsRepository.create({ name: 'Admin', created_by: new_user }),
+      const new_admin_group = await this.groupsRepository.save(
+        this.groupsRepository.create({ name: 'Admin', created_by: saved_user }),
       );
-      const new_group_associates = await this.groupsRepository.save(
+      const new_associate_group = await this.groupsRepository.save(
         this.groupsRepository.create({
           name: 'Associates',
-          created_by: new_user,
+          created_by: saved_user,
         }),
       );
 
       const dashboard = await this.createFakeDashBoard(user);
 
-      const saveOrg = await this.orgRepository.save(
+      const save_org = await this.orgRepository.save(
         this.orgRepository.create({
-          name: 'ORG-' + new_user.id.slice(0, 5),
+          name: 'ORG-' + saved_user.id.slice(0, 5),
+          creator: saved_user,
+          subscription: find_subscription,
+          subscription_start_date: new Date(),
+          subscription_end_date: calculate_trial_end_date,
         }),
       );
 
-      const payload = { user_id: new_user.id, email: new_user.email };
+      const room = await this.roomRepository.save(
+        this.roomRepository.create({
+          name: 'Room-' + save_org.id.slice(0, 5),
+          organization: save_org,
+          groups: [new_admin_group, new_associate_group, ...dashboard.groups],
+          invites: [],
+          users: [saved_user, ...dashboard.users],
+        }),
+      );
+
+      const payload = { user_id: saved_user.id, email: saved_user.email };
       const access_token = this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET,
         expiresIn: '1d',
@@ -440,13 +466,14 @@ export class UsersService {
         name: 'Home',
         parent_folder_id: null,
         tree_index: '1',
-        users: [new_user],
-        organization: saveOrg,
+        users: [saved_user],
+        organization: save_org,
         absolute_path: '/Home',
         display_name: 'Home',
         display_tree_index: '1',
         absolute_path_ids: '',
         color: '#fec81e',
+        room,
       });
       if (folder) {
         await this.folderRepository.update(folder.id, {
@@ -456,10 +483,11 @@ export class UsersService {
           access_token,
           folders: [folder],
           files_count: 1,
-          id: new_user.id,
+          id: saved_user.id,
           sub_folder_count: query1,
-          user: { ...new_user, organization_created: saveOrg },
-          organizations: [saveOrg],
+          user: { ...new_user, organization_created: save_org },
+          organization: save_org,
+          rooms: [room],
         };
       } else {
         throw new BadRequestException(
@@ -496,8 +524,8 @@ export class UsersService {
       const find_user = await this.userRepository.findOne({
         relations: [
           'organization.rooms.groups',
-          'organization.subscription',
           'organization_created',
+          'organization.subscription',
           'organization',
           'groups',
           'room',
@@ -519,6 +547,8 @@ export class UsersService {
         },
       });
 
+      console.log(organization)
+
       if (
         isDateMoreThanSubscription(
           organization.subscription_end_date,
@@ -532,8 +562,15 @@ export class UsersService {
       if (
         find_user.role == UserRoleEnum.ADMIN ||
         find_user.role == UserRoleEnum.OWNER
-      )
+      ){
         orgs.push(find_user.organization_created);
+      }
+      else {
+        orgs.push(find_user.organization);
+
+      }
+
+      console.log(orgs,'dasdas')
 
       return { findUser: find_user, organizations: orgs };
     } catch (error) {
@@ -875,6 +912,131 @@ export class UsersService {
       return {
         sucess: true,
       };
+    }
+  }
+
+  async createNewRoom(
+    room_name: string,
+    organization_id: string,
+    user_id: string,
+  ) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: {
+          id: user_id,
+        },
+      });
+
+      if (!user) throw new NotFoundException('user not found');
+
+      const organization = await this.orgRepository.findOne({
+        relations: ['rooms'],
+        where: {
+          id: organization_id,
+        },
+      });
+
+      if (!organization) throw new NotFoundException('organization not found');
+
+      const new_admin_group = await this.groupsRepository.save(
+        this.groupsRepository.create({ name: 'Admin', created_by: user }),
+      );
+
+      const new_associate_group = await this.groupsRepository.save(
+        this.groupsRepository.create({ name: 'Associates', created_by: user }),
+      );
+
+      const dashboard = await this.createFakeDashBoard(user);
+
+      const room = await this.roomRepository.save(
+        this.roomRepository.create({
+          name: room_name,
+          organization: organization,
+          groups: [new_admin_group, new_associate_group, ...dashboard.groups],
+          invites: [],
+          users: [user, ...dashboard.users],
+        }),
+      );
+
+      const folder = await this.folderRepository.save({
+        name: 'Home',
+        parent_folder_id: null,
+        tree_index: '1',
+        users: [user],
+        organization: organization,
+        absolute_path: '/Home',
+        display_name: 'Home',
+        display_tree_index: '1',
+        absolute_path_ids: '',
+        color: '#fec81e',
+        room,
+      });
+
+      if (folder) {
+        await this.folderRepository.update(folder.id, {
+          absolute_path_ids: `/${folder.id}`,
+        });
+        const rooms = await this.roomRepository.find({
+          where: {
+            organization: {
+              id: organization_id,
+            },
+          },
+        });
+        return {
+          success: true,
+          rooms,
+        };
+      } else {
+        throw new BadRequestException(
+          'Something went wrong while creating folders',
+        );
+      }
+    } catch (error) {
+      console.log(error, 'err');
+      throw new InternalServerErrorException(
+        error.message || 'failed to create user',
+      );
+    }
+  }
+
+  async getRoomsByUserId(organization_id:string,user_id: string) {
+    try {
+      const user = await this.userRepository.findOne({
+        relations: ['room'],
+        where: {
+          id: user_id,
+        },
+      });
+
+      const organization = await this.orgRepository.findOne({
+        relations: ['rooms'],
+        where: {
+          id: organization_id,
+        },
+      });
+
+      console.log(organization,'dsadas')
+
+      if (!user) throw new NotFoundException('user not found');
+
+      if (
+        user.role === UserRoleEnum.ADMIN ||
+        user.role === UserRoleEnum.OWNER
+      ) {
+        return {
+          rooms: organization.rooms,
+        };
+      } else {
+        return {
+          rooms: [user.room],
+        };
+      }
+    } catch (error) {
+      console.log(error, 'err');
+      throw new InternalServerErrorException(
+        error.message || 'failed to create user',
+      );
     }
   }
 }

@@ -7,7 +7,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Group } from './entities/group.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { EmailService } from 'src/email/email.service';
 import { inviteTemplate } from 'src/utils/email.templates';
 import { FilesService } from 'src/files/files.service';
@@ -22,8 +21,6 @@ export class GroupsService {
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Organization)
-    private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Room)
     private readonly roomRepository: Repository<Room>,
     
@@ -34,6 +31,7 @@ export class GroupsService {
   ) {}
   async create(name: string, user_id: string, room_id: string) {
     try {
+      // console.log(name, user_id, room_id,)
       if (!name || !user_id || !room_id)
         throw new NotFoundException('Missing Fields');
       const group = await this.groupsRepository.findOne({
@@ -45,7 +43,7 @@ export class GroupsService {
         where: { id: user_id },
       });
       if (!find_user) throw new NotFoundException('user not found');
-      const find_room = await this.orgRepository.findOne({
+      const find_room = await this.roomRepository.findOne({
         where: { id: room_id },
       });
       const new_group = this.groupsRepository.create({
@@ -160,12 +158,13 @@ export class GroupsService {
       where: { id: new_group_id },
     });
     const find_user = await this.userRepository.findOne({
-      relations: ['organizations_added_in'],
+      relations: ['room'],
       where: { id: guest_user_id },
     });
     find_new_group.users.push(find_user);
     return await this.groupsRepository.save(find_new_group);
   }
+
   async updateUserRoleAndChangeGroup(
     user_id: string,
     user_role: UserRoleEnum,

@@ -21,14 +21,14 @@ export class AuditLogsController {
   @UseGuards(AuthGuard)
   @Post('login')
   createLoginLog(
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Body('type') type: string,
     @Request() request,
   ) {
     return this.auditLogsService.create(
       null,
       request.decoded_data.user_id,
-      organization_id,
+      room_id,
       type,
     );
   }
@@ -37,14 +37,14 @@ export class AuditLogsController {
   @Post('document')
   createDocumentLog(
     @Body('file_id') file_id: string,
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Body('type') type: string,
     @Request() request,
   ) {
     return this.auditLogsService.create(
       file_id,
       request.decoded_data.user_id,
-      organization_id,
+      room_id,
       type,
     );
   }
@@ -52,14 +52,14 @@ export class AuditLogsController {
   @UseGuards(AuthGuard)
   @Post('stats')
   stats(
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Body('date') date: any,
   ) {
-    return this.auditLogsService.getStats(organization_id, date);
+    return this.auditLogsService.getStats(room_id, date);
   }
 
-  @Get('report/:organization_id')
-  async getFile(@Param('organization_id') organization_id: string) {
-    return await this.auditLogsService.exportDataToExcel(organization_id);
+  @Get('report/:room_id')
+  async getFile(@Param('room_id') room_id: string) {
+    return await this.auditLogsService.exportDataToExcel(room_id);
   }
 }

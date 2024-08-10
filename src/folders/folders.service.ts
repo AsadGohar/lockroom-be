@@ -11,7 +11,6 @@ import { Folder } from './entities/folder.entity';
 import { UsersService } from '../users/users.service';
 import { GroupFilesPermissions } from 'src/group-files-permissions/entities/group-files-permissions.entity';
 import { File } from 'src/files/entities/file.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { formatBytes } from 'src/utils/converts.utils';
 import { Group } from 'src/groups/entities/group.entity';
 import { UserRoleEnum, FilePermissionEnum } from 'src/types/enums';
@@ -23,8 +22,6 @@ export class FoldersService {
     private readonly foldersRepository: Repository<Folder>,
     @InjectRepository(File)
     private readonly fileRepository: Repository<File>,
-    @InjectRepository(Organization)
-    private readonly orgRepository: Repository<Organization>,
     @InjectRepository(Group)
     private readonly groupsRepository: Repository<Group>,
     @InjectRepository(GroupFilesPermissions)
@@ -118,24 +115,22 @@ export class FoldersService {
     if (!room_id || !user_id)
       throw new NotFoundException('Missing Fields');
     const find_user = await this.userService.findOne({ id: user_id });
+    console.log(user_id,'sdasds')
+    // console.log(find_user,'dasdas')
     if (
       find_user.role == UserRoleEnum.ADMIN ||
       find_user.role == UserRoleEnum.OWNER
     ) {
-      const rooms =
-        find_user.role == UserRoleEnum.OWNER
-          ? find_user.organization_created.rooms.map(room=> room.id)
-          : [find_user.room.id];
       let get_files: File[];
       if (is_deleted) {
         get_files = await this.fileRepository?.find({
           relations: ['folder', 'versions'],
-          where: { this_deleted: true, room: { id: In(rooms) } },
+          where: { this_deleted: true, room: { id: room_id } },
         });
       } else {
         get_files = await this.fileRepository?.find({
           relations: ['folder', 'versions'],
-          where: { is_deleted: false, room: { id: In(rooms) } },
+          where: { is_deleted: false, room: { id: room_id } },
         });
       }
       const file_data = get_files.map((file) => {
@@ -565,7 +560,6 @@ export class FoldersService {
     user_id: string,
   ) {
     if (!folder_id || !color) throw new BadRequestException('Missing fields');
-    // console.log(organization_id, folder_id);
     const get_all_ids = await this.getAllFilesByRoom(room_id, folder_id);
     console.log(get_all_ids, 'idsss');
     const update = await this.foldersRepository.update(

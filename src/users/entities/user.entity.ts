@@ -18,7 +18,6 @@ import { Group } from '../..//groups/entities/group.entity';
 import { File } from 'src/files/entities/file.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
-import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 import { UserRoleEnum } from 'src/types/enums';
 import { UserViewType } from '../user.view-type.enum';
 import { Room } from 'src/rooms/entities/room.entity';

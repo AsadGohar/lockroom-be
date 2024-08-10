@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLogs } from './entities/audit-logs.entities';
 import { File } from 'src/files/entities/file.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { User } from 'src/users/entities/user.entity';
 import { subMonths, format, subDays } from 'date-fns';
 import { ConfigService } from '@nestjs/config';
@@ -15,8 +14,6 @@ export class AuditLogsSerivce {
     private readonly auditLogsRepository: Repository<AuditLogs>,
     @InjectRepository(File)
     private readonly fileRepository: Repository<File>,
-    @InjectRepository(Organization)
-    private readonly orgRepository: Repository<Organization>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(Room)
@@ -60,9 +57,9 @@ export class AuditLogsSerivce {
       throw new Error(error);
     }
   }
-  async getStats(organization_id: string, date: any) {
+  async getStats(room_id: string, date: any) {
     try {
-      if (!organization_id || !date)
+      if (!room_id || !date)
         throw new NotFoundException('Missing Fields');
       let startDate: any;
       if (date.type == 'days') startDate = subDays(new Date(), date.value);
@@ -75,8 +72,8 @@ export class AuditLogsSerivce {
         .addSelect('COUNT(*)', 'total')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'view')`, 'views')
         .addSelect(`COUNT(*) FILTER (WHERE audit_logs.type = 'login')`, 'login')
-        .where('audit_logs.organizationId = :organization_id', {
-          organization_id,
+        .where('audit_logs.roomId = :room_id', {
+          room_id,
         })
         .leftJoin('audit_logs.group', 'group')
         .groupBy('group.name');
@@ -90,8 +87,8 @@ export class AuditLogsSerivce {
         .leftJoin('audit_logs.group', 'group')
         .leftJoin('audit_logs.user', 'user')
         .groupBy('group.name, user.full_name, user.createdAt, user.email')
-        .where('audit_logs.organizationId = :organization_id', {
-          organization_id,
+        .where('audit_logs.roomId = :room_id', {
+          room_id,
         })
         .orderBy('engagement', 'DESC');
       const document_rankings_query = this.auditLogsRepository
@@ -106,8 +103,8 @@ export class AuditLogsSerivce {
         .leftJoin('audit_logs.file', 'file')
         .leftJoin('file.folder', 'folder')
         .groupBy('group.name, file.id, folder.name, file.mime_type')
-        .where('audit_logs.organizationId = :organization_id', {
-          organization_id,
+        .where('audit_logs.roomId = :room_id', {
+          room_id,
         })
         .andWhere('audit_logs.type = :type', { type: 'view' })
         .orderBy('views', 'DESC');

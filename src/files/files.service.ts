@@ -394,6 +394,7 @@ export class FilesService {
     group_id: string,
   ) {
     try {
+      // console.log(room_id,'dasdas')
       if (!room_id) throw new NotFoundException('Missing Fields');
       const file_ids_in_org = [];
       const result = await this.getFoldersAndFilesByOrganizationId(
@@ -409,7 +410,7 @@ export class FilesService {
               room: { id: room_id },
               id: parent_folder_id,
             },
-            relations: ['sub_folders', 'files.organization'],
+            relations: ['sub_folders', 'files.room'],
           }),
         ),
       );

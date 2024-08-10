@@ -61,10 +61,10 @@ export class Folder {
   @OneToMany(() => File, (file) => file.folder, { onDelete: 'CASCADE' })
   files: File[];
 
-  @ManyToMany(() => User, (user) => user.folders)
+  @ManyToMany(() => User, (user) => user.folders, )
   users: User[];
 
-  @ManyToOne(() => Room, (room) => room.files)
+  @ManyToOne(() => Room, (room) => room.files, {onDelete:"CASCADE"})
   @JoinColumn()
   room: Room;
 

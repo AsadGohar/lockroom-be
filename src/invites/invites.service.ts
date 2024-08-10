@@ -10,7 +10,6 @@ import { User } from '../users/entities/user.entity';
 import { Invite } from '../invites/entities/invite.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { UserRoleEnum } from 'src/types/enums';
 import { EmailService } from 'src/email/email.service';
@@ -87,7 +86,7 @@ export class InvitesService {
         console.log();
         return {
           email: find_invite.sent_to,
-          organization_id: find_invite.room.id,
+          room_id: find_invite.room.id,
         };
       }
     } catch (error) {
@@ -107,7 +106,7 @@ export class InvitesService {
       if (!email || !first_name || !last_name || !phone_number || !jwt_token)
         throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
-        relations: ['organizations_added_in'],
+        relations: ['room'],
         where: { email: email },
       });
       if (find_user) throw new ConflictException('User Already Exists');
@@ -121,7 +120,7 @@ export class InvitesService {
         secret: process.env.JWT_SECRET,
       });
       const invite = await this.inviteRepository.findOne({
-        relations: ['room', 'group'],
+        relations: ['room.organization', 'group'],
         where: { id: resp.invite_id },
       });
 
@@ -148,6 +147,7 @@ export class InvitesService {
         role,
         phone_number,
         full_name,
+        organization: invite.room.organization,
         groups: [find_group],
         room: find_room,
       });

@@ -29,7 +29,6 @@ export class MailController {
   async sendEmail(
     @Body('emails') emails: string[],
     @Body('group_id') group_id: string,
-    @Body('organization_id') organization_id: string,
     @Body('room_id') room_id: string,
     @Request() request,
   ) {

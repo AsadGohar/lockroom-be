@@ -10,7 +10,6 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '../../users/entities/user.entity';
 import { Group } from 'src/groups/entities/group.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { Room } from 'src/rooms/entities/room.entity';
 
 @Entity()

@@ -3,14 +3,18 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
-import { UpdateRoomDto } from './dto/update-room.dto';
+import { AuthGuard } from 'src/guards/auth.guard';
+import { RolesGuard } from 'src/guards/role.guard';
+import { Roles } from 'src/guards/role.decorator';
+import { UserRoleEnum } from 'src/types/enums';
 
 @Controller('rooms')
 export class RoomsController {
@@ -21,6 +25,7 @@ export class RoomsController {
     return this.roomsService.create(createRoomDto);
   }
 
+  @UseGuards(AuthGuard)
   @Post('user')
   findAll(
     @Body('organization_id') organization_id: string,
@@ -37,13 +42,16 @@ export class RoomsController {
     return this.roomsService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto) {
-    return this.roomsService.update(+id, updateRoomDto);
+  @UseGuards(AuthGuard)
+  @UseGuards(RolesGuard)
+  @Roles([UserRoleEnum.ADMIN, UserRoleEnum.OWNER])
+  @Put('update-name')
+  update(@Body('room_id') room_id: string, @Body('new_name') new_name: string) {
+    return this.roomsService.updateName(room_id, new_name);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.roomsService.remove(+id);
+    return this.roomsService.remove(id);
   }
 }

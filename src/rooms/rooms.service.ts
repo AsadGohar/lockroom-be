@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -45,8 +45,8 @@ export class RoomsService {
           id: organization_id,
         },
         users: {
-          id:user_id
-        }
+          id: user_id,
+        },
       },
     });
   }
@@ -55,11 +55,48 @@ export class RoomsService {
     return `This action returns a #${id} room`;
   }
 
-  update(id: number, updateRoomDto: UpdateRoomDto) {
-    return `This action updates a #${id} room`;
+  async updateName(room_id: string, new_name: string) {
+    const update_room_name = await this.roomRepository.update(
+      {
+        id: room_id,
+      },
+      {
+        name: new_name,
+      },
+    );
+
+    if (update_room_name.affected > 0) {
+      const room = await this.roomRepository.findOne({
+        where: {
+          id: room_id,
+        },
+      });
+      return { room: room, message: 'room name updated' };
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} room`;
+  async remove(id: string) {
+    const find_room = await this.roomRepository.findOne({
+      relations: ['users'],
+      where: {
+        id,
+      },
+    });
+    find_room.users = [];
+    find_room.groups = [];
+    find_room.folder = [];
+    const delete_users = await this.roomRepository.save(find_room);
+    if (delete_users) {
+      const delete_room = await this.roomRepository.delete({
+        id,
+      });
+      if (delete_room && delete_room.affected > 0) {
+        return {
+          success: true,
+        };
+      } else {
+        throw new NotFoundException('room not found');
+      }
+    }
   }
 }

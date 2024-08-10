@@ -6,7 +6,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   BeforeInsert,
-  ManyToOne
+  ManyToOne,
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Group } from 'src/groups/entities/group.entity';
@@ -49,8 +49,8 @@ export class Room {
   @OneToMany(() => Folder, (folder) => folder.room)
   folder: Folder[];
 
-  @OneToMany(() => AuditLogs, (auditLog) => auditLog.room,{
-    nullable:true
+  @OneToMany(() => AuditLogs, (auditLog) => auditLog.room, {
+    nullable: true,
   })
   audit_log: AuditLogs[];
 

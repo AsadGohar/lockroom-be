@@ -14,7 +14,7 @@ export class OrganizationsController {
   ) {
     return this.organizationsService.getUsersByRoomAndGroup(
       room_id,
-      group_id,
+      group_id, 
     );
   }
 

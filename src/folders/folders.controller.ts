@@ -21,14 +21,14 @@ export class FoldersController {
   create(
     @Body('name') name: string,
     @Body('parent_folder_id') parent_folder_id: string,
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Request() request,
   ) {
     try {
       return this.foldersService.create(
         name,
         request.decoded_data.user_id,
-        organization_id,
+        room_id,
         parent_folder_id,
       );
     } catch (error) {

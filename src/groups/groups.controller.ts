@@ -12,13 +12,13 @@ export class GroupsController {
   @Post()
   create(
     @Body('name') name: string,
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Request() request,
   ) {
     return this.groupsService.create(
       name,
       request.decoded_data?.user_id,
-      organization_id,
+      room_id,
     );
   }
 

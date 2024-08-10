@@ -11,7 +11,6 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { File } from 'src/files/entities/file.entity';
 import { User } from 'src/users/entities/user.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { Group } from 'src/groups/entities/group.entity';
 import { Room } from 'src/rooms/entities/room.entity';
 
