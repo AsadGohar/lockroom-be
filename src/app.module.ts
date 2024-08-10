@@ -34,6 +34,8 @@ import { FileVersion } from './file-version/entities/file-version.entity';
 import { RolesGuard } from './guards/role.guard';
 import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
 import { SubscriptionPlans } from './subscription-plans/entities/subscription-plan.entity';
+import { RoomsModule } from './rooms/rooms.module';
+import { Room } from './rooms/entities/room.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -60,7 +62,8 @@ import { SubscriptionPlans } from './subscription-plans/entities/subscription-pl
         GroupFilesPermissions,
         AuditLogs,
         FileVersion,
-        SubscriptionPlans
+        SubscriptionPlans,
+        Room
       ],
       synchronize: true,
       ssl:
@@ -91,6 +94,7 @@ import { SubscriptionPlans } from './subscription-plans/entities/subscription-pl
     AuditLogsModule,
     FileVersionModule,
     SubscriptionPlansModule,
+    RoomsModule,
   ],
   controllers: [AppController, MailController, GroupFilesPermissionsController],
   providers: [AppService, EmailService, JwtService, RolesGuard],

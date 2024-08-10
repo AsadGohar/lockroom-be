@@ -26,6 +26,7 @@ import { OTPService } from 'src/otp/otp.service';
 import { FileVersion } from 'src/file-version/entities/file-version.entity';
 import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Module({
   imports: [
@@ -41,7 +42,8 @@ import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.
       Invite,
       AuditLogs,
       FileVersion,
-      SubscriptionPlans
+      SubscriptionPlans,
+      Room
     ]),
   ],
   controllers: [FilesController],

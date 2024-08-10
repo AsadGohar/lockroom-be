@@ -11,8 +11,8 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { File } from 'src/files/entities/file.entity';
 import { User } from 'src/users/entities/user.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
 import { Group } from 'src/groups/entities/group.entity';
+import { Room } from 'src/rooms/entities/room.entity';
 
 @Entity()
 export class AuditLogs {
@@ -26,13 +26,13 @@ export class AuditLogs {
   @JoinColumn()
   user: User;
 
-  @ManyToOne(() => Group, (group) => group.audit_log)
+  @ManyToOne(() => Group, (group) => group.audit_log, {onDelete:'CASCADE'})
   @JoinColumn()
   group: Group;
 
-  @ManyToOne(() => Organization, (org) => org.audit_log)
+  @ManyToOne(() => Room, (room) => room.audit_log)
   @JoinColumn()
-  organization: Organization;
+  room: Room;
 
   @ManyToOne(() => File, { nullable: true })
   @JoinColumn()

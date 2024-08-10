@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { SubscriptionTypeEnum } from 'src/types/enums';
-import { User } from 'src/users/entities/user.entity';
+import { Organization } from 'src/organizations/entities/organization.entity';
 @Entity()
 export class SubscriptionPlans {
   @PrimaryGeneratedColumn('uuid')
@@ -28,8 +28,8 @@ export class SubscriptionPlans {
   @Column()
   price: number;
 
-  @OneToMany(() => User, user => user.subscription)
-  user: User;
+  @OneToMany(() => Organization, (organization) => organization.subscription)
+  organization: Organization;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

@@ -13,7 +13,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { File } from 'src/files/entities/file.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
+import { Room } from 'src/rooms/entities/room.entity';
 @Entity()
 export class Folder {
   @PrimaryGeneratedColumn('uuid')
@@ -61,12 +61,12 @@ export class Folder {
   @OneToMany(() => File, (file) => file.folder, { onDelete: 'CASCADE' })
   files: File[];
 
-  @ManyToMany(() => User, (user) => user.folders)
+  @ManyToMany(() => User, (user) => user.folders, )
   users: User[];
 
-  @ManyToOne(() => Organization, (organization) => organization.files)
+  @ManyToOne(() => Room, (room) => room.files, {onDelete:"CASCADE"})
   @JoinColumn()
-  organization: Organization;
+  room: Room;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;

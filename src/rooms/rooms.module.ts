@@ -1,49 +1,46 @@
 import { Module } from '@nestjs/common';
+import { RoomsService } from './rooms.service';
+import { RoomsController } from './rooms.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './entities/user.entity';
-import { UsersService } from './users.service';
-import { UsersController } from './users.controller';
-import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
+import { Room } from './entities/room.entity';
+import { JwtService } from '@nestjs/jwt';
+import { UsersService } from 'src/users/users.service';
+import { User } from 'src/users/entities/user.entity';
 import { Folder } from 'src/folders/entities/folder.entity';
 import { Group } from 'src/groups/entities/group.entity';
-import { Invite } from 'src/invites/entities/invite.entity';
+import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity'
 import { Organization } from 'src/organizations/entities/organization.entity';
-import { File } from 'src/files/entities/file.entity';
+import { Invite } from 'src/invites/entities/invite.entity';
 import { AuditLogs } from 'src/audit-logs/entities/audit-logs.entities';
 import { AuditLogsSerivce } from 'src/audit-logs/audit-logs.service';
 import { OTPService } from 'src/otp/otp.service';
 import { SubscriptionsService } from 'src/subscription-plans/subscription-plans.service';
-import { SubscriptionPlans } from 'src/subscription-plans/entities/subscription-plan.entity';
 import { EmailService } from 'src/email/email.service';
-import { Room } from 'src/rooms/entities/room.entity';
+import { File } from 'src/files/entities/file.entity';
+
 @Module({
   imports: [
-    ConfigModule.forRoot(),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '1h' },
-    }),
     TypeOrmModule.forFeature([
+      Room,
       User,
       Folder,
       Group,
-      Invite,
       Organization,
-      File,
+      Invite,
       AuditLogs,
-      SubscriptionPlans,
-      Room
+      File,
+      SubscriptionPlans
     ]),
   ],
-  controllers: [UsersController],
+  controllers: [RoomsController],
   providers: [
+    RoomsService,
+    JwtService,
     UsersService,
     AuditLogsSerivce,
     OTPService,
     SubscriptionsService,
-    EmailService,
+    EmailService
   ],
-  exports: [UsersService],
 })
-export class UsersModule {}
+export class RoomsModule {}

@@ -21,7 +21,7 @@ export class UploadController {
   async uploadFile(
     @UploadedFiles()
     files: Array<Express.Multer.File>,
-    @Body('organization_id') organization_id: string,
+    @Body('room_id') room_id: string,
     @Body('folder_id') folder_id: string,
     @Request() request,
   ) {
@@ -29,25 +29,7 @@ export class UploadController {
       files,
       folder_id,
       request.decoded_data.user_id,
-      organization_id,
-    );
-  }
-
-  @Post()
-  @UseGuards(AuthGuard)
-  @UseInterceptors(AnyFilesInterceptor())
-  async uploadFileTest(
-    @UploadedFiles()
-    files: Array<Express.Multer.File>,
-    @Body('organization_id') organization_id: string,
-    @Body('folder_id') folder_id: string,
-    @Request() request,
-  ) {
-    return await this.uploadService.uploadMultiple(
-      files,
-      folder_id,
-      request.decoded_data.user_id,
-      organization_id,
+      room_id,
     );
   }
 
