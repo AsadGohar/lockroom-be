@@ -83,7 +83,7 @@ export class GroupsService {
     const user = await this.userRepository.findOne({
       where: { id: user_id },
     });
-    console.log(group.users)
+    // console.log(group.users)
     const userIndex = group.users.findIndex(
       (existingUser) => existingUser.id === user.id,
     );
@@ -111,7 +111,7 @@ export class GroupsService {
     } catch (error) {}
   }
   async getGroupsByRoom(room_id: string, user_id: string) {
-    console.log(room_id,'room')
+    // console.log(room_id,'room')
     try {
       if (!room_id || !user_id)
         throw new NotFoundException('Missing Fields');
@@ -171,7 +171,7 @@ export class GroupsService {
     old_group_id: string,
     room_id: string,
   ) {
-    console.log(user_id, user_role, old_group_id);
+    // console.log(user_id, user_role, old_group_id);
     // return
     const update_user = await this.userRepository.update(
       { id: user_id },
@@ -182,11 +182,11 @@ export class GroupsService {
       where: { name: 'Admin', room: { id: room_id } },
     });
 
-    console.log(find_admin_group.users,'addddmin grrppp')
+    // console.log(find_admin_group.users,'addddmin grrppp')
 
     if (update_user.affected > 0) {
       if (user_role == UserRoleEnum.ADMIN) {
-        console.log('in admin')
+        // console.log('in admin')
         const add_user_to_admin_group = await this.switchUser(
           user_id,
           find_admin_group.id,
@@ -197,7 +197,7 @@ export class GroupsService {
         }
       }
       if (user_role == UserRoleEnum.GUEST) {
-        console.log('in guest')
+        // console.log('in guest')
         const remove_user_from_admin_group = await this.switchUser(
           user_id,
           find_admin_group.id,

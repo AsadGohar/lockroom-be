@@ -205,7 +205,7 @@ export class FilesService {
   async findOne(id: string, user_id: string) {
     if (!id) throw new NotFoundException('Missing Fields');
     const find_user = await this.userRepository.findOne({
-      relations: ['groups', 'organizations_added_in'],
+      relations: ['groups', 'room'],
       where: { id: user_id },
     });
     if (find_user.role == UserRoleEnum.GUEST) {
