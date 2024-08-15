@@ -407,12 +407,16 @@ export class FoldersService {
       throw new InternalServerErrorException(error.message);
     }
   }
-  async restore(id: string, org_id: string) {
-    const to_restore = await this.getAllFilesByRoom(org_id, id);
+  async restore(id: string, room_id: string) {
+
+    // return
+    const to_restore = await this.getAllFilesByRoom(room_id, id);
     const sub_folders_ids = to_restore?.folder_ids;
 
+    // return
+
     const required_files = [...sub_folders_ids, id].map(async (folder_id) => {
-      const file = await this.fileRepository.find({
+      const file =  this.fileRepository.find({
         where: { folder: { id: folder_id } },
       });
       if (file) {
@@ -424,13 +428,19 @@ export class FoldersService {
     const current_folder = await this.foldersRepository.findOne({
       where: { id },
     });
+
     const folders_to_restore = current_folder.absolute_path_ids
       ?.split('/')
       ?.slice(1);
+ 
     await this.foldersRepository.update(
       { id: In(folders_to_restore) },
       { is_partial_restored: true },
     );
+
+    // console.log(folders_to_restore,'dsadas')
+    // return
+   
     const child_folders_in_parent = await this.foldersRepository.find({
       where: {
         parent_folder_id: current_folder?.parent_folder_id,

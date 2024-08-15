@@ -281,7 +281,7 @@ export class UsersService {
           await this.otpService.sendSMSService(user.phone_number, String(otp));
         }
         await this.userRepository.save(user);
-        console.log(user.room,'dsaads')
+        // console.log(user.room,'dsaads')
         return {
           access_token,
           is_phone_number_verified: user.is_phone_number_verified,
@@ -316,7 +316,7 @@ export class UsersService {
         where: { email: user.email },
       });
 
-      console.log(find_user,'dsdadadas')
+      // console.log(find_user,'dsdadadas')
 
       if (find_user) {
         if (
@@ -337,7 +337,7 @@ export class UsersService {
           },
         });
 
-        console.log(organization,'dasdasasss')
+        // console.log(organization,'dasdasasss')
 
         if (find_user.role == UserRoleEnum.GUEST) {
           await this.auditService.create(
@@ -547,7 +547,7 @@ export class UsersService {
         },
       });
 
-      console.log(organization)
+      // console.log(organization)
 
       if (
         isDateMoreThanSubscription(
@@ -570,7 +570,7 @@ export class UsersService {
 
       }
 
-      console.log(orgs,'dasdas')
+      // console.log(orgs,'dasdas')
 
       return { findUser: find_user, organizations: orgs };
     } catch (error) {
@@ -668,7 +668,7 @@ export class UsersService {
       if (find_user.generated_otp == otp) {
         find_user.is_phone_number_verified = true;
         await this.userRepository.save(find_user);
-        console.log(find_user);
+        // console.log(find_user);
         return { success: true };
       }
       return new UnauthorizedException('OTP is invalid');
@@ -897,7 +897,7 @@ export class UsersService {
   }
 
   async updatePassword(user_id: string, password: string) {
-    console.log(password, 'dasdas');
+    // console.log(password, 'dasdas');
     const hashed_password = await bcrypt.hash(password, 10);
     const update_password = await this.userRepository.update(
       {
@@ -1016,7 +1016,7 @@ export class UsersService {
         },
       });
 
-      console.log(organization,'dsadas')
+      // console.log(organization,'dsadas')
 
       if (!user) throw new NotFoundException('user not found');
 

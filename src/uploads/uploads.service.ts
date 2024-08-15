@@ -24,7 +24,7 @@ export class UploadService {
     if (files.length > 0) {
       const file_names = [];
 
-      console.log(user_id)
+      // console.log(user_id)
       // return
 
       const file_promises = files.map((file) => {
