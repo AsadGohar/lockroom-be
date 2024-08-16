@@ -35,7 +35,10 @@ export class GroupsService {
       if (!name || !user_id || !room_id)
         throw new NotFoundException('Missing Fields');
       const group = await this.groupsRepository.findOne({
-        where: { name: name },
+        where: { name: name,
+        room: {
+          id:room_id
+        } },
       });
       if (group)
         throw new ConflictException('group already exists with same name');
