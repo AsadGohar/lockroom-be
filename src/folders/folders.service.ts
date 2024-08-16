@@ -31,6 +31,7 @@ export class FoldersService {
 
     private readonly userService: UsersService,
   ) {}
+
   async create(
     name: string,
     user_id: string,
@@ -69,7 +70,7 @@ export class FoldersService {
       where: { id: room_id },
     });
 
-    console.log(find_room,'roooom')
+    console.log(find_room, 'roooom');
     const new_folder = await this.foldersRepository.save({
       display_name:
         child_folders_with_same_name?.length > 0 && folderwithSamedisplay_name
@@ -79,7 +80,7 @@ export class FoldersService {
       parent_folder_id,
       tree_index: current_tree_index + next,
       users: [user],
-      room:find_room,
+      room: find_room,
       absolute_path: parent_folder.absolute_path + '/' + name,
       display_tree_index: parent_folder.display_tree_index + '.' + next,
       absolute_path_ids: '',
@@ -104,19 +105,14 @@ export class FoldersService {
       await this.foldersRepository.save(parent_folder);
     return { new_folder: new_folder_1, parent_folder: update_parent_folder };
   }
+
   async findAll() {
     return await this.foldersRepository.find();
   }
-  async findAllByRoom(
-    room_id: string,
-    user_id: string,
-    is_deleted?: boolean,
-  ) {
-    if (!room_id || !user_id)
-      throw new NotFoundException('Missing Fields');
+
+  async findAllByRoom(room_id: string, user_id: string, is_deleted?: boolean) {
+    if (!room_id || !user_id) throw new NotFoundException('Missing Fields');
     const find_user = await this.userService.findOne({ id: user_id });
-    console.log(user_id,'sdasds')
-    // console.log(find_user,'dasdas')
     if (
       find_user.role == UserRoleEnum.ADMIN ||
       find_user.role == UserRoleEnum.OWNER
@@ -276,12 +272,14 @@ export class FoldersService {
       return { sub_folder_count: data };
     }
   }
+
   async findAllByUserId(user_id: string) {
     if (!user_id) throw new NotFoundException('Missing Fields');
     return await this.foldersRepository.find({
       where: { users: { id: user_id } },
     });
   }
+
   async update(prev_name: string, new_name: string, parent_folder_id?: string) {
     const findRepo = await this.foldersRepository.find({
       where: { parent_folder_id, name: prev_name },
@@ -299,6 +297,7 @@ export class FoldersService {
       { name: new_name },
     );
   }
+
   private async buildFolderFileStructure(folder: Folder) {
     const folder_files = {
       name: folder.name,
@@ -327,6 +326,7 @@ export class FoldersService {
     );
     return folder_files;
   }
+
   private async getFoldersAndFilesByRoomId(
     room_id: string,
     parent_folder_id: string,
@@ -349,34 +349,33 @@ export class FoldersService {
         folder_ids?.push(root_folder?.id);
       }
       for (const sub of folder_file_structures) {
-        const folder_file_structure =
-          await this.getFoldersAndFilesByRoomId(
-            room_id,
-            sub.id,
-            folder_ids,
-          );
+        const folder_file_structure = await this.getFoldersAndFilesByRoomId(
+          room_id,
+          sub.id,
+          folder_ids,
+        );
         sub.children.push(...folder_file_structure);
       }
     }
     return folder_file_structures;
   }
-  private async getAllFilesByRoom(
-    room_id: string,
-    parent_folder_id: string,
-  ) {
+
+  private async getAllFilesByRoom(room_id: string, parent_folder_id: string) {
     try {
       if (!room_id) throw new NotFoundException('Missing Fields');
       const folder_ids = [];
-      await this.getFoldersAndFilesByRoomId(
+      const folder_structure = await this.getFoldersAndFilesByRoomId(
         room_id,
         parent_folder_id,
         folder_ids,
       );
-      return { folder_ids };
+      // console.log(folder_structure,'ds')
+      return { folder_ids, folder_structure };
     } catch (error) {
       throw Error(error);
     }
   }
+
   async softDelete(id: string, room_id: string) {
     const to_delete = await this.getAllFilesByRoom(room_id, id);
     const sub_folders_ids = to_delete?.folder_ids;
@@ -407,16 +406,13 @@ export class FoldersService {
       throw new InternalServerErrorException(error.message);
     }
   }
-  async restore(id: string, room_id: string) {
 
-    // return
+  async restore(id: string, room_id: string) {
     const to_restore = await this.getAllFilesByRoom(room_id, id);
     const sub_folders_ids = to_restore?.folder_ids;
 
-    // return
-
     const required_files = [...sub_folders_ids, id].map(async (folder_id) => {
-      const file =  this.fileRepository.find({
+      const file = this.fileRepository.find({
         where: { folder: { id: folder_id } },
       });
       if (file) {
@@ -432,7 +428,7 @@ export class FoldersService {
     const folders_to_restore = current_folder.absolute_path_ids
       ?.split('/')
       ?.slice(1);
- 
+
     await this.foldersRepository.update(
       { id: In(folders_to_restore) },
       { is_partial_restored: true },
@@ -440,7 +436,7 @@ export class FoldersService {
 
     // console.log(folders_to_restore,'dsadas')
     // return
-   
+
     const child_folders_in_parent = await this.foldersRepository.find({
       where: {
         parent_folder_id: current_folder?.parent_folder_id,
@@ -471,6 +467,7 @@ export class FoldersService {
       throw new InternalServerErrorException(error.message);
     }
   }
+
   async rename(folder_id: string, new_name: string, parent_folder_id: string) {
     try {
       const check_same_name_folder = await this.foldersRepository.find({
@@ -493,6 +490,7 @@ export class FoldersService {
       throw new InternalServerErrorException(error.message);
     }
   }
+
   private sortByFolderTreeIndex(data) {
     data.sort((a, b) => {
       const indexA = a.folder_display_tree_index.split('.').map(Number);
@@ -505,6 +503,7 @@ export class FoldersService {
     });
     return data;
   }
+
   private async updateDisplayTreeIndex(
     parentId: string,
     parentDisplayTreeIndex: string,
@@ -537,11 +536,8 @@ export class FoldersService {
       });
     }
   }
-  async rearrangeFolderAndFiles(
-    data: any[],
-    room_id: string,
-    user_id: string,
-  ) {
+
+  async rearrangeFolderAndFiles(data: any[], room_id: string, user_id: string) {
     for (const element of data) {
       if (element.type === 'folder') {
         await this.updateDisplayTreeIndex(
@@ -563,6 +559,7 @@ export class FoldersService {
       new_data: await this.findAllByRoom(room_id, user_id),
     };
   }
+
   async updateFolderColor(
     room_id: string,
     folder_id: string,
@@ -582,4 +579,11 @@ export class FoldersService {
       return await this.findAllByRoom(room_id, user_id);
     }
   }
+
+  async downloadFolderStructure(folder_id: string, room_id: string, user_id:string) {
+    const get_all_ids = await this.getAllFilesByRoom(room_id, folder_id);
+    const get_all_ids_two = await this.findAllByRoom(room_id, user_id);
+    return  get_all_ids_two; 
+  }
+  
 }

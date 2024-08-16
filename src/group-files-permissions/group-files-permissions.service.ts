@@ -173,15 +173,25 @@ export class GroupFilesPermissionsService {
         },
         relations: ['group', 'file_permission.permission'],
       });
+      console.log(find_group_files_permissions.map(gfp=>{
+        return {
+          permissions: gfp.file_permission.permission
+        }
+      }), find_existing_permissions.map(gfp=>{
+        return {
+          permissions: gfp.file_permission.permission
+        }
+      }))
+      // return
 
       if (
         (type === FilePermissionEnum.DOWNLOAD_WATERMARKED ||
           type === FilePermissionEnum.VIEW_ORIGINAL) &&
-        find_existing_permissions?.length > 0 &&
-        status
+        find_existing_permissions?.length == file_ids.length &&
+        Boolean(status)
       ) {
         return new ConflictException(
-          `${type === FilePermissionEnum.DOWNLOAD_WATERMARKED ? 'Enable view watermark' : 'Disable download watermark'} first`,
+          `${type === FilePermissionEnum.DOWNLOAD_WATERMARKED ? 'Enable view watermark first' : 'Already is true'}`,
         );
       }
 

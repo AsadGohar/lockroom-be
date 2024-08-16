@@ -4,7 +4,7 @@ import {
   Body,
   UseGuards,
   Request,
-  Patch,
+  Patch
 } from '@nestjs/common';
 import { FoldersService } from './folders.service';
 import { AuthGuard } from 'src/guards/auth.guard';
@@ -114,4 +114,14 @@ export class FoldersController {
   ) {
     return this.foldersService.updateFolderColor(room_id,folder_id, color, request.decoded_data.user_id );
   }
+
+  // @UseGuards(AuthGuard)
+  // @Post('/structure')
+  // getFolderStructure(
+  //   @Body('folder_id') folder_id: string,
+  //   @Body('room_id') room_id: string,
+  //   @Request() request,
+  // ) {
+  //   return this.foldersService.downloadFolderStructure(folder_id, room_id, request.decoded_data.user_id,);
+  // }
 }

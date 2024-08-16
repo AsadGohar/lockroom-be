@@ -434,7 +434,7 @@ export class UsersService {
         }),
       );
 
-      const dashboard = await this.createFakeDashBoard(user);
+      // const dashboard = await this.createFakeDashBoard(user);
 
       const save_org = await this.orgRepository.save(
         this.orgRepository.create({
@@ -450,9 +450,11 @@ export class UsersService {
         this.roomRepository.create({
           name: 'Room-' + save_org.id.slice(0, 5),
           organization: save_org,
-          groups: [new_admin_group, new_associate_group, ...dashboard.groups],
+          // groups: [new_admin_group, new_associate_group, ...dashboard.groups], for fake dashboard
+          groups: [new_admin_group, new_associate_group],
           invites: [],
-          users: [saved_user, ...dashboard.users],
+          // users: [saved_user, ...dashboard.users], for fake dashboard
+          users: [saved_user],
         }),
       );
 
@@ -946,15 +948,13 @@ export class UsersService {
         this.groupsRepository.create({ name: 'Associates', created_by: user }),
       );
 
-      const dashboard = await this.createFakeDashBoard(user);
-
       const room = await this.roomRepository.save(
         this.roomRepository.create({
           name: room_name,
           organization: organization,
-          groups: [new_admin_group, new_associate_group, ...dashboard.groups],
+          groups: [new_admin_group, new_associate_group],
           invites: [],
-          users: [user, ...dashboard.users],
+          users: [user],
         }),
       );
 
