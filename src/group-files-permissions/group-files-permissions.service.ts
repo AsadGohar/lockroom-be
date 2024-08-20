@@ -155,6 +155,62 @@ export class GroupFilesPermissionsService {
         },
       });
 
+      const find_view_original_existing_permissions =
+        await this.groupFilePermRepo.find({
+          relations: ['group', 'file_permission.permission'],
+          where: {
+            group: { id: group_id },
+            file_permission: {
+              file: {
+                id: In(file_ids),
+              },
+              permission: {
+                status: true,
+                type: FilePermissionEnum.VIEW_ORIGINAL,
+              },
+            },
+          },
+        });
+
+      const check_if_conditions_already_set = await this.groupFilePermRepo.find(
+        {
+          relations: ['group', 'file_permission.permission'],
+          where: {
+            group: { id: group_id },
+            file_permission: {
+              file: {
+                id: In(file_ids),
+              },
+              permission: {
+                status: status,
+                type: type,
+              },
+            },
+          },
+        },
+      ); //check if the view_original permissions are set to true before updating
+
+      const find_download_watermarked_existing_permissions =
+        await this.groupFilePermRepo.find({
+          relations: ['group', 'file_permission.permission'],
+          where: {
+            group: { id: group_id },
+            file_permission: {
+              file: {
+                id: In(file_ids),
+              },
+              permission: {
+                status: true,
+                type: FilePermissionEnum.DOWNLOAD_WATERMARKED,
+              },
+            },
+          },
+        }); //check if download watermark permissions are set to true before updating
+
+      if (check_if_conditions_already_set?.length == file_ids.length) {
+        return new ConflictException(`Already set to ${status}`);
+      }
+
       const find_existing_permissions = await this.groupFilePermRepo.find({
         relations: ['group', 'file_permission.permission'],
         where: {
@@ -172,18 +228,7 @@ export class GroupFilesPermissionsService {
             },
           },
         },
-      }); //check if the view_original and download watermark permissions are set to true before updating
-      // console.log(find_group_files_permissions.map(gfp=>{
-      //   return {
-      //     permissions: gfp.file_permission.permission
-      //   }
-      // }))
-      // console.log(find_existing_permissions.map(gfp=>{
-      //   return {
-      //     permissions: gfp.file_permission.permission
-      //   }
-      // }))
-      // return
+      });
 
       if (
         (type === FilePermissionEnum.DOWNLOAD_WATERMARKED ||
@@ -194,6 +239,15 @@ export class GroupFilesPermissionsService {
         return new ConflictException(
           `${type === FilePermissionEnum.DOWNLOAD_WATERMARKED ? 'Enable view watermark' : 'Disable download watermark'} first`,
         )
+      }
+
+      if (
+        type === FilePermissionEnum.DOWNLOAD_WATERMARKED &&
+        find_download_watermarked_existing_permissions?.length ==
+          file_ids.length &&
+        Boolean(status)
+      ) {
+        return new ConflictException('Enable view watermark');
       }
 
       const permission_ids = [];
@@ -230,7 +284,9 @@ export class GroupFilesPermissionsService {
                   id: In(file_ids),
                 },
                 permission: {
-                  type: In(this.getReversePermission(type as FilePermissionEnum)),
+                  type: In(
+                    this.getReversePermission(type as FilePermissionEnum),
+                  ),
                 },
               },
             },
@@ -285,9 +341,15 @@ export class GroupFilesPermissionsService {
     if (permission == FilePermissionEnum.VIEW_ORIGINAL) {
       return [FilePermissionEnum.VIEW_WATERMARKED];
     } else if (permission == FilePermissionEnum.VIEW_WATERMARKED) {
-      return [FilePermissionEnum.VIEW_ORIGINAL,FilePermissionEnum.DOWNLOAD_ORIGINAL];
+      return [
+        FilePermissionEnum.VIEW_ORIGINAL,
+        FilePermissionEnum.DOWNLOAD_ORIGINAL,
+      ];
     } else if (permission == FilePermissionEnum.DOWNLOAD_ORIGINAL) {
-      return [FilePermissionEnum.DOWNLOAD_WATERMARKED, FilePermissionEnum.VIEW_WATERMARKED];
+      return [
+        FilePermissionEnum.DOWNLOAD_WATERMARKED,
+        FilePermissionEnum.VIEW_WATERMARKED,
+      ];
     } else if (permission == FilePermissionEnum.DOWNLOAD_WATERMARKED) {
       return [FilePermissionEnum.DOWNLOAD_ORIGINAL];
     }
