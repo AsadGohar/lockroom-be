@@ -192,8 +192,8 @@ export class GroupFilesPermissionsService {
         Boolean(status)
       ) {
         return new ConflictException(
-          `${type === FilePermissionEnum.DOWNLOAD_WATERMARKED ? 'Enable view watermark first' : 'Already is true'}`,
-        );
+          `${type === FilePermissionEnum.DOWNLOAD_WATERMARKED ? 'Enable view watermark' : 'Disable download watermark'} first`,
+        )
       }
 
       const permission_ids = [];
@@ -201,7 +201,7 @@ export class GroupFilesPermissionsService {
         permission_ids.push(gfp.file_permission.permission.id);
       });
 
-      console.log(permission_ids,'idsss')
+      // console.log(permission_ids,'iddd')
 
       const update_permissions = await this.permissionRepository.update(
         {
@@ -212,7 +212,6 @@ export class GroupFilesPermissionsService {
         },
       );
       if (update_permissions.affected > 0) {
-        console.log('here nai ayee')
         if (
           status &&
           (type == FilePermissionEnum.VIEW_ORIGINAL ||
@@ -255,8 +254,6 @@ export class GroupFilesPermissionsService {
             // message: status ? 'enabled view on file' : 'disabled view on file',
           };
         }
-
-        
         return {
           update_permissions,
           message: 'Permission updated',

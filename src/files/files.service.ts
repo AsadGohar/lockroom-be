@@ -646,7 +646,7 @@ export class FilesService {
       parent_folder_id,
       group_id,
     );
-    console.log(result, 'result from getAllFilesByoRg');
+    // console.log(result, 'result from getAllFilesByoRg');
     // return
     const update_files_permissions =
       await this.gfpService.newUpdateGroupFilePermissions(
@@ -782,5 +782,55 @@ export class FilesService {
       allHasDownloadAccessOriginal,
       allHasDownloadAccessWatermark,
     };
+  }
+
+  async getAllFilesByUserId(
+    room_id: string,
+    parent_folder_id: string,
+    user_id: string,
+  ) {
+    try {
+      // console.log(room_id,'dasdas')
+      const user = await this.userRepository.find({
+        relations:['groups'],
+        where: { id: user_id },
+      });
+
+      console.log(user,'dsds')
+      
+
+      // return
+      if (!room_id) throw new NotFoundException('Missing Fields');
+      // const file_ids_in_org = [];
+      // const result = await this.getFoldersAndFilesByRoomId(
+      //   room_id,
+      //   parent_folder_id,
+      //   group_id,
+      //   file_ids_in_org,
+      // );
+      // const home_folder = JSON.parse(
+      //   JSON.stringify(
+      //     await this.foldersRepository.findOne({
+      //       where: {
+      //         room: { id: room_id },
+      //         id: parent_folder_id,
+      //       },
+      //       relations: ['sub_folders', 'files.room'],
+      //     }),
+      //   ),
+      // );
+      // const folder_file_structure = await this.buildFolderFileStructure(
+      //   home_folder,
+      //   group_id,
+      //   file_ids_in_org,
+      // );
+      // folder_file_structure.children = [
+      //   ...folder_file_structure.children,
+      //   ...result,
+      // ].sort((a, b) => a.index - b.index);
+      // return { folder_file_structure, file_ids_in_org };
+    } catch (error) {
+      throw Error(error);
+    }
   }
 }

@@ -70,7 +70,6 @@ export class FoldersService {
       where: { id: room_id },
     });
 
-    console.log(find_room, 'roooom');
     const new_folder = await this.foldersRepository.save({
       display_name:
         child_folders_with_same_name?.length > 0 && folderwithSamedisplay_name

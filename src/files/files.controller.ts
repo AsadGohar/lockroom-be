@@ -106,4 +106,20 @@ export class FilesController {
   restore(@Param('id') id: string) {
     return this.filesService.restore(id);
   }
+
+  @UseGuards(AuthGuard)
+  @Post('structure/user')
+  async findStructureByUserId(
+    @Body('room_id') room_id: string,
+    @Body('parent_folder_id') parent_folder_id: string,
+    @Request() request,
+  ) {
+    const result = await this.filesService.getAllFilesByUserId(
+      room_id,
+      parent_folder_id,
+      request.decoded_data.user_id,
+    );
+
+    // return result.folder_file_structure;
+  }
 }
