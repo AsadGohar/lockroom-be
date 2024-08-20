@@ -85,6 +85,7 @@ export class RoomsService {
     find_room.users = [];
     find_room.groups = [];
     find_room.folder = [];
+    find_room.files = [];
     const delete_users = await this.roomRepository.save(find_room);
     if (delete_users) {
       const delete_room = await this.roomRepository.delete({

@@ -156,8 +156,13 @@ export class GroupFilesPermissionsService {
       });
 
       const find_existing_permissions = await this.groupFilePermRepo.find({
+        relations: ['group', 'file_permission.permission'],
         where: {
+          group: { id: group_id },
           file_permission: {
+            file: {
+              id: In(file_ids),
+            },
             permission: {
               status: true,
               type: In([
@@ -165,23 +170,19 @@ export class GroupFilesPermissionsService {
                 FilePermissionEnum.DOWNLOAD_WATERMARKED,
               ]),
             },
-            file: {
-              id: In(file_ids),
-            },
           },
-          group: { id: group_id },
         },
-        relations: ['group', 'file_permission.permission'],
-      });
-      console.log(find_group_files_permissions.map(gfp=>{
-        return {
-          permissions: gfp.file_permission.permission
-        }
-      }), find_existing_permissions.map(gfp=>{
-        return {
-          permissions: gfp.file_permission.permission
-        }
-      }))
+      }); //check if the view_original and download watermark permissions are set to true before updating
+      // console.log(find_group_files_permissions.map(gfp=>{
+      //   return {
+      //     permissions: gfp.file_permission.permission
+      //   }
+      // }))
+      // console.log(find_existing_permissions.map(gfp=>{
+      //   return {
+      //     permissions: gfp.file_permission.permission
+      //   }
+      // }))
       // return
 
       if (
@@ -200,6 +201,8 @@ export class GroupFilesPermissionsService {
         permission_ids.push(gfp.file_permission.permission.id);
       });
 
+      console.log(permission_ids,'idsss')
+
       const update_permissions = await this.permissionRepository.update(
         {
           id: In(permission_ids),
@@ -209,6 +212,7 @@ export class GroupFilesPermissionsService {
         },
       );
       if (update_permissions.affected > 0) {
+        console.log('here nai ayee')
         if (
           status &&
           (type == FilePermissionEnum.VIEW_ORIGINAL ||

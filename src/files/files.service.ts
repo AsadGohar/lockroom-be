@@ -52,19 +52,8 @@ export class FilesService {
     file_uploaded_name: string,
   ) {
     try {
-
-      console.log(  name,
-        folder_id,
-        user_id,
-        room_id,
-        file_uploaded_name)
-      if (
-        !name ||
-        !folder_id ||
-        !user_id ||
-        !room_id ||
-        !file_uploaded_name
-      )
+      console.log(name, folder_id, user_id, room_id, file_uploaded_name);
+      if (!name || !folder_id || !user_id || !room_id || !file_uploaded_name)
         throw new NotFoundException('Missing Fields');
       const find_user = await this.userRepository.findOne({
         where: { id: user_id },
@@ -102,8 +91,8 @@ export class FilesService {
       // const organization = await this.orgService.findOne(room_id);
       const room = await this.roomRepository.findOne({
         where: {
-          id: room_id
-        }
+          id: room_id,
+        },
       });
 
       const bucket_url = process.env.S3_BUCKET_BASE_URL + file_uploaded_name;
@@ -114,7 +103,7 @@ export class FilesService {
         folder: find_folder,
         tree_index: current_tree_index + next,
         display_tree_index: find_folder.display_tree_index + '.' + next,
-        room:room,
+        room: room,
         current_version_id: 0,
         mime_type: mime_type || '',
         size_bytes: size,
@@ -346,12 +335,14 @@ export class FilesService {
     return folder_files;
   }
 
-  async getFoldersAndFilesByOrganizationId(
+  async getFoldersAndFilesByRoomId(
     room_id: string,
     parent_folder_id: string,
     group_id: string,
     file_ids: string[],
   ) {
+    // console.log(parent_folder_id,'pareeeent')
+    // return
     const root_folders = await this.foldersRepository.find({
       relations: ['sub_folders', 'files.room'],
       where: {
@@ -362,11 +353,14 @@ export class FilesService {
       order: { tree_index: 'ASC' },
     });
 
+    // console.log(root_folders,'root folders')
+    // return
+
     const folder_file_structures = [];
     if (root_folders.length > 0) {
       for (const root_folder of root_folders) {
         const new_root = root_folder.files.filter((file) => !file.is_deleted);
-        console.log(root_folder, new_root, 'dasdas');
+        // console.log(root_folder, new_root, 'dasdas');
         const folder_file_structure = await this.buildFolderFileStructure(
           root_folder,
           group_id,
@@ -375,13 +369,12 @@ export class FilesService {
         folder_file_structures.push(folder_file_structure);
       }
       for (const sub of folder_file_structures) {
-        const folder_file_structure =
-          await this.getFoldersAndFilesByOrganizationId(
-            room_id,
-            sub.id,
-            group_id,
-            file_ids,
-          );
+        const folder_file_structure = await this.getFoldersAndFilesByRoomId(
+          room_id,
+          sub.id,
+          group_id,
+          file_ids,
+        );
         sub.children.push(...folder_file_structure);
       }
     }
@@ -397,7 +390,7 @@ export class FilesService {
       // console.log(room_id,'dasdas')
       if (!room_id) throw new NotFoundException('Missing Fields');
       const file_ids_in_org = [];
-      const result = await this.getFoldersAndFilesByOrganizationId(
+      const result = await this.getFoldersAndFilesByRoomId(
         room_id,
         parent_folder_id,
         group_id,
@@ -423,7 +416,13 @@ export class FilesService {
         ...folder_file_structure.children,
         ...result,
       ].sort((a, b) => a.index - b.index);
-      return { folder_file_structure, file_ids_in_org };
+
+      const data = { ...folder_file_structure };
+      this.checkPermissions(data);
+      return {
+        folder_file_structure: JSON.parse(JSON.stringify(data, null, 2)),
+        file_ids_in_org,
+      };
     } catch (error) {
       throw Error(error);
     }
@@ -473,7 +472,7 @@ export class FilesService {
           });
         }
       } else {
-        console.log('folder not found', 'parent', parent_folder.name, path);
+        // console.log('folder not found', 'parent', parent_folder.name, path);
 
         const new_folder_id = await this.ensureFolderPathExists(
           path,
@@ -584,27 +583,27 @@ export class FilesService {
 
     let currentFolderId = parent_folder_id;
     for (const folderName of folderNames) {
-      console.log(folderName, 'name');
+      // console.log(folderName, 'name');
       const folder = await this.foldersRepository.findOne({
         where: { name: folderName, parent_folder_id: currentFolderId },
       });
       if (!folder) {
-        console.log('nested not found', folderName);
+        // console.log('nested not found', folderName);
         const create_folder = await this.folderService.create(
           folderName,
           user_id,
           room_id,
           currentFolderId,
         );
-        console.log(
-          'CREATED FOLDER',
-          create_folder.new_folder.name,
-          create_folder.parent_folder.name,
-        );
+        // console.log(
+        //   'CREATED FOLDER',
+        //   create_folder.new_folder.name,
+        //   create_folder.parent_folder.name,
+        // );
         currentFolderId = create_folder.new_folder.id;
       } else {
         currentFolderId = folder.id;
-        console.log('nested found', folderName);
+        // console.log('nested found', folderName);
       }
     }
     return currentFolderId;
@@ -640,11 +639,15 @@ export class FilesService {
     type: string,
     status: boolean,
   ) {
+    // console.log(room_id, parent_folder_id, group_id,type,status)
+    // return
     const result = await this.getAllFilesByOrg(
       room_id,
       parent_folder_id,
       group_id,
     );
+    console.log(result, 'result from getAllFilesByoRg');
+    // return
     const update_files_permissions =
       await this.gfpService.newUpdateGroupFilePermissions(
         group_id,
@@ -719,5 +722,65 @@ export class FilesService {
       return { message: 'file restored successfully' };
     }
     return { message: 'failed to restore file' };
+  }
+
+  private checkPermissions(obj) {
+    let allHasViewAccessOriginal = true;
+    let allHasViewAccessWatermark = true;
+    let allHasDownloadAccessOriginal = true;
+    let allHasDownloadAccessWatermark = true;
+
+    // If the object has children, process each child
+    if (obj.children && obj.children.length > 0) {
+      for (let child of obj.children) {
+        // Recursively check each child's permissions
+        const childPermissions = this.checkPermissions(child);
+
+        // Aggregate the permission values from children
+        allHasViewAccessOriginal =
+          allHasViewAccessOriginal && childPermissions.allHasViewAccessOriginal;
+        allHasViewAccessWatermark =
+          allHasViewAccessWatermark &&
+          childPermissions.allHasViewAccessWatermark;
+        allHasDownloadAccessOriginal =
+          allHasDownloadAccessOriginal &&
+          childPermissions.allHasDownloadAccessOriginal;
+        allHasDownloadAccessWatermark =
+          allHasDownloadAccessWatermark &&
+          childPermissions.allHasDownloadAccessWatermark;
+      }
+    } else {
+      // If it's a file (leaf node), return its permissions
+      allHasViewAccessOriginal =
+        obj.has_view_access_original !== undefined
+          ? obj.has_view_access_original
+          : true;
+      allHasViewAccessWatermark =
+        obj.has_view_access_watermark !== undefined
+          ? obj.has_view_access_watermark
+          : true;
+      allHasDownloadAccessOriginal =
+        obj.has_download_access_original !== undefined
+          ? obj.has_download_access_original
+          : true;
+      allHasDownloadAccessWatermark =
+        obj.has_download_access_watermark !== undefined
+          ? obj.has_download_access_watermark
+          : true;
+    }
+
+    // Set the new properties on the current object (folder)
+    obj.all_has_view_access_original = allHasViewAccessOriginal;
+    obj.all_has_view_access_watermark = allHasViewAccessWatermark;
+    obj.all_has_download_access_original = allHasDownloadAccessOriginal;
+    obj.all_has_download_access_watermark = allHasDownloadAccessWatermark;
+
+    // Return the permissions for the current object (folder)
+    return {
+      allHasViewAccessOriginal,
+      allHasViewAccessWatermark,
+      allHasDownloadAccessOriginal,
+      allHasDownloadAccessWatermark,
+    };
   }
 }

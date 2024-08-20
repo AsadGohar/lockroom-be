@@ -84,7 +84,7 @@ export class FoldersService {
       absolute_path: parent_folder.absolute_path + '/' + name,
       display_tree_index: parent_folder.display_tree_index + '.' + next,
       absolute_path_ids: '',
-      color: '#fec81e',
+      color: '#b0b6ba',
     });
     await this.foldersRepository.update(new_folder.id, {
       absolute_path_ids: parent_folder.absolute_path_ids + '/' + new_folder.id,

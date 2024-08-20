@@ -8,7 +8,6 @@ import { Group } from './entities/group.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { EmailService } from 'src/email/email.service';
-import { inviteTemplate } from 'src/utils/email.templates';
 import { FilesService } from 'src/files/files.service';
 import { GroupFilesPermissionsService } from 'src/group-files-permissions/group-files-permissions.service';
 import { FilesPermissionsService } from 'src/files-permissions/file-permissions.service';

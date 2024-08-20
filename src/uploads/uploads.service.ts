@@ -32,14 +32,14 @@ export class UploadService {
 
         file_names.push(file_name);
 
-        return this.s3Client.send(
-          new PutObjectCommand({
-            Bucket: 'lockroom',
-            Key: file_name,
-            Body: file.buffer,
-            ContentType: file.mimetype,
-          }),
-        );
+        // return this.s3Client.send(
+        //   new PutObjectCommand({
+        //     Bucket: 'lockroom',
+        //     Key: file_name,
+        //     Body: file.buffer,
+        //     ContentType: file.mimetype,
+        //   }),
+        // );
       });
 
       const response = await Promise.all(file_promises);

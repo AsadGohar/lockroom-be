@@ -76,8 +76,8 @@ import { Room } from './rooms/entities/room.entity';
     ThrottlerModule.forRoot({
       throttlers: [
         {
-          ttl: 60, // seconds
-          limit: 1000,
+          ttl: 300, // seconds
+          limit: 10000,
         },
       ],
     }),
