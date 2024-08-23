@@ -193,7 +193,7 @@ export class UsersService {
 
       const allowed_rooms = [];
 
-      console.log(user,'dasssss')
+      // console.log(user,'dasssss')
 
       if (!user) {
         throw new UnauthorizedException('Invalid Credentials'); // Throw UnauthorizedException

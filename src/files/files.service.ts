@@ -292,41 +292,56 @@ export class FilesService {
     };
     if (folder.files && folder.files.length > 0) {
       for (const file of folder.files.filter((file) => !file.is_deleted)) {
-        const file_permissions = await this.fpService.findFilePermissiosn(
-          file.id,
-          group_id,
-        );
 
-        const view_access_original =
-          file_permissions[FilePermissionEnum.VIEW_ORIGINAL];
-        const view_access_watermark =
-          file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
-        const download_access_original =
-          file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
-        const download_access_watermark =
-          file_permissions[FilePermissionEnum.DOWNLOAD_WATERMARKED];
-
-        const current_file_details = await this.fileVersionRepository.findOne({
-          where: {
-            id: file.current_version_id,
-          },
-        });
-
-        const file_access = {
-          type: 'file',
-          name: file.name,
-          has_view_access_original: view_access_original,
-          has_view_access_watermark: view_access_watermark,
-          has_download_access_original: download_access_original,
-          has_download_access_watermark: download_access_watermark,
-          index: file.tree_index,
-          mime_type: file.mime_type,
-          file_id: file.id,
-          url: current_file_details.bucket_url,
-          extension: file.extension,
-        };
-        folder_files.children.push(file_access);
-        file_ids.push(file.id);
+        if(group_id){          
+          const file_permissions = await this.fpService.findFilePermissiosn(
+            file.id,
+            group_id,
+          );
+  
+          const view_access_original =
+            file_permissions[FilePermissionEnum.VIEW_ORIGINAL];
+          const view_access_watermark =
+            file_permissions[FilePermissionEnum.VIEW_WATERMARKED];
+          const download_access_original =
+            file_permissions[FilePermissionEnum.DOWNLOAD_ORIGINAL];
+          const download_access_watermark =
+            file_permissions[FilePermissionEnum.DOWNLOAD_WATERMARKED];
+  
+          const current_file_details = await this.fileVersionRepository.findOne({
+            where: {
+              id: file.current_version_id,
+            },
+          });
+  
+          const file_access = {
+            type: 'file',
+            name: file.name,
+            has_view_access_original: view_access_original,
+            has_view_access_watermark: view_access_watermark,
+            has_download_access_original: download_access_original,
+            has_download_access_watermark: download_access_watermark,
+            index: file.tree_index,
+            mime_type: file.mime_type,
+            file_id: file.id,
+            url: current_file_details.bucket_url,
+            extension: file.extension,
+          };
+          folder_files.children.push(file_access);
+          file_ids.push(file.id);
+        }
+        else {
+          const file_access = {
+            type: 'file',
+            name: file.name,
+            index: file.tree_index,
+            mime_type: file.mime_type,
+            file_id: file.id,
+            extension: file.extension,
+          };
+          folder_files.children.push(file_access);
+          file_ids.push(file.id);
+        }
       }
     }
     folder_files.children = folder_files.children.sort(
@@ -338,7 +353,7 @@ export class FilesService {
   async getFoldersAndFilesByRoomId(
     room_id: string,
     parent_folder_id: string,
-    group_id: string,
+    group_id: string | null,
     file_ids: string[],
   ) {
     // console.log(parent_folder_id,'pareeeent')
@@ -791,46 +806,67 @@ export class FilesService {
   ) {
     try {
       // console.log(room_id,'dasdas')
-      const user = await this.userRepository.find({
-        relations:['groups'],
+      if (!room_id) throw new NotFoundException('Missing Fields');
+
+      const user = await this.userRepository.findOne({
+        relations: [
+          'organization.rooms.groups',
+          'organization_created.rooms.groups',
+          'organization.subscription',
+          'organization_created.subscription',
+          'groups',
+          'room',
+        ],
         where: { id: user_id },
       });
 
-      console.log(user,'dsds')
-      
+      if(user){
+        if(user.role == UserRoleEnum.OWNER){
+          // console.log(user, 'dsds');
+          // return
+          const room = user.organization_created.rooms.find(room=> room.id == room_id)
+          // console.log(room,'groupp')
+          const file_ids_in_org = [];
 
-      // return
-      if (!room_id) throw new NotFoundException('Missing Fields');
-      // const file_ids_in_org = [];
-      // const result = await this.getFoldersAndFilesByRoomId(
-      //   room_id,
-      //   parent_folder_id,
-      //   group_id,
-      //   file_ids_in_org,
-      // );
-      // const home_folder = JSON.parse(
-      //   JSON.stringify(
-      //     await this.foldersRepository.findOne({
-      //       where: {
-      //         room: { id: room_id },
-      //         id: parent_folder_id,
-      //       },
-      //       relations: ['sub_folders', 'files.room'],
-      //     }),
-      //   ),
-      // );
-      // const folder_file_structure = await this.buildFolderFileStructure(
-      //   home_folder,
-      //   group_id,
-      //   file_ids_in_org,
-      // );
-      // folder_file_structure.children = [
-      //   ...folder_file_structure.children,
-      //   ...result,
-      // ].sort((a, b) => a.index - b.index);
-      // return { folder_file_structure, file_ids_in_org };
+          const result = await this.getFoldersAndFilesByRoomId(
+            room_id,
+            parent_folder_id,
+            null,
+            file_ids_in_org,
+          );
+
+          // console.log(result,'result')
+          const folderResult  = this.filterFolders(result[0])
+          console.log(folderResult,'ewqeqwew')
+          return folderResult
+        }
+        if(user.role == UserRoleEnum.GUEST || user.role == UserRoleEnum.ADMIN){
+          const file_ids_in_org = [];
+          const result = await this.getFoldersAndFilesByRoomId(
+            room_id,
+            parent_folder_id,
+            null,
+            file_ids_in_org,
+          );
+          const folderResult  = this.filterFolders(result[0])
+          return folderResult
+        }
+      }
     } catch (error) {
       throw Error(error);
     }
+  }
+
+  private filterFolders(obj) {
+    if (obj.type !== 'folder') {
+      return null;
+    }
+    const filteredChildren = obj.children
+      ? obj.children.map(child => this.filterFolders(child)).filter(child => child !== null)
+      : [];
+    return {
+      ...obj,
+      children: filteredChildren,
+    };
   }
 }

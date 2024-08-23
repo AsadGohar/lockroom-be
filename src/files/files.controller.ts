@@ -114,12 +114,10 @@ export class FilesController {
     @Body('parent_folder_id') parent_folder_id: string,
     @Request() request,
   ) {
-    const result = await this.filesService.getAllFilesByUserId(
+    return await this.filesService.getAllFilesByUserId(
       room_id,
       parent_folder_id,
       request.decoded_data.user_id,
     );
-
-    // return result.folder_file_structure;
   }
 }
